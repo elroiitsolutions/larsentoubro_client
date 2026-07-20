@@ -7,7 +7,11 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon } from "lucide-react"
+import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon, EditIcon, TrashIcon, ArrowLeftIcon, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useParams, useNavigate } from "react-router-dom"
+import { DynamicFormSheet } from "@/components/DynamicFormSheet"
+import { toast } from "sonner"
 
 const storeStatusColors: Record<string, string> = {
     Operational: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
@@ -16,86 +20,93 @@ const storeStatusColors: Record<string, string> = {
     "New Setup": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
 }
 
-const stores = [
-    {
-        id: "STR-001",
-        name: "Mumbai Central Depot",
-        location: "Mumbai, Maharashtra",
-        manager: "Dinesh Patil",
-        status: "Operational",
-        inventory: 2840,
-        lastAudit: "10 Jul 2026",
-    },
-    {
-        id: "STR-002",
-        name: "Delhi North Warehouse",
-        location: "New Delhi, Delhi",
-        manager: "Priya Kapoor",
-        status: "Operational",
-        inventory: 5120,
-        lastAudit: "5 Jul 2026",
-    },
-    {
-        id: "STR-003",
-        name: "Chennai Hub",
-        location: "Chennai, Tamil Nadu",
-        manager: "Karthik R.",
-        status: "Renovation",
-        inventory: 980,
-        lastAudit: "28 Jun 2026",
-    },
-    {
-        id: "STR-004",
-        name: "Pune West Store",
-        location: "Pune, Maharashtra",
-        manager: "Sneha More",
-        status: "Operational",
-        inventory: 3200,
-        lastAudit: "12 Jul 2026",
-    },
-    {
-        id: "STR-005",
-        name: "Hyderabad Depot",
-        location: "Hyderabad, Telangana",
-        manager: "Ramesh Naidu",
-        status: "New Setup",
-        inventory: 0,
-        lastAudit: "—",
-    },
-    {
-        id: "STR-006",
-        name: "Ahmedabad Store",
-        location: "Ahmedabad, Gujarat",
-        manager: "Hitesh Shah",
-        status: "Closed",
-        inventory: 0,
-        lastAudit: "1 Jun 2026",
-    },
-]
+
 
 export function StoresPage() {
+    const { projectId } = useParams();
+    const navigate = useNavigate();
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingStore, setEditingStore] = useState<any>(null);
+    const [stores, setStores] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchStores = async () => {
+        setLoading(true);
+        try {
+            const url = projectId ? `http://localhost:3000/api/stores?projectId=${projectId}` : "http://localhost:3000/api/stores";
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.success) {
+                setStores(data.data);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to fetch stores");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStores();
+    }, [projectId]);
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this store?")) return;
+        try {
+            const res = await fetch(`http://localhost:3000/api/stores/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                toast.success("Store deleted");
+                fetchStores();
+            } else {
+                toast.error("Failed to delete store");
+            }
+        } catch (error) {
+            toast.error("An error occurred");
+        }
+    };
+
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">Stores</h2>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        View and manage all depot and warehouse locations.
-                    </p>
-                </div>
-                <Button className="gap-2">
+            <div className="flex items-center justify-end pt-3">
+                {/* <div className="flex items-center gap-4">
+                    {projectId && (
+                        <Button variant="outline" size="icon" onClick={() => navigate("/projects")}>
+                            <ArrowLeftIcon className="size-4" />
+                        </Button>
+                    )}
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Stores {projectId ? `for ${projectId}` : ""}</h1>
+                    </div>
+                </div> */}
+                <Button className="gap-2" onClick={() => { setEditingStore(null); setIsFormOpen(true); }}>
                     <PlusIcon className="size-4" />
                     Add Store
                 </Button>
             </div>
 
+            <DynamicFormSheet 
+                isOpen={isFormOpen} 
+                onClose={() => setIsFormOpen(false)} 
+                formSlug="create-store"
+                submitEndpoint={editingStore ? `http://localhost:3000/api/stores/${editingStore._id}` : "http://localhost:3000/api/stores"}
+                submitMethod={editingStore ? "PUT" : "POST"}
+                onSubmitSuccess={() => {
+                    toast.success(editingStore ? "Store updated successfully!" : "Store created successfully!");
+                    fetchStores();
+                }} 
+                additionalData={projectId ? { projectId } : undefined}
+                defaultValues={editingStore ? { ...editingStore, storeName: editingStore.name } : undefined}
+            />
+
             {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-4">
                 {[
-                    { label: "Total Stores", value: "6", color: "text-foreground" },
-                    { label: "Operational", value: "3", color: "text-green-600" },
-                    { label: "Renovation", value: "1", color: "text-orange-600" },
-                    { label: "Closed", value: "1", color: "text-red-600" },
+                    { label: "Total Stores", value: stores.length.toString(), color: "text-foreground" },
+                    { label: "Operational", value: stores.filter(s => s.status === 'Operational').length.toString(), color: "text-green-600" },
+                    { label: "Renovation", value: stores.filter(s => s.status === 'Renovation').length.toString(), color: "text-orange-600" },
+                    { label: "Closed", value: stores.filter(s => s.status === 'Closed').length.toString(), color: "text-red-600" },
                 ].map((s) => (
                     <Card key={s.label} className="py-4">
                         <CardContent className="flex flex-col items-center text-center px-4">
@@ -128,22 +139,39 @@ export function StoresPage() {
                                 <tr className="border-b bg-muted/40">
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">ID</th>
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Store Name</th>
+                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">Project Name</th>
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Location</th>
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Manager</th>
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Status</th>
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Inventory</th>
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Last Audit</th>
+                                    <th className="text-right px-6 py-3 font-medium text-muted-foreground w-24">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {stores.map((s, i) => (
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-6 py-8 text-center text-muted-foreground">
+                                            <Loader2 className="size-6 animate-spin mx-auto mb-2" />
+                                            Loading stores...
+                                        </td>
+                                    </tr>
+                                ) : stores.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-6 py-8 text-center text-muted-foreground">
+                                            No stores found.
+                                        </td>
+                                    </tr>
+                                ) : stores.map((s, i) => (
                                     <tr
-                                        key={s.id}
+                                        key={s._id}
+                                        onClick={() => navigate(`/stores/${s._id}/tools`)}
                                         className={`border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"
                                             }`}
                                     >
-                                        <td className="px-6 py-3 font-mono text-xs text-muted-foreground">{s.id}</td>
+                                        <td className="px-6 py-3 font-mono text-xs text-muted-foreground">{s._id.substring(s._id.length - 6)}</td>
                                         <td className="px-6 py-3 font-medium">{s.name}</td>
+                                        <td className="px-6 py-3 text-muted-foreground">{s.projectName}</td>
                                         <td className="px-6 py-3">
                                             <span className="flex items-center gap-1 text-muted-foreground">
                                                 <MapPinIcon className="size-3" />
@@ -162,6 +190,16 @@ export function StoresPage() {
                                             {s.inventory > 0 ? s.inventory.toLocaleString() : "—"}
                                         </td>
                                         <td className="px-6 py-3 text-muted-foreground">{s.lastAudit}</td>
+                                        <td className="px-6 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button variant="ghost" size="icon" className="size-8" onClick={(e) => { e.stopPropagation(); setEditingStore(s); setIsFormOpen(true); }}>
+                                                    <EditIcon className="size-4 text-muted-foreground" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="size-8 hover:text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete(s._id); }}>
+                                                    <TrashIcon className="size-4 text-muted-foreground" />
+                                                </Button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

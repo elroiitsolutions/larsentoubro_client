@@ -11,10 +11,7 @@ export function FormBuilderPage() {
         <div className="flex flex-col gap-6 h-full">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">Form Builder</h2>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        Create and manage dynamic forms.
-                    </p>
+                    {/* Header removed */}
                 </div>
             </div>
 

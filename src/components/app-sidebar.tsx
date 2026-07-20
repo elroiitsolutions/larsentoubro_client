@@ -62,13 +62,13 @@ const data = {
       isActive: false,
       items: [],
     },
-    {
-      title: "Tools",
-      url: "/tools",
-      icon: <WrenchIcon />,
-      isActive: false,
-      items: [],
-    },
+    // {
+    //   title: "Tools",
+    //   url: "/tools",
+    //   icon: <WrenchIcon />,
+    //   isActive: false,
+    //   items: [],
+    // },
     {
       title: "Settings",
       url: "/settings",
@@ -80,19 +80,21 @@ const data = {
       ],
     },
   ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "/support",
-      icon: <LifeBuoyIcon />,
-    },
-    {
-      title: "Feedback",
-      url: "/feedback",
-      icon: <SendIcon />,
-    },
-  ],
+  // navSecondary: [
+  //   {
+  //     title: "Support",
+  //     url: "/support",
+  //     icon: <LifeBuoyIcon />,
+  //   },
+  //   {
+  //     title: "Feedback",
+  //     url: "/feedback",
+  //     icon: <SendIcon />,
+  //   },
+  // ],
 }
+
+import logoUrl from "@/assets/logo.png"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -101,8 +103,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<NavLink to="/dashboard" />}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <BuildingIcon className="size-4" />
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white p-1">
+                <img src={logoUrl} alt="L&T Logo" className="w-full h-full object-contain" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">L&T Portal</span>
@@ -114,7 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

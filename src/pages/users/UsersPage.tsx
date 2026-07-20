@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PlusIcon, UsersIcon, SearchIcon, ShieldIcon, XIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { DynamicFormSheet } from "@/components/DynamicFormSheet"
+import { toast } from "sonner"
 
 const roleColors: Record<string, string> = {
     Admin: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -84,51 +86,7 @@ export function UsersPage() {
         fetchUsers()
     }, [fetchUsers])
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setSubmitting(true)
-        setError(null)
-
-        try {
-            const response = await fetch("http://localhost:3000/api/users", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                body: JSON.stringify({
-                    name,
-                    email,
-                    phonenumber,
-                    password,
-                    role,
-                    user_id: userId,
-                }),
-            })
-
-            const resData = await response.json()
-
-            if (!response.ok || !resData.success) {
-                throw new Error(resData.message || "Failed to create user")
-            }
-
-            // Close modal & reset form
-            setShowModal(false)
-            setName("")
-            setEmail("")
-            setPhonenumber("")
-            setPassword("")
-            setRole("Viewer")
-            setUserId("")
-
-            // Refresh list
-            fetchUsers()
-        } catch (err: any) {
-            setError(err.message || "Failed to create user. Please check all fields.")
-        } finally {
-            setSubmitting(false)
-        }
-    }
+    // handleSubmit is now handled by DynamicFormModal
 
     const filteredUsers = users.filter((u) => {
         const term = searchTerm.toLowerCase()
@@ -143,13 +101,7 @@ export function UsersPage() {
 
     return (
         <div className="flex flex-col gap-6 relative">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">Users</h2>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        Manage team members, roles, and access levels.
-                    </p>
-                </div>
+            <div className="flex items-center justify-end pt-3">
                 <Button className="gap-2" onClick={() => setShowModal(true)}>
                     <PlusIcon className="size-4" />
                     Create User
@@ -274,120 +226,16 @@ export function UsersPage() {
                 </CardContent>
             </Card>
 
-            {/* User Creation Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4">
-                    <Card className="w-full max-w-lg shadow-xl relative animate-in fade-in zoom-in-95 duration-100">
-                        <button
-                            onClick={() => setShowModal(false)}
-                            className="absolute right-4 top-4 rounded-xs p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                            <XIcon className="size-4" />
-                        </button>
-                        <CardHeader>
-                            <CardTitle>Create New User</CardTitle>
-                            <CardDescription>Enter details to add a member to the database.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                {error && (
-                                    <div className="rounded-lg bg-destructive/15 p-3 text-xs font-semibold text-destructive">
-                                        {error}
-                                    </div>
-                                )}
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-medium" htmlFor="name">Name</label>
-                                        <Input
-                                            id="name"
-                                            required
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            placeholder="e.g. John Doe"
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-medium" htmlFor="userId">User ID</label>
-                                        <Input
-                                            id="userId"
-                                            required
-                                            value={userId}
-                                            onChange={(e) => setUserId(e.target.value)}
-                                            placeholder="e.g. USR-009"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-medium" htmlFor="email">Email</label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            required
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="john.doe@landt.com"
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-medium" htmlFor="phonenumber">Phone Number</label>
-                                        <Input
-                                            id="phonenumber"
-                                            required
-                                            value={phonenumber}
-                                            onChange={(e) => setPhonenumber(e.target.value)}
-                                            placeholder="e.g. 9876543210"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-medium" htmlFor="password">Password</label>
-                                        <Input
-                                            id="password"
-                                            type="password"
-                                            required
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="Minimum 6 characters"
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-medium" htmlFor="role">Role</label>
-                                        <select
-                                            id="role"
-                                            value={role}
-                                            onChange={(e) => setRole(e.target.value as any)}
-                                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
-                                        >
-                                            <option value="Admin">Admin</option>
-                                            <option value="Manager">Manager</option>
-                                            <option value="Engineer">Engineer</option>
-                                            <option value="Analyst">Analyst</option>
-                                            <option value="Viewer">Viewer</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-end gap-3 pt-4 border-t">
-                                    <Button variant="outline" type="button" onClick={() => setShowModal(false)} disabled={submitting}>
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit" disabled={submitting}>
-                                        {submitting ? "Creating..." : "Create"}
-                                    </Button>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+            <DynamicFormSheet 
+                isOpen={showModal} 
+                onClose={() => setShowModal(false)} 
+                formSlug="create-user" 
+                submitEndpoint="http://localhost:3000/api/users"
+                onSubmitSuccess={() => {
+                    fetchUsers()
+                    toast.success("User created successfully!")
+                }} 
+            />
         </div>
     )
 }

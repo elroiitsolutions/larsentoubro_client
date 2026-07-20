@@ -8,6 +8,7 @@ import { ProjectsPage } from "@/pages/projects/ProjectsPage"
 import { StoresPage } from "@/pages/stores/StoresPage"
 import { UsersPage } from "@/pages/users/UsersPage"
 import { ToolsPage } from "@/pages/tools/ToolsPage"
+import { StoreToolsPage } from "@/pages/stores/StoreToolsPage"
 import { SettingsPage } from "@/pages/settings/SettingsPage"
 import { SettingsFormManagementPage } from "@/pages/settings/SettingsFormManagementPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
@@ -63,9 +64,11 @@ export function AppRouter() {
                         <Route index element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/projects" element={<ProjectsPage />} />
+                        <Route path="/projects/:projectId/stores" element={<StoresPage />} />
                         <Route path="/stores" element={<StoresPage />} />
+                        <Route path="/stores/:storeId/tools" element={<StoreToolsPage />} />
                         <Route path="/users" element={<UsersPage />} />
-                        <Route path="/tools" element={<ToolsPage />} />
+                        {/* <Route path="/tools" element={<ToolsPage />} /> */}
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/settings/forms" element={<SettingsFormManagementPage />} />
                     </Route>

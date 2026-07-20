@@ -1,5 +1,5 @@
 import React, { useEffect } from "react"
-import { useFormBuilderStore, FormField } from "@/store/useFormBuilderStore"
+import { useFormBuilderStore } from "@/store/useFormBuilderStore"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,22 +29,15 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
 
     return (
         <div className="flex flex-col gap-6 w-full">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={onBack}>
-                        <ArrowLeftIcon className="size-4" />
-                    </Button>
-                    <div>
-                        <h2 className="text-xl font-semibold tracking-tight">Editing: {form.name}</h2>
-                    </div>
-                </div>
+            <div className="flex items-center justify-end pt-5">
+               
                 <Button onClick={handleSave} className="gap-2">
                     <SaveIcon className="size-4" /> Save Form
                 </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-6 items-start">
-                <div className="col-span-2 flex flex-col gap-4">
+            <div className="grid grid-cols-1 w-full max-w-2xl mx-auto gap-6 items-start">
+                <div className="col-span-1 flex flex-col gap-4 w-full">
                     {fields.sort((a, b) => a.order - b.order).map((field, index) => (
                         <Card key={field.id} className="relative group">
                             <CardContent className="p-4 flex gap-4 items-start">
@@ -64,13 +57,13 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                             onChange={(e) => updateField(field.id, { label: e.target.value })} 
                                         />
                                     </div>
-                                    <div className="flex flex-col gap-2">
+                                    {/* <div className="flex flex-col gap-2">
                                         <label className="text-xs font-medium">Name (Field Key)</label>
                                         <Input 
                                             value={field.name} 
                                             onChange={(e) => updateField(field.id, { name: e.target.value })} 
                                         />
-                                    </div>
+                                    </div> */}
                                     <div className="flex flex-col gap-2">
                                         <label className="text-xs font-medium">Type</label>
                                         <select 
@@ -105,8 +98,66 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                             />
                                         </div>
                                     </div>
+                                    
+                                    {(field.type === 'select' || field.type === 'checkbox' || field.type === 'radio') && (
+                                        <div className="col-span-2 flex flex-col gap-3 border-t pt-4 mt-2">
+                                            <label className="text-xs font-medium">Options</label>
+                                            <div className="flex flex-col gap-2">
+                                                {(field.options || []).map((opt, i) => (
+                                                    <div key={i} className="flex items-center gap-2">
+                                                        <Input 
+                                                            placeholder="Label (e.g. Admin)" 
+                                                            value={opt.label}
+                                                            onChange={(e) => {
+                                                                const newOpts = [...(field.options || [])];
+                                                                const oldLabel = newOpts[i].label;
+                                                                newOpts[i].label = e.target.value;
+                                                                
+                                                                // Auto-generate value from label if it was empty or matching
+                                                                const oldAutoValue = oldLabel.toLowerCase().replace(/\s+/g, '_');
+                                                                if (!newOpts[i].value || newOpts[i].value === oldAutoValue) {
+                                                                    newOpts[i].value = e.target.value.toLowerCase().replace(/\s+/g, '_');
+                                                                }
+                                                                
+                                                                updateField(field.id, { options: newOpts });
+                                                            }}
+                                                            className="h-8 text-xs"
+                                                        />
+                                                        <Input 
+                                                            placeholder="Value (e.g. admin)" 
+                                                            value={opt.value}
+                                                            onChange={(e) => {
+                                                                const newOpts = [...(field.options || [])];
+                                                                newOpts[i].value = e.target.value;
+                                                                updateField(field.id, { options: newOpts });
+                                                            }}
+                                                            className="h-8 text-xs"
+                                                        />
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive hover:text-destructive/90" onClick={() => {
+                                                            const newOpts = [...(field.options || [])];
+                                                            newOpts.splice(i, 1);
+                                                            updateField(field.id, { options: newOpts });
+                                                        }}>
+                                                            <TrashIcon className="size-3" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    className="w-fit h-7 text-xs gap-1 mt-1"
+                                                    onClick={() => {
+                                                        const newOpts = [...(field.options || []), { label: '', value: '' }];
+                                                        updateField(field.id, { options: newOpts });
+                                                    }}
+                                                >
+                                                    <PlusIcon className="size-3" /> Add Option
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90" onClick={() => removeField(field.id)}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90 shrink-0" onClick={() => removeField(field.id)}>
                                     <TrashIcon className="size-4" />
                                 </Button>
                             </CardContent>
@@ -118,7 +169,7 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                     </Button>
                 </div>
                 
-                <div className="col-span-1">
+                {/* <div className="col-span-1">
                     <Card>
                         <CardHeader>
                             <CardTitle>Form Settings</CardTitle>
@@ -137,7 +188,7 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                             </p>
                         </CardContent>
                     </Card>
-                </div>
+                </div> */}
             </div>
         </div>
     )

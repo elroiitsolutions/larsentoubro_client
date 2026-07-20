@@ -120,10 +120,7 @@ export function ToolsPage() {
         <div className="flex flex-col gap-8">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-semibold tracking-tight">Tools</h2>
-                <p className="text-muted-foreground text-sm mt-1">
-                    A collection of utilities and tools to streamline your operations.
-                </p>
+                {/* Header removed */}
             </div>
 
             {/* Summary strip */}

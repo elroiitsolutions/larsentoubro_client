@@ -87,11 +87,13 @@ export function DynamicForm({ formDefinition, onSubmit, defaultValues = {} }: Dy
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-5">
         {fields.map(field => (
           <DynamicField key={field.id} field={field} />
         ))}
-        <Button type="submit">Submit Form</Button>
+        <div className="pt-2">
+          <Button type="submit" className="w-full h-9 text-base">Submit Form</Button>
+        </div>
       </form>
     </FormProvider>
   );

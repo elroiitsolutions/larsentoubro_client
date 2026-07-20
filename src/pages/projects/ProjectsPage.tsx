@@ -6,11 +6,12 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { PlusIcon, FolderOpenIcon, SearchIcon, Loader2 } from "lucide-react"
+import { PlusIcon, FolderOpenIcon, SearchIcon, Loader2, EditIcon, TrashIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { DynamicForm } from "@/components/DynamicForm"
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { DynamicFormSheet } from "@/components/DynamicFormSheet"
+import { toast } from "sonner"
 
 const statusColors: Record<string, string> = {
     Active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
@@ -19,154 +20,81 @@ const statusColors: Record<string, string> = {
     Planning: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
 }
 
-const projects = [
-    {
-        id: "PRJ-001",
-        name: "Smart City Infrastructure",
-        department: "Civil Engineering",
-        lead: "Arun Kumar",
-        status: "Active",
-        budget: "₹4.2 Cr",
-        deadline: "Dec 2026",
-    },
-    {
-        id: "PRJ-002",
-        name: "Power Grid Upgrade",
-        department: "Electrical",
-        lead: "Meena Sharma",
-        status: "Planning",
-        budget: "₹7.8 Cr",
-        deadline: "Mar 2027",
-    },
-    {
-        id: "PRJ-003",
-        name: "Highway Extension Phase 2",
-        department: "Construction",
-        lead: "Ravi Pillai",
-        status: "Active",
-        budget: "₹12.5 Cr",
-        deadline: "Jun 2027",
-    },
-    {
-        id: "PRJ-004",
-        name: "Water Treatment Plant",
-        department: "Environmental",
-        lead: "Sita Nair",
-        status: "On Hold",
-        budget: "₹3.1 Cr",
-        deadline: "Sep 2026",
-    },
-    {
-        id: "PRJ-005",
-        name: "Metro Rail Feasibility",
-        department: "Transport",
-        lead: "Vikram Rao",
-        status: "Completed",
-        budget: "₹1.5 Cr",
-        deadline: "Jan 2026",
-    },
-    {
-        id: "PRJ-006",
-        name: "Industrial Park Setup",
-        department: "Civil Engineering",
-        lead: "Anjali Das",
-        status: "Active",
-        budget: "₹9.0 Cr",
-        deadline: "Feb 2027",
-    },
-]
+
 
 export function ProjectsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [formConfig, setFormConfig] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [projects, setProjects] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
-    const handleOpenForm = async () => {
-        setIsFormOpen(true);
-        if (formConfig) return; // Already loaded
+    const [editingProject, setEditingProject] = useState<any>(null);
 
-        setIsLoading(true);
-        setError('');
+    const fetchProjects = async () => {
+        setLoading(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/forms/project-creation`);
+            const res = await fetch("http://localhost:3000/api/projects");
             const data = await res.json();
-            if (data.success && data.data && data.data.fields && data.data.fields.length > 0) {
-                setFormConfig(data.data);
-            } else {
-                setError('The Project Creation form has not been configured by the admin yet.');
+            if (data.success) {
+                setProjects(data.data);
             }
-        } catch (err) {
-            setError('Failed to load form configuration. Make sure backend is running.');
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to fetch projects");
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
-    const handleFormSubmit = async (data: any) => {
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this project?")) return;
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/forms/project-creation/submit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const result = await res.json();
-            if (result.success) {
-                alert("Project Created Successfully!");
-                setIsFormOpen(false);
+            const res = await fetch(`http://localhost:3000/api/projects/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                toast.success("Project deleted");
+                fetchProjects();
             } else {
-                alert("Submission failed: " + JSON.stringify(result.errors));
+                toast.error("Failed to delete project");
             }
-        } catch (err) {
-            alert("Error submitting form.");
+        } catch (error) {
+            toast.error("An error occurred");
         }
     };
+
+    useEffect(() => {
+        fetchProjects();
+    }, []);
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">Projects</h2>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        Manage and track all your enterprise projects.
-                    </p>
-                </div>
-                <Button className="gap-2" onClick={handleOpenForm}>
+            <div className="flex items-center justify-end pt-3">
+                <Button className="gap-2" onClick={() => { setEditingProject(null); setIsFormOpen(true); }}>
                     <PlusIcon className="size-4" />
                     New Project
                 </Button>
             </div>
 
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>New Project</DialogTitle>
-                        <DialogDescription>
-                            Create a new project using the dynamically configured form.
-                        </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="py-4">
-                        {isLoading ? (
-                            <div className="flex justify-center p-8"><Loader2 className="animate-spin text-muted-foreground size-8" /></div>
-                        ) : error ? (
-                            <div className="p-4 bg-muted text-muted-foreground rounded-md text-sm border">
-                                {error}
-                            </div>
-                        ) : formConfig ? (
-                            <DynamicForm formDefinition={formConfig} onSubmit={handleFormSubmit} />
-                        ) : null}
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <DynamicFormSheet 
+                isOpen={isFormOpen} 
+                onClose={() => setIsFormOpen(false)} 
+                formSlug="create-project" 
+                submitEndpoint={editingProject ? `http://localhost:3000/api/projects/${editingProject._id}` : "http://localhost:3000/api/projects"}
+                submitMethod={editingProject ? "PUT" : "POST"}
+                onSubmitSuccess={() => {
+                    toast.success(editingProject ? "Project updated successfully!" : "Project created successfully!");
+                    fetchProjects();
+                }} 
+                defaultValues={editingProject ? { ...editingProject, projectName: editingProject.name } : undefined}
+            />
 
             {/* Stats row */}
             <div className="grid gap-4 sm:grid-cols-4">
                 {[
-                    { label: "Total", value: "6", color: "text-foreground" },
-                    { label: "Active", value: "3", color: "text-green-600" },
-                    { label: "On Hold", value: "1", color: "text-yellow-600" },
-                    { label: "Completed", value: "1", color: "text-blue-600" },
+                    { label: "Total", value: projects.length.toString(), color: "text-foreground" },
+                    { label: "Active", value: projects.filter(p => p.status === 'Active').length.toString(), color: "text-green-600" },
+                    { label: "On Hold", value: projects.filter(p => p.status === 'On Hold').length.toString(), color: "text-yellow-600" },
+                    { label: "Completed", value: projects.filter(p => p.status === 'Completed').length.toString(), color: "text-blue-600" },
                 ].map((s) => (
                     <Card key={s.label} className="py-4">
                         <CardContent className="flex flex-col items-center text-center px-4">
@@ -204,16 +132,31 @@ export function ProjectsPage() {
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Status</th>
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Budget</th>
                                     <th className="text-left px-6 py-3 font-medium text-muted-foreground">Deadline</th>
+                                    <th className="text-right px-6 py-3 font-medium text-muted-foreground w-24">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {projects.map((p, i) => (
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
+                                            <Loader2 className="size-6 animate-spin mx-auto mb-2" />
+                                            Loading projects...
+                                        </td>
+                                    </tr>
+                                ) : projects.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
+                                            No projects found.
+                                        </td>
+                                    </tr>
+                                ) : projects.map((p, i) => (
                                     <tr
-                                        key={p.id}
+                                        key={p._id}
+                                        onClick={() => navigate(`/projects/${p._id}/stores`)}
                                         className={`border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"
                                             }`}
                                     >
-                                        <td className="px-6 py-3 font-mono text-xs text-muted-foreground">{p.id}</td>
+                                        <td className="px-6 py-3 font-mono text-xs text-muted-foreground">{p._id.substring(p._id.length - 6)}</td>
                                         <td className="px-6 py-3 font-medium">{p.name}</td>
                                         <td className="px-6 py-3 text-muted-foreground">{p.department}</td>
                                         <td className="px-6 py-3">{p.lead}</td>
@@ -226,6 +169,16 @@ export function ProjectsPage() {
                                         </td>
                                         <td className="px-6 py-3 font-medium">{p.budget}</td>
                                         <td className="px-6 py-3 text-muted-foreground">{p.deadline}</td>
+                                        <td className="px-6 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button variant="ghost" size="icon" className="size-8" onClick={(e) => { e.stopPropagation(); setEditingProject(p); setIsFormOpen(true); }}>
+                                                    <EditIcon className="size-4 text-muted-foreground" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="size-8 hover:text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete(p._id); }}>
+                                                    <TrashIcon className="size-4 text-muted-foreground" />
+                                                </Button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
