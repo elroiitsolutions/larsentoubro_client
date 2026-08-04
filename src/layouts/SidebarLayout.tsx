@@ -5,11 +5,11 @@ import { SiteHeader } from "@/components/site-header"
 
 export function SidebarLayout() {
     return (
-        <SidebarProvider>
+        <SidebarProvider className="h-screen overflow-hidden">
             <AppSidebar />
-            <SidebarInset>
+            <SidebarInset className="h-screen overflow-hidden flex flex-col">
                 <SiteHeader />
-                <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+                <div className="flex-1 min-h-0 overflow-hidden flex flex-col p-4 pt-0">
                     <Outlet />
                 </div>
             </SidebarInset>

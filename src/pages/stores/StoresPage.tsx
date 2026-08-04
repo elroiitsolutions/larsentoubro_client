@@ -1,47 +1,68 @@
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon, EditIcon, TrashIcon, ArrowLeftIcon, Loader2 } from "lucide-react"
+import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon, EditIcon, TrashIcon, Loader2, CheckCircle2Icon, ShieldAlertIcon } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { DynamicFormSheet } from "@/components/DynamicFormSheet"
+import storeService from "@/services/store.service"
+import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
+import NoAccessPage from "../NoAccessPage"
 
 const storeStatusColors: Record<string, string> = {
-    Operational: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    Closed: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    Renovation: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    "New Setup": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    Operational: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20",
+    Closed: "bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/20",
+    Renovation: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/20",
+    "New Setup": "bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/20",
 }
-
-
 
 export function StoresPage() {
     const { projectId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingStore, setEditingStore] = useState<any>(null);
     const [stores, setStores] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredStores = stores.filter((s) => {
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            (s.name && s.name.toLowerCase().includes(q)) ||
+            (s.storeCode && s.storeCode.toLowerCase().includes(q)) ||
+            (s.location && s.location.toLowerCase().includes(q)) ||
+            (s.city && s.city.toLowerCase().includes(q)) ||
+            (s.managerName && s.managerName.toLowerCase().includes(q)) ||
+            (s._id && s._id.toLowerCase().includes(q))
+        );
+    });
+
+    const assignedProjectIds = (user?.projects || []).map((p: any) => typeof p === 'object' ? p._id : p);
+    const isProjectRestricted = Boolean(user && user.role !== "Admin" && projectId && !assignedProjectIds.includes(projectId));
 
     const fetchStores = async () => {
+        if (isProjectRestricted) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
-            const url = projectId ? `http://localhost:3000/api/stores?projectId=${projectId}` : "http://localhost:3000/api/stores";
-            const res = await fetch(url);
-            const data = await res.json();
+            const data = await storeService.getStores(projectId);
             if (data.success) {
                 setStores(data.data);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast.error("Failed to fetch stores");
+            const message = error?.response?.data?.message || "Failed to fetch stores";
+            toast.error(message);
         } finally {
             setLoading(false);
         }
@@ -49,164 +70,227 @@ export function StoresPage() {
 
     useEffect(() => {
         fetchStores();
-    }, [projectId]);
+    }, [projectId, user]);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this store?")) return;
         try {
-            const res = await fetch(`http://localhost:3000/api/stores/${id}`, { method: 'DELETE' });
-            const data = await res.json();
+            const data = await storeService.deleteStore(id);
             if (data.success) {
                 toast.success("Store deleted");
                 fetchStores();
             } else {
-                toast.error("Failed to delete store");
+                toast.error(data.message || "Failed to delete store");
             }
-        } catch (error) {
-            toast.error("An error occurred");
+        } catch (error: any) {
+            console.error(error);
+            const message = error?.response?.data?.message || "An error occurred";
+            toast.error(message);
         }
     };
 
-    return (
-        <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-end pt-3">
-                {/* <div className="flex items-center gap-4">
-                    {projectId && (
-                        <Button variant="outline" size="icon" onClick={() => navigate("/projects")}>
-                            <ArrowLeftIcon className="size-4" />
-                        </Button>
-                    )}
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Stores {projectId ? `for ${projectId}` : ""}</h1>
-                    </div>
-                </div> */}
-                <Button className="gap-2" onClick={() => { setEditingStore(null); setIsFormOpen(true); }}>
-                    <PlusIcon className="size-4" />
-                    Add Store
+    const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden";
+
+    if (isProjectRestricted) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-6">
+                <div className="p-4 rounded-2xl bg-destructive/10 text-destructive border border-destructive/20 shadow-xs">
+                    <ShieldAlertIcon className="size-12" />
+                </div>
+                <h2 className="text-2xl font-extrabold tracking-tight">Access Restricted</h2>
+                <p className="text-muted-foreground text-sm max-w-md">
+                    You do not have permission to view Stores under this Project. Please contact your system Administrator if you require access.
+                </p>
+                <Button onClick={() => navigate("/projects")} className="mt-2 rounded-xl shadow-sm cursor-pointer">
+                    Return to My Assigned Projects
                 </Button>
             </div>
+        );
+    }
 
-            <DynamicFormSheet 
-                isOpen={isFormOpen} 
-                onClose={() => setIsFormOpen(false)} 
+    const isPageRestricted = Boolean(
+        user &&
+        user.role !== "Admin" &&
+        user.role !== "Vendor" &&
+        (!user.allowedPages || !user.allowedPages.includes("/stores"))
+    );
+
+    if (isPageRestricted) {
+        return <NoAccessPage />;
+    }
+
+    return (
+        <div className="flex flex-col gap-6 w-full mx-auto p-2 pb-10">
+            <div className="flex items-center justify-between pt-2">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Stores {projectId ? `for ${projectId.substring(0, 6)}` : ""}</h1>
+                    <p className="text-muted-foreground mt-1 text-sm">Inventory and location overview.</p>
+                </div>
+                {(!user || user.role === "Admin") && (
+                    <Button className="gap-2 rounded-xl shadow-md cursor-pointer" size="lg" onClick={() => { setEditingStore(null); setIsFormOpen(true); }}>
+                        <PlusIcon className="size-4" />
+                        Add Store
+                    </Button>
+                )}
+            </div>
+
+            <DynamicFormSheet
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
                 formSlug="create-store"
-                submitEndpoint={editingStore ? `http://localhost:3000/api/stores/${editingStore._id}` : "http://localhost:3000/api/stores"}
+                submitEndpoint={editingStore ? `/stores/${editingStore._id}` : "/stores"}
                 submitMethod={editingStore ? "PUT" : "POST"}
                 onSubmitSuccess={() => {
                     toast.success(editingStore ? "Store updated successfully!" : "Store created successfully!");
                     fetchStores();
-                }} 
+                }}
                 additionalData={projectId ? { projectId } : undefined}
                 defaultValues={editingStore ? { ...editingStore, storeName: editingStore.name } : undefined}
             />
 
-            {/* Stats */}
-            <div className="grid gap-4 sm:grid-cols-4">
+            {/* Stats row */}
+            <div className="grid gap-6 sm:grid-cols-4">
                 {[
-                    { label: "Total Stores", value: stores.length.toString(), color: "text-foreground" },
-                    { label: "Operational", value: stores.filter(s => s.status === 'Operational').length.toString(), color: "text-green-600" },
-                    { label: "Renovation", value: stores.filter(s => s.status === 'Renovation').length.toString(), color: "text-orange-600" },
-                    { label: "Closed", value: stores.filter(s => s.status === 'Closed').length.toString(), color: "text-red-600" },
+                    { label: "Total Stores", value: stores.length.toString(), color: "text-foreground", bg: "bg-primary/10", icon: StoreIcon, iconColor: "text-primary" },
+                    { label: "Operational", value: stores.filter(s => s.status === 'Operational').length.toString(), color: "text-emerald-500", bg: "bg-emerald-500/10", icon: CheckCircle2Icon, iconColor: "text-emerald-500" },
+                    { label: "Renovation", value: stores.filter(s => s.status === 'Renovation').length.toString(), color: "text-orange-500", bg: "bg-orange-500/10", iconColor: "text-orange-500" },
+                    { label: "Closed", value: stores.filter(s => s.status === 'Closed').length.toString(), color: "text-red-500", bg: "bg-red-500/10", iconColor: "text-red-500" },
                 ].map((s) => (
-                    <Card key={s.label} className="py-4">
-                        <CardContent className="flex flex-col items-center text-center px-4">
-                            <span className={`text-3xl font-bold ${s.color}`}>{s.value}</span>
-                            <span className="text-xs text-muted-foreground mt-1">{s.label}</span>
-                        </CardContent>
+                    <Card key={s.label} className={`${bentoCardClass} p-6 flex flex-col justify-between hover:-translate-y-1`}>
+                        <div className="flex items-start justify-between">
+                            <span className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">{s.label}</span>
+                            {s.icon && (
+                                <div className={`p-2 rounded-lg ${s.bg} ${s.iconColor}`}>
+                                    <s.icon className="size-4" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="mt-4">
+                            <span className={`text-4xl font-black tracking-tighter ${s.color}`}>{s.value}</span>
+                        </div>
                     </Card>
                 ))}
             </div>
 
-            {/* Stores table */}
-            <Card>
-                <CardHeader className="flex flex-row items-center gap-4">
+            {/* Table card */}
+            <Card className={`${bentoCardClass} flex flex-col mt-2`}>
+                <CardHeader className="flex flex-row items-center gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">
                     <div className="flex-1">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <StoreIcon className="size-4 text-muted-foreground" />
-                            All Stores
+                        <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                            <StoreIcon className="size-5 text-primary" />
+                            Store Locations
                         </CardTitle>
-                        <CardDescription>Inventory and location overview</CardDescription>
                     </div>
-                    <div className="relative w-56">
-                        <SearchIcon className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
-                        <Input placeholder="Search stores..." className="pl-8 h-8 text-sm" />
+                    <div className="relative w-64">
+                        <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                        <Input
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search stores..."
+                            className="pl-9 h-9 rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30"
+                        />
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b bg-muted/40">
-                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">ID</th>
-                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">Store Name</th>
-                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">Project Name</th>
-                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">Location</th>
-                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">Manager</th>
-                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">Status</th>
-                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">Inventory</th>
-                                    <th className="text-left px-6 py-3 font-medium text-muted-foreground">Last Audit</th>
-                                    <th className="text-right px-6 py-3 font-medium text-muted-foreground w-24">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan={9} className="px-6 py-8 text-center text-muted-foreground">
-                                            <Loader2 className="size-6 animate-spin mx-auto mb-2" />
-                                            Loading stores...
-                                        </td>
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="size-8 animate-spin text-primary" />
+                        </div>
+                    ) : filteredStores.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                            <StoreIcon className="size-12 mx-auto mb-3 opacity-50" />
+                            <p className="font-medium">No stores found.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-border/50 bg-muted/10">
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Store ID</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Store Name</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Location</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Manager</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Status</th>
+                                        <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
                                     </tr>
-                                ) : stores.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9} className="px-6 py-8 text-center text-muted-foreground">
-                                            No stores found.
-                                        </td>
-                                    </tr>
-                                ) : stores.map((s, i) => (
-                                    <tr
-                                        key={s._id}
-                                        onClick={() => navigate(`/stores/${s._id}/tools`)}
-                                        className={`border-b last:border-0 hover:bg-muted/30 cursor-pointer transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"
-                                            }`}
-                                    >
-                                        <td className="px-6 py-3 font-mono text-xs text-muted-foreground">{s._id.substring(s._id.length - 6)}</td>
-                                        <td className="px-6 py-3 font-medium">{s.name}</td>
-                                        <td className="px-6 py-3 text-muted-foreground">{s.projectName}</td>
-                                        <td className="px-6 py-3">
-                                            <span className="flex items-center gap-1 text-muted-foreground">
-                                                <MapPinIcon className="size-3" />
-                                                {s.location}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3">{s.manager}</td>
-                                        <td className="px-6 py-3">
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${storeStatusColors[s.status]}`}
+                                </thead>
+                                <tbody>
+                                    {filteredStores.map((store) => (
+                                        <tr
+                                            key={store._id}
+                                            className="border-b border-border/40 last:border-0 hover:bg-muted/60 transition-colors group cursor-pointer"
+                                            onClick={() => navigate(`/stores/${store._id}/tools`)}
+                                        >
+                                            <td className="px-6 py-4 font-mono font-medium text-xs text-muted-foreground">{store.storeCode || store._id.substring(0, 8)}</td>
+                                            <td className="px-6 py-4 font-bold text-foreground">
+                                                {store.name}
+                                                {store.type && <span className="ml-2 inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">{store.type}</span>}
+                                            </td>
+                                            <td className="px-6 py-4 text-muted-foreground">
+                                                <div className="flex items-center gap-1.5">
+                                                    <MapPinIcon className="size-3.5 text-muted-foreground/70" />
+                                                    <span>{store.location || store.city || "N/A"}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 font-medium">{store.managerName || "Unassigned"}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold shadow-sm ${storeStatusColors[store.status] || "bg-gray-100 text-gray-700"}`}>
+                                                    {store.status || "Operational"}
+                                                </span>
+                                            </td>
+                                            <td
+                                                className="px-6 py-4 text-right"
+                                                onClick={(e) => e.stopPropagation()}
                                             >
-                                                {s.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3 font-medium">
-                                            {s.inventory > 0 ? s.inventory.toLocaleString() : "—"}
-                                        </td>
-                                        <td className="px-6 py-3 text-muted-foreground">{s.lastAudit}</td>
-                                        <td className="px-6 py-3 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button variant="ghost" size="icon" className="size-8" onClick={(e) => { e.stopPropagation(); setEditingStore(s); setIsFormOpen(true); }}>
-                                                    <EditIcon className="size-4 text-muted-foreground" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="size-8 hover:text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete(s._id); }}>
-                                                    <TrashIcon className="size-4 text-muted-foreground" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 px-2.5 text-xs font-semibold hover:bg-primary/10 hover:text-primary cursor-pointer"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/stores/${store._id}/tools`);
+                                                        }}
+                                                    >
+                                                        Tools ({store.toolsCount || 0})
+                                                    </Button>
+                                                    {(!user || user.role === "Admin") && (
+                                                        <>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEditingStore(store);
+                                                                    setIsFormOpen(true);
+                                                                }}
+                                                            >
+                                                                <EditIcon className="size-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDelete(store._id);
+                                                                }}
+                                                            >
+                                                                <TrashIcon className="size-4" />
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
-    )
+    );
 }

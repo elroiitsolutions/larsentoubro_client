@@ -8,85 +8,94 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusIcon, UsersIcon, SearchIcon, ShieldIcon, XIcon } from "lucide-react"
+import {
+    PlusIcon,
+    UsersIcon,
+    SearchIcon,
+    ShieldIcon,
+    ShieldAlertIcon,
+    CheckCircle2Icon,
+    EditIcon,
+    TrashIcon,
+    FolderOpenIcon,
+    StoreIcon,
+    LayoutDashboardIcon,
+    Settings2Icon
+} from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { DynamicFormSheet } from "@/components/DynamicFormSheet"
+import { useNavigate } from "react-router-dom"
+import { UserFormModal } from "./UserFormModal"
+import userService from "@/services/user.service"
+import type { UserRecord } from "@/services/user.service"
 import { toast } from "sonner"
-
-const roleColors: Record<string, string> = {
-    Admin: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    Manager: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    Engineer: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-    Analyst: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    Viewer: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
-}
+import NoAccessPage from "../NoAccessPage"
 
 const avatarColors = [
-    "bg-blue-500",
-    "bg-green-500",
-    "bg-purple-500",
-    "bg-orange-500",
-    "bg-red-500",
-    "bg-teal-500",
-    "bg-yellow-500",
-    "bg-pink-500",
+    "bg-gradient-to-br from-blue-400 to-blue-600",
+    "bg-gradient-to-br from-emerald-400 to-emerald-600",
+    "bg-gradient-to-br from-purple-400 to-purple-600",
+    "bg-gradient-to-br from-orange-400 to-orange-600",
+    "bg-gradient-to-br from-red-400 to-red-600",
+    "bg-gradient-to-br from-teal-400 to-teal-600",
+    "bg-gradient-to-br from-yellow-400 to-yellow-600",
+    "bg-gradient-to-br from-pink-400 to-pink-600",
 ]
 
-interface UserAPI {
-    _id: string
-    name: string
-    phonenumber: string
-    email: string
-    role: "Admin" | "Manager" | "Engineer" | "Analyst" | "Viewer"
-    user_id: string
-    createdAt: string
-}
-
 export function UsersPage() {
-    const { token } = useAuth()
-    const [users, setUsers] = React.useState<UserAPI[]>([])
+    const navigate = useNavigate()
+    const { token, user: currentUser } = useAuth()
+    const [users, setUsers] = React.useState<UserRecord[]>([])
     const [searchTerm, setSearchTerm] = React.useState("")
     const [showModal, setShowModal] = React.useState(false)
+    const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
     const [loading, setLoading] = React.useState(true)
-    const [submitting, setSubmitting] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
 
-    // Form states
-    const [name, setName] = React.useState("")
-    const [email, setEmail] = React.useState("")
-    const [phonenumber, setPhonenumber] = React.useState("")
-    const [password, setPassword] = React.useState("")
-    const [role, setRole] = React.useState<"Admin" | "Manager" | "Engineer" | "Analyst" | "Viewer">("Viewer")
-    const [userId, setUserId] = React.useState("")
+    const isRestricted = Boolean(
+        currentUser &&
+        currentUser.role !== "Admin" &&
+        (!currentUser.allowedPages || !currentUser.allowedPages.includes("/users"))
+    )
 
     const fetchUsers = React.useCallback(async () => {
+        if (isRestricted) {
+            setLoading(false)
+            return
+        }
         setLoading(true)
         setError(null)
         try {
-            const headers: HeadersInit = {}
-            if (token) {
-                headers["Authorization"] = `Bearer ${token}`
-            }
-            const response = await fetch("http://localhost:3000/api/users", {
-                headers,
-            })
-            const resData = await response.json()
-            if (!response.ok || !resData.success) {
+            const resData = await userService.getUsers()
+            if (!resData.success) {
                 throw new Error(resData.message || "Failed to fetch users")
             }
             setUsers(resData.data)
         } catch (err: any) {
-            setError(err.message || "Something went wrong fetching users")
+            const message = err?.response?.data?.message || err.message || "Something went wrong fetching users"
+            setError(message)
         } finally {
             setLoading(false)
         }
-    }, [token])
+    }, [token, isRestricted])
 
     React.useEffect(() => {
         fetchUsers()
     }, [fetchUsers])
 
-    // handleSubmit is now handled by DynamicFormModal
+    const handleDeleteUser = async (id: string, userName: string) => {
+        if (!confirm(`Are you sure you want to delete user "${userName}"? This will revoke their platform access.`)) return
+        try {
+            const res = await userService.deleteUser(id)
+            if (res.success) {
+                toast.success("User deleted successfully.")
+                fetchUsers()
+            } else {
+                toast.error(res.message || "Failed to delete user.")
+            }
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Error deleting user.")
+        }
+    }
 
     const filteredUsers = users.filter((u) => {
         const term = searchTerm.toLowerCase()
@@ -94,56 +103,79 @@ export function UsersPage() {
             u.name.toLowerCase().includes(term) ||
             u.email.toLowerCase().includes(term) ||
             u.user_id.toLowerCase().includes(term) ||
-            u.phonenumber.toLowerCase().includes(term) ||
-            u.role.toLowerCase().includes(term)
+            (u.phonenumber || "").toLowerCase().includes(term)
         )
     })
 
+    const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden";
+
+    if (isRestricted) {
+        return <NoAccessPage />
+    }
+
     return (
-        <div className="flex flex-col gap-6 relative">
-            <div className="flex items-center justify-end pt-3">
-                <Button className="gap-2" onClick={() => setShowModal(true)}>
+        <div className="flex flex-col gap-6 w-full mx-auto p-2 pb-10">
+            <div className="flex items-center justify-between pt-2">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Users & Access Management</h1>
+                    <p className="text-muted-foreground mt-1 text-sm">Manage team members, page-level permissions, and Project → Store dependencies.</p>
+                </div>
+                <Button
+                    className="gap-2 rounded-xl shadow-md cursor-pointer"
+                    size="lg"
+                    onClick={() => {
+                        setEditingUser(null)
+                        setShowModal(true)
+                    }}
+                >
                     <PlusIcon className="size-4" />
                     Create User
                 </Button>
             </div>
 
             {/* Basic stats */}
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-3">
                 {[
-                    { label: "Total Users", value: users.length.toString(), color: "text-foreground" },
-                    { label: "Admins", value: users.filter(u => u.role === "Admin").length.toString(), color: "text-red-600" },
-                    { label: "Managers", value: users.filter(u => u.role === "Manager").length.toString(), color: "text-blue-600" },
+                    { label: "Total Users", value: users.length.toString(), color: "text-foreground", bg: "bg-primary/10", icon: UsersIcon, iconColor: "text-primary" },
+                    { label: "Admins (Full Access)", value: users.filter(u => u.role === "Admin").length.toString(), color: "text-red-500", bg: "bg-red-500/10", icon: ShieldAlertIcon, iconColor: "text-red-500" },
+                    { label: "Assigned Users", value: users.filter(u => u.role !== "Admin").length.toString(), color: "text-blue-500", bg: "bg-blue-500/10", icon: CheckCircle2Icon, iconColor: "text-blue-500" },
                 ].map((s) => (
-                    <Card key={s.label} className="py-4">
-                        <CardContent className="flex flex-col items-center text-center px-4">
-                            <span className={`text-3xl font-bold ${s.color}`}>{s.value}</span>
-                            <span className="text-xs text-muted-foreground mt-1">{s.label}</span>
-                        </CardContent>
+                    <Card key={s.label} className={`${bentoCardClass} p-6 flex flex-col justify-between hover:-translate-y-1`}>
+                        <div className="flex items-start justify-between">
+                            <span className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">{s.label}</span>
+                            {s.icon && (
+                                <div className={`p-2 rounded-lg ${s.bg} ${s.iconColor}`}>
+                                    <s.icon className="size-4" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="mt-4">
+                            <span className={`text-4xl font-black tracking-tighter ${s.color}`}>{s.value}</span>
+                        </div>
                     </Card>
                 ))}
             </div>
 
             {/* Users table */}
-            <Card>
-                <CardHeader className="flex flex-row items-center gap-4">
+            <Card className={`${bentoCardClass} flex flex-col mt-2`}>
+                <CardHeader className="flex flex-row items-center gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">
                     <div className="flex-1">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <UsersIcon className="size-4 text-muted-foreground" />
-                            All Members
+                        <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                            <UsersIcon className="size-5 text-primary" />
+                            All Members & Authorized Scope
                         </CardTitle>
-                        <CardDescription>
-                            <span className="flex items-center gap-1">
-                                <ShieldIcon className="size-3" />
-                                Roles control access level across the platform
+                        <CardDescription className="mt-1">
+                            <span className="flex items-center gap-1.5 text-xs">
+                                <ShieldIcon className="size-3.5 text-primary/70" />
+                                Admins can grant/revoke page-level access and manage Project & Store assignments
                             </span>
                         </CardDescription>
                     </div>
-                    <div className="relative w-56">
-                        <SearchIcon className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                    <div className="relative w-64">
+                        <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                         <Input
                             placeholder="Search users..."
-                            className="pl-8 h-8 text-sm"
+                            className="pl-9 h-9 rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -151,70 +183,131 @@ export function UsersPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                     {error && !showModal && (
-                        <div className="mx-6 my-4 rounded-lg bg-destructive/15 p-3 text-xs font-semibold text-destructive">
+                        <div className="mx-6 my-4 rounded-xl bg-destructive/10 border border-destructive/20 p-4 text-sm font-medium text-destructive flex items-center gap-2">
+                            <ShieldAlertIcon className="size-4" />
                             {error}
                         </div>
                     )}
 
                     {loading ? (
-                        <div className="flex items-center justify-center p-8">
-                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <div className="flex items-center justify-center py-16">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="size-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent shadow-sm" />
+                                <p className="font-medium text-muted-foreground">Loading members...</p>
+                            </div>
                         </div>
                     ) : filteredUsers.length === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground text-sm">
-                            No users found.
+                        <div className="py-16 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center opacity-50">
+                                <UsersIcon className="size-12 mb-4" />
+                                <p className="font-medium">No users found.</p>
+                            </div>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b bg-muted/40">
-                                        <th className="text-left px-6 py-3 font-medium text-muted-foreground">User</th>
-                                        <th className="text-left px-6 py-3 font-medium text-muted-foreground">Email</th>
-                                        <th className="text-left px-6 py-3 font-medium text-muted-foreground">Phone Number</th>
-                                        <th className="text-left px-6 py-3 font-medium text-muted-foreground">Role</th>
-                                        <th className="text-left px-6 py-3 font-medium text-muted-foreground">Created At</th>
+                                    <tr className="border-b border-border/50 bg-muted/10">
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">User</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Email</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Phone Number</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Page Permissions</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Assigned Scope</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Created At</th>
+                                        <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredUsers.map((u, i) => {
                                         const initials = u.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
+                                        const projCount = (u.projects || []).length
+                                        const storeCount = (u.stores || []).length
+                                        const isAdmin = u.role === "Admin"
+                                        const pageCount = (u.allowedPages || []).length
+
                                         return (
                                             <tr
                                                 key={u._id}
-                                                className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"
-                                                    }`}
+                                                className="border-b border-border/40 last:border-0 hover:bg-muted/40 transition-colors group"
                                             >
-                                                <td className="px-6 py-3">
-                                                    <div className="flex items-center gap-3">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-4">
                                                         <div
-                                                            className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${avatarColors[i % avatarColors.length]
-                                                                }`}
+                                                            className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm ${
+                                                                avatarColors[i % avatarColors.length]
+                                                            }`}
                                                         >
                                                             {initials}
                                                         </div>
                                                         <div>
-                                                            <p className="font-medium leading-none">{u.name}</p>
-                                                            <p className="text-xs text-muted-foreground mt-0.5">{u.user_id}</p>
+                                                            <p className="font-semibold leading-none text-foreground/90 group-hover:text-primary transition-colors">{u.name}</p>
+                                                            <p className="text-xs font-mono text-muted-foreground mt-1.5">{u.user_id}</p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-3 text-muted-foreground">{u.email}</td>
-                                                <td className="px-6 py-3 text-muted-foreground">{u.phonenumber}</td>
-                                                <td className="px-6 py-3">
-                                                    <span
-                                                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${roleColors[u.role] || "bg-gray-100 text-gray-700"
-                                                            }`}
-                                                    >
-                                                        {u.role}
-                                                    </span>
+                                                <td className="px-6 py-4 font-medium text-muted-foreground">{u.email}</td>
+                                                <td className="px-6 py-4 font-medium text-muted-foreground">{u.phonenumber}</td>
+                                                <td className="px-6 py-4">
+                                                    {isAdmin ? (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                                                            <ShieldAlertIcon className="size-3.5" />
+                                                            All Pages (Admin)
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-lg">
+                                                            <LayoutDashboardIcon className="size-3" />
+                                                            {pageCount} {pageCount === 1 ? "Page" : "Pages"} Allowed
+                                                        </span>
+                                                    )}
                                                 </td>
-                                                <td className="px-6 py-3 text-muted-foreground">
-                                                    {new Date(u.createdAt).toLocaleDateString("en-IN", {
+                                                <td className="px-6 py-4">
+                                                    {isAdmin ? (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                                                            <ShieldAlertIcon className="size-3.5" />
+                                                            All Projects & Stores
+                                                        </span>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-lg">
+                                                                <FolderOpenIcon className="size-3" />
+                                                                {projCount} {projCount === 1 ? "Project" : "Projects"}
+                                                            </span>
+                                                            <span className="inline-flex items-center gap-1 text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-lg">
+                                                                <StoreIcon className="size-3" />
+                                                                {storeCount} {storeCount === 1 ? "Store" : "Stores"}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-muted-foreground text-xs font-medium">
+                                                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN", {
                                                         day: "2-digit",
                                                         month: "short",
                                                         year: "numeric",
-                                                    })}
+                                                    }) : "N/A"}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => navigate(`/users/${u._id}/access`)}
+                                                            className="h-8 px-2.5 text-xs font-semibold hover:bg-primary/10 hover:text-primary gap-1.5 cursor-pointer"
+                                                            title="Manage Page Access & Project/Store Dependencies on Dedicated Page"
+                                                        >
+                                                            <EditIcon className="size-3.5" />
+                                                            <span>Manage Access</span>
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDeleteUser(u._id, u.name)}
+                                                            className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                                            title="Delete User"
+                                                        >
+                                                            <TrashIcon className="size-4" />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         )
@@ -226,15 +319,16 @@ export function UsersPage() {
                 </CardContent>
             </Card>
 
-            <DynamicFormSheet 
-                isOpen={showModal} 
-                onClose={() => setShowModal(false)} 
-                formSlug="create-user" 
-                submitEndpoint="http://localhost:3000/api/users"
-                onSubmitSuccess={() => {
+            <UserFormModal
+                isOpen={showModal}
+                onClose={() => {
+                    setShowModal(false)
+                    setEditingUser(null)
+                }}
+                editingUser={editingUser}
+                onSuccess={() => {
                     fetchUsers()
-                    toast.success("User created successfully!")
-                }} 
+                }}
             />
         </div>
     )

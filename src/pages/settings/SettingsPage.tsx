@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useNavigate } from "react-router-dom"
 import { UserIcon, PaletteIcon, FileTextIcon, ShieldIcon, ArrowLeftIcon } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import NoAccessPage from "../NoAccessPage"
 
 function ProfileSettings({ onBack }: { onBack: () => void }) {
     return (
@@ -114,15 +116,26 @@ function SecuritySettings({ onBack }: { onBack: () => void }) {
 }
 
 export function SettingsPage() {
+    const { user } = useAuth()
     const [activeTab, setActiveTab] = useState<string | null>(null)
     const navigate = useNavigate()
+
+    const isRestricted = Boolean(
+        user &&
+        user.role !== "Admin" &&
+        (!user.allowedPages || !user.allowedPages.includes("/settings"))
+    )
+
+    if (isRestricted) {
+        return <NoAccessPage />
+    }
 
     if (activeTab === 'profile') return <ProfileSettings onBack={() => setActiveTab(null)} />
     if (activeTab === 'appearance') return <AppearanceSettings onBack={() => setActiveTab(null)} />
     if (activeTab === 'security') return <SecuritySettings onBack={() => setActiveTab(null)} />
 
     return (
-        <div className="flex flex-col gap-8 w-full">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1 pb-12">
             {/* <div className="flex items-center justify-between border-b pb-4">
                 <div className="relative pt-4">
                     <Input placeholder="Search settings..." className="w-64 h-9 bg-muted/50" />

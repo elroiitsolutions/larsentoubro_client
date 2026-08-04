@@ -5,3 +5,4 @@ export function App() {
 }
 
 export default App
+// Application root component

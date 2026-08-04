@@ -7,6 +7,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet"
 import { DynamicForm } from "@/components/DynamicForm"
+import formService from "@/services/form.service"
 import { toast } from "sonner"
 
 interface DynamicFormSheetProps {
@@ -27,8 +28,7 @@ export function DynamicFormSheet({ isOpen, onClose, formSlug, onSubmitSuccess, s
     useEffect(() => {
         if (isOpen && formSlug) {
             setLoading(true)
-            fetch(`http://localhost:3000/api/forms/${formSlug}`)
-                .then((res) => res.json())
+            formService.getFormBySlug(formSlug)
                 .then((data) => {
                     if (data.success) {
                         setFormDefinition(data.data)
@@ -45,41 +45,45 @@ export function DynamicFormSheet({ isOpen, onClose, formSlug, onSubmitSuccess, s
 
     const handleSubmit = async (formData: any) => {
         try {
-            const url = submitEndpoint || `http://localhost:3000/api/forms/${formSlug}/submit`;
-            const res = await fetch(url, {
-                method: submitMethod || "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...formData, ...additionalData })
-            });
-            const data = await res.json();
+            const url = submitEndpoint || `/forms/${formSlug}/submit`;
+            const data = await formService.submitForm(url, { ...formData, ...additionalData }, submitMethod);
             if (data.success) {
                 onSubmitSuccess();
                 onClose();
             } else {
                 toast.error(data.message || "Failed to submit form");
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            toast.error("An error occurred during submission");
+            const message = err?.response?.data?.message || "An error occurred";
+            toast.error(message);
         }
     }
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent className="w-full !max-w-[95vw] sm:!max-w-[450px] md:!max-w-[500px] overflow-y-auto">
-                <SheetHeader>
-                    <SheetTitle>{formDefinition ? formDefinition.name : "Loading..."}</SheetTitle>
-                    <SheetDescription>
+            <SheetContent className="w-full !max-w-[95vw] sm:!max-w-[500px] md:!max-w-[540px] flex flex-col h-full max-h-screen overflow-hidden p-0 bg-background shadow-2xl">
+                <SheetHeader className="px-6 py-4 border-b border-border/60 shrink-0 bg-muted/20">
+                    <SheetTitle className="text-lg font-bold text-foreground">
+                        {formDefinition ? formDefinition.name : "Loading..."}
+                    </SheetTitle>
+                    <SheetDescription className="text-xs text-muted-foreground">
                         {formDefinition ? formDefinition.description : "Please wait"}
                     </SheetDescription>
                 </SheetHeader>
-                <div className="py-6 p-3">
+                <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-4">
                     {loading ? (
-                        <div className="flex justify-center p-4">Loading form...</div>
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary mb-3" />
+                            <p className="text-sm font-medium">Loading form schema...</p>
+                        </div>
                     ) : formDefinition ? (
                         <DynamicForm formDefinition={formDefinition} onSubmit={handleSubmit} defaultValues={defaultValues} />
                     ) : (
-                        <div className="text-destructive">Failed to load form definition.</div>
+                        <div className="flex flex-col items-center justify-center py-16 text-destructive border-2 border-dashed border-destructive/20 rounded-2xl p-6 text-center">
+                            <p className="text-sm font-bold">Failed to load form definition</p>
+                            <p className="text-xs text-muted-foreground mt-1">Please try closing and reopening this sheet.</p>
+                        </div>
                     )}
                 </div>
             </SheetContent>

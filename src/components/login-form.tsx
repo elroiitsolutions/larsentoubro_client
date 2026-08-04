@@ -1,4 +1,5 @@
 import * as React from "react"
+import authService from "@/services/auth.service"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/AuthContext"
+import { toast } from "sonner"
 
 export function LoginForm({
   className,
@@ -33,24 +35,17 @@ export function LoginForm({
     setLoading(true)
 
     try {
-      const response = await fetch("http://localhost:3000/api/users/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      })
+      const data = await authService.login({ email, password })
 
-      const data = await response.json()
-
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.message || "Invalid email or password")
       }
 
+      toast.success("Successfully logged in!")
       login(data.token, data.user)
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.")
-    } finally {
+      const message = err?.response?.data?.message || err.message || "Invalid email or password"
+      setError(message)
       setLoading(false)
     }
   }

@@ -28,11 +28,12 @@ export function DynamicField({ field }: { field: FormField }) {
   const error = errors[field.name];
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={field.name} className={error ? 'text-destructive' : ''}>
-        {field.label}
-        {field.validations?.some(v => v.type === 'required') && <span className="text-destructive ml-1">*</span>}
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 w-full">
+      <Label htmlFor={field.name} className={`sm:w-1/3 shrink-0 text-xs sm:text-sm font-semibold text-foreground flex items-center justify-between ${error ? 'text-destructive' : ''}`}>
+        <span className="truncate">{field.label}</span>
+        {field.validations?.some(v => v.type === 'required') && <span className="text-destructive ml-1 font-bold">*</span>}
       </Label>
+      <div className="flex-1 min-w-0 w-full space-y-1">
       
       <Controller
         name={field.name}
@@ -150,8 +151,9 @@ export function DynamicField({ field }: { field: FormField }) {
           }
         }}
       />
-      {field.helperText && <p className="text-sm text-muted-foreground">{field.helperText}</p>}
-      {error && <p className="text-sm font-medium text-destructive">{error.message as string}</p>}
+      {field.helperText && <p className="text-xs text-muted-foreground">{field.helperText}</p>}
+      {error && <p className="text-xs font-medium text-destructive">{error.message as string}</p>}
+      </div>
     </div>
   );
 }
