@@ -313,16 +313,9 @@ export function ImportToolsPage() {
                                 <thead className="sticky top-0 bg-muted/90 backdrop-blur z-10 text-xs uppercase tracking-wider text-muted-foreground font-semibold shadow-sm">
                                     <tr>
                                         <th className="px-6 py-4 whitespace-nowrap">Row</th>
-                                        <th className="px-6 py-4 min-w-[200px]">Description</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Tool Code</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Make/Year</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Capacity</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">SWL</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Tool Type</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Metal Type</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Variant</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Purchaser</th>
-                                        <th className="px-6 py-4 whitespace-nowrap">Date of Supply</th>
+                                        {previewData.columns?.map((col: any) => (
+                                            <th key={col.name} className="px-6 py-4 whitespace-nowrap">{col.header}</th>
+                                        ))}
                                         <th className="px-6 py-4 whitespace-nowrap">Status / Errors</th>
                                     </tr>
                                 </thead>
@@ -330,16 +323,20 @@ export function ImportToolsPage() {
                                     {previewData.records.map((r: any, idx: number) => (
                                         <tr key={idx} className={`transition-colors hover:bg-muted/30 ${r.isValid ? "" : "bg-rose-500/5 hover:bg-rose-500/10"}`}>
                                             <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{r.rowNumber}</td>
-                                            <td className="px-6 py-4 font-medium text-foreground">{r.description || <span className="text-muted-foreground italic">Missing</span>}</td>
-                                            <td className="px-6 py-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">{r.toolCode || '-'}</td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{r.makeYear || '-'}</td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{r.capacity || '-'}</td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{r.safeWorkingLoad || '-'}</td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{r.toolType || '-'}</td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{r.metalType || '-'}</td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{r.toolVariant || '-'}</td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{r.purchaserName || '-'}</td>
-                                            <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{r.dateOfSupply || '-'}</td>
+                                            {previewData.columns?.map((col: any) => {
+                                                const val = r[col.name] !== undefined ? r[col.name] : r.customFields?.[col.name];
+                                                if (col.name === 'description') {
+                                                    return <td key={col.name} className="px-6 py-4 font-medium text-foreground min-w-[200px]">{val || <span className="text-muted-foreground italic">Missing</span>}</td>;
+                                                }
+                                                if (col.name === 'toolCode') {
+                                                    return <td key={col.name} className="px-6 py-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">{val || '-'}</td>;
+                                                }
+                                                return (
+                                                    <td key={col.name} className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                                                        {val || '-'}
+                                                    </td>
+                                                );
+                                            })}
                                             <td className="px-6 py-4 min-w-[250px]">
                                                 {r.isValid ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold ring-1 ring-emerald-500/20">

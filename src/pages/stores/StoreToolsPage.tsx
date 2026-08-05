@@ -1,8 +1,6 @@
 import {
     Card,
     CardContent,
-    CardHeader,
-    CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,15 +20,15 @@ import {
     SheetHeader,
     SheetTitle,
     SheetTrigger,
-    SheetFooter,
-    SheetClose
+    SheetFooter
 } from "@/components/ui/sheet"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, Filter, CheckSquare, Square, Truck, Layers, Check } from "lucide-react"
+import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
 import { toast } from "sonner"
+import formService from "@/services/form.service"
 import { ToolFormModal } from "./ToolFormModal"
 import { VendorSelectionModal } from "./VendorSelectionModal"
 import { useAuth } from "@/contexts/AuthContext"
@@ -177,12 +175,21 @@ export function StoreToolsPage() {
     };
 
     const [filterOptions, setFilterOptions] = useState<Record<string, string[]>>({});
+    const [formSchema, setFormSchema] = useState<any>(null);
 
     useEffect(() => {
         if (!storeId) return;
         toolService.getToolFilterOptions(storeId)
             .then(options => setFilterOptions(options))
             .catch(err => console.error("Failed to fetch tool filter options", err));
+            
+        formService.getFormBySlug('tool-form')
+            .then(res => {
+                if (res.success && res.data) {
+                    setFormSchema(res.data);
+                }
+            })
+            .catch(err => console.error("Failed to fetch tool form schema", err));
     }, [storeId]);
 
     const getOptionsForField = useCallback((field: string, defaultOptions?: string[]): string[] => {
@@ -190,7 +197,7 @@ export function StoreToolsPage() {
         const stateOpts = Array.from(
             new Set(
                 tools
-                    .map((t: any) => t[field])
+                    .map((t: any) => t[field] ?? t.customFields?.[field])
                     .filter((v: any) => v !== null && v !== undefined && String(v).trim() !== "")
                     .map((v: any) => String(v))
             )
@@ -278,6 +285,10 @@ export function StoreToolsPage() {
 
     const handleToggleTool = (tool: any, e: React.MouseEvent) => {
         e.stopPropagation();
+        if (tool.status === "Moving") {
+            toast.warning(`Tool ${tool.toolId} is already Moving and cannot be selected for a new Challan.`);
+            return;
+        }
         const nextIds = new Set(selectedToolIds);
         const nextMap = { ...selectedToolsMap };
         if (nextIds.has(tool._id)) {
@@ -312,8 +323,10 @@ export function StoreToolsPage() {
             const nextIds = new Set<string>();
             const nextMap: Record<string, any> = {};
             filteredTools.forEach((t: any) => {
-                nextIds.add(t._id);
-                nextMap[t._id] = t;
+                if (t.status !== "Moving") {
+                    nextIds.add(t._id);
+                    nextMap[t._id] = t;
+                }
             });
             setSelectedToolIds(nextIds);
             setSelectedToolsMap(nextMap);
@@ -496,7 +509,7 @@ export function StoreToolsPage() {
                             </div>
 
                             <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
-                                <SheetTrigger asChild>
+                                <SheetTrigger render={
                                     <Button
                                         variant="outline"
                                         className="h-10 gap-2 rounded-xl border-border/80 hover:bg-muted/50 transition-all font-semibold whitespace-nowrap shrink-0 shadow-sm"
@@ -509,7 +522,7 @@ export function StoreToolsPage() {
                                             </span>
                                         )}
                                     </Button>
-                                </SheetTrigger>
+                                } />
                                 <SheetContent className="w-full !max-w-full sm:!max-w-[750px] lg:!max-w-[860px] overflow-y-auto flex flex-col justify-between p-6 sm:p-8 bg-background/95 backdrop-blur-xl">
                                     <div className="space-y-6">
                                         <SheetHeader className="pb-4 border-b border-border/60">
@@ -524,22 +537,9 @@ export function StoreToolsPage() {
 
                                         {/* General & Identification */}
                                         <div className="space-y-3">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">General & Identification</h4>
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">General</h4>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {renderFilterSelect("Tool ID", "toolId", "All Tool IDs")}
-                                                {renderFilterSelect("Description / Name", "description", "All Descriptions")}
-                                                <div>
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tool Type</label>
-                                                    <SearchableSelect
-                                                        value={draftCategory}
-                                                        onValueChange={(val) => setDraftCategory(val)}
-                                                        options={categories.filter(c => c !== 'All')}
-                                                        placeholder="All Types"
-                                                        searchPlaceholder="Search tool type..."
-                                                        allLabel="All Types"
-                                                        allValue="All"
-                                                    />
-                                                </div>
                                                 <div>
                                                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Status</label>
                                                     <SearchableSelect
@@ -552,42 +552,25 @@ export function StoreToolsPage() {
                                                         allValue="All"
                                                     />
                                                 </div>
-                                                {renderFilterSelect("Tool Code", "toolCode", "All Tool Codes")}
-                                                {renderFilterSelect("Variant", "toolVariant", "All Variants")}
                                             </div>
                                         </div>
 
-                                        {/* Technical Specifications */}
-                                        <div className="space-y-3 pt-4 border-t border-border/60">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Technical Specifications</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {renderFilterSelect("Make / Year", "makeYear", "All Make / Years")}
-                                                {renderFilterSelect("Capacity", "capacity", "All Capacities")}
-                                                {renderFilterSelect("Safe Working Load (SWL)", "safeWorkingLoad", "All SWLs")}
-                                                {renderFilterSelect("Metal Type", "metalType", "All Metal Types")}
+                                        {/* Dynamic Fields from Schema */}
+                                        {formSchema && (
+                                            <div className="space-y-3 pt-4 border-t border-border/60">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Tool Details</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {formSchema.fields
+                                                        .filter((f: any) => !f.disabled && f.type !== 'file' && f.type !== 'checkbox')
+                                                        .sort((a: any, b: any) => a.order - b.order)
+                                                        .map((field: any) => (
+                                                            <div key={field.id}>
+                                                                {renderFilterSelect(field.label, field.name, `All ${field.label}`)}
+                                                            </div>
+                                                        ))}
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        {/* Procurement & Vendor */}
-                                        <div className="space-y-3 pt-4 border-t border-border/60">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Procurement & Vendor</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {renderFilterSelect("Purchaser Name", "purchaserName", "All Purchasers")}
-                                                {renderFilterSelect("Purchaser Contact", "purchaserContact", "All Contacts")}
-                                                {renderFilterSelect("Supplier Code", "supplierCode", "All Supplier Codes")}
-                                                {renderFilterSelect("Date of Supply", "dateOfSupply", "All Dates")}
-                                                {renderFilterSelect("Validity Period", "validityPeriod", "All Validity Periods")}
-                                            </div>
-                                        </div>
-
-                                        {/* Job & Notes */}
-                                        <div className="space-y-3 pt-4 border-t border-border/60">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Job & Notes</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {renderFilterSelect("Job Code", "jobCode", "All Job Codes")}
-                                                {renderFilterSelect("Remarks / Notes", "remarks", "All Remarks")}
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
 
                                     <SheetFooter className="pt-6 border-t border-border/60 flex flex-row items-center justify-between gap-3 sm:justify-between mt-6">
@@ -648,59 +631,16 @@ export function StoreToolsPage() {
                                             </button>
                                         </th>
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolId')}>
-                                            <div className="flex items-center">Tool ID {renderSortIcon('toolId')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('description')}>
-                                            <div className="flex items-center">Description {renderSortIcon('description')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolCode')}>
-                                            <div className="flex items-center">Tool Code {renderSortIcon('toolCode')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolType')}>
-                                            <div className="flex items-center">Type {renderSortIcon('toolType')}</div>
+                                            <div className="flex items-center">System ID {renderSortIcon('toolId')}</div>
                                         </th>
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('status')}>
                                             <div className="flex items-center">Status {renderSortIcon('status')}</div>
                                         </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('makeYear')}>
-                                            <div className="flex items-center">Make Year {renderSortIcon('makeYear')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('capacity')}>
-                                            <div className="flex items-center">Capacity {renderSortIcon('capacity')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('safeWorkingLoad')}>
-                                            <div className="flex items-center">SWL {renderSortIcon('safeWorkingLoad')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('metalType')}>
-                                            <div className="flex items-center">Metal Type {renderSortIcon('metalType')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolVariant')}>
-                                            <div className="flex items-center">Variant {renderSortIcon('toolVariant')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('dateOfSupply')}>
-                                            <div className="flex items-center">Date of Supply {renderSortIcon('dateOfSupply')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('validityPeriod')}>
-                                            <div className="flex items-center">Validity Period {renderSortIcon('validityPeriod')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('purchaserName')}>
-                                            <div className="flex items-center">Purchaser Name {renderSortIcon('purchaserName')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('purchaserContact')}>
-                                            <div className="flex items-center">Purchaser Contact {renderSortIcon('purchaserContact')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('supplierCode')}>
-                                            <div className="flex items-center">Supplier Code {renderSortIcon('supplierCode')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('jobCode')}>
-                                            <div className="flex items-center">Job Code {renderSortIcon('jobCode')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('jobDescription')}>
-                                            <div className="flex items-center">Job Description {renderSortIcon('jobDescription')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('remarks')}>
-                                            <div className="flex items-center">Remarks {renderSortIcon('remarks')}</div>
-                                        </th>
+                                        {formSchema?.fields?.filter((f: any) => !f.disabled).sort((a: any, b: any) => a.order - b.order).map((field: any) => (
+                                            <th key={field.id} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(field.name)}>
+                                                <div className="flex items-center">{field.label} {renderSortIcon(field.name)}</div>
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
@@ -734,7 +674,7 @@ export function StoreToolsPage() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ) : tools.map((t, i) => (
+                                    ) : tools.map((t) => (
                                         <tr
                                             key={t._id}
                                             className={`group hover:bg-primary/[0.03] transition-colors duration-200 cursor-pointer whitespace-nowrap ${
@@ -742,14 +682,20 @@ export function StoreToolsPage() {
                                             }`}
                                             onClick={() => {
                                                 const toolId = t.toolId || t._id;
-                                                const newBreadcrumbs = [...currentBreadcrumbs, { label: toolId, href: `/vt/${encodeURIComponent(toolId)}` }];
+                                                const newBreadcrumbs = [
+                                                    { label: 'Projects', href: '/projects' },
+                                                    { label: 'Stores', href: '/stores' },
+                                                    { label: 'Tools', href: `/stores/${storeId}/tools` },
+                                                    { label: toolId, href: `/vt/${encodeURIComponent(toolId)}` }
+                                                ];
                                                 navigate(`/vt/${encodeURIComponent(toolId)}`, { state: { breadcrumbs: newBreadcrumbs } });
                                             }}
                                         >
                                             <td className="px-4 py-4 text-center" onClick={(e) => handleToggleTool(t, e)}>
                                                 <button
                                                     type="button"
-                                                    className="flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                                                    className={`flex items-center justify-center text-muted-foreground transition-colors ${t.status === 'Moving' ? 'opacity-30 cursor-not-allowed' : 'hover:text-primary'}`}
+                                                    disabled={t.status === "Moving"}
                                                 >
                                                     {selectedToolIds.has(t._id) ? (
                                                         <CheckSquare className="size-4 text-primary" />
@@ -764,38 +710,35 @@ export function StoreToolsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-foreground group-hover:text-primary transition-colors">
-                                                    {t.description || "-"}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 font-mono text-xs text-primary font-semibold">
-                                                {t.toolCode || "-"}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-muted-foreground flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-border group-hover:bg-primary/50 transition-colors" />
-                                                    {t.toolType || "-"}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide ${statusColors[t.status] || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'}`}>
                                                     {t.status === "Available" && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />}
                                                     {t.status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-foreground/80">{t.makeYear || "-"}</td>
-                                            <td className="px-6 py-4 font-medium text-foreground/80">{t.capacity || "-"}</td>
-                                            <td className="px-6 py-4 font-medium text-foreground/80">{t.safeWorkingLoad || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{t.metalType || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{t.toolVariant || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground text-sm">{t.dateOfSupply || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground text-sm">{t.validityPeriod || "-"}</td>
-                                            <td className="px-6 py-4 text-foreground/80">{t.purchaserName || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{t.purchaserContact || "-"}</td>
-                                            <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{t.supplierCode || "-"}</td>
-                                            <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{t.jobCode || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{t.jobDescription || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground max-w-[200px] truncate" title={t.remarks || ""}>{t.remarks || "-"}</td>
+                                            {formSchema?.fields?.filter((f: any) => !f.disabled).sort((a: any, b: any) => a.order - b.order).map((field: any) => {
+                                                let val = t[field.name];
+                                                if (val === undefined && t.customFields) {
+                                                    val = t.customFields[field.name];
+                                                }
+                                                if (typeof val === 'object' && val !== null) {
+                                                    val = val.name || val.location || val.projectCode || JSON.stringify(val);
+                                                } else if (field.type === 'date' && val) {
+                                                    let parsedDate = new Date(val);
+                                                    if (isNaN(parsedDate.getTime()) && typeof val === 'string' && val.includes('/')) {
+                                                        const parts = val.split('/');
+                                                        if (parts.length === 3) {
+                                                            // Assume DD/MM/YYYY or MM/DD/YYYY, try DD/MM/YYYY first for Indian format
+                                                            parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                                                        }
+                                                    }
+                                                    val = isNaN(parsedDate.getTime()) ? val : parsedDate.toLocaleDateString();
+                                                }
+                                                return (
+                                                    <td key={field.id} className="px-6 py-4 text-foreground/80">
+                                                        {val || "-"}
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -868,14 +811,25 @@ export function StoreToolsPage() {
                                 Clear
                             </Button>
 
-                            <Button
-                                size="sm"
-                                className="h-9 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center gap-1.5"
-                                onClick={() => setIsVendorModalOpen(true)}
-                            >
-                                <Truck className="size-3.5" />
-                                <span>Create Delivery Challan</span>
-                            </Button>
+                            {Object.values(selectedToolsMap).some(t => t.status === "Moving") ? (
+                                <Button
+                                    size="sm"
+                                    disabled
+                                    className="h-9 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center gap-1.5 cursor-not-allowed opacity-80"
+                                >
+                                    <Truck className="size-3.5 opacity-50" />
+                                    <span>Already Moving</span>
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    className="h-9 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center gap-1.5"
+                                    onClick={() => setIsVendorModalOpen(true)}
+                                >
+                                    <Truck className="size-3.5" />
+                                    <span>Create Delivery Challan</span>
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>

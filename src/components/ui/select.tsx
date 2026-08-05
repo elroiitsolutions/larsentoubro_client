@@ -5,7 +5,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-function Select({ ...props }: SelectPrimitive.Root.Props) {
+function Select<TValue extends {}>(props: SelectPrimitive.Root.Props<TValue>) {
   return <SelectPrimitive.Root data-slot="select" {...props} />
 }
 
@@ -32,9 +32,7 @@ function SelectTrigger({
       {...props}
     >
       {children}
-      <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-3.5 opacity-60 shrink-0 ml-1" />
-      </SelectPrimitive.Icon>
+      <SelectPrimitive.Icon render={<ChevronDownIcon className="size-3.5 opacity-60 shrink-0 ml-1" />} />
     </SelectPrimitive.Trigger>
   )
 }

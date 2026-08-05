@@ -170,15 +170,15 @@ export function ToolDetailsPage() {
                         <Button
                             variant="outline"
                             size="sm"
-                            asChild
+                            render={
+                                <a href={tool.testCertificate} target="_blank" rel="noopener noreferrer">
+                                    <FileCheck className="size-3.5 text-emerald-500" />
+                                    Test Certificate
+                                    <ExternalLink className="size-3" />
+                                </a>
+                            }
                             className="h-8 rounded-xl text-xs gap-1.5 shadow-sm hover:bg-primary/5 hover:border-primary/30 transition-all"
-                        >
-                            <a href={tool.testCertificate} target="_blank" rel="noopener noreferrer">
-                                <FileCheck className="size-3.5 text-emerald-500" />
-                                Test Certificate
-                                <ExternalLink className="size-3" />
-                            </a>
-                        </Button>
+                        />
                     )}
                 </div>
             </div>

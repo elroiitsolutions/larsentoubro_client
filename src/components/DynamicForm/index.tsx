@@ -49,17 +49,21 @@ export function DynamicForm({ formDefinition, onSubmit, defaultValues = {} }: Dy
             }
           }
           if (fieldSchema instanceof z.ZodString) {
-            if (v.type === 'minLength') fieldSchema = fieldSchema.min(v.value, { message: v.message });
-            if (v.type === 'maxLength') fieldSchema = fieldSchema.max(v.value, { message: v.message });
-            if (v.type === 'email') fieldSchema = fieldSchema.email({ message: v.message });
-            if (v.type === 'url') fieldSchema = fieldSchema.url({ message: v.message });
-            if (v.type === 'regex') fieldSchema = fieldSchema.regex(new RegExp(v.value), { message: v.message });
+            let strSchema = fieldSchema as z.ZodString;
+            if (v.type === 'minLength') strSchema = strSchema.min(v.value, { message: v.message });
+            if (v.type === 'maxLength') strSchema = strSchema.max(v.value, { message: v.message });
+            if (v.type === 'email') strSchema = strSchema.email({ message: v.message });
+            if (v.type === 'url') strSchema = strSchema.url({ message: v.message });
+            if (v.type === 'regex') strSchema = strSchema.regex(new RegExp(v.value), { message: v.message });
             // Client-side Alphanumeric Regex Validation
-            if (v.type === 'alphanumeric') fieldSchema = fieldSchema.regex(/^[a-zA-Z0-9\s]*$/, { message: v.message || 'Must be alphanumeric' });
+            if (v.type === 'alphanumeric') strSchema = strSchema.regex(/^[a-zA-Z0-9\s]*$/, { message: v.message || 'Must be alphanumeric' });
+            fieldSchema = strSchema as any;
           }
           if (fieldSchema instanceof z.ZodNumber) {
-             if (v.type === 'min') fieldSchema = fieldSchema.min(v.value, { message: v.message });
-             if (v.type === 'max') fieldSchema = fieldSchema.max(v.value, { message: v.message });
+             let numSchema = fieldSchema as z.ZodNumber;
+             if (v.type === 'min') numSchema = numSchema.min(v.value, { message: v.message });
+             if (v.type === 'max') numSchema = numSchema.max(v.value, { message: v.message });
+             fieldSchema = numSchema as any;
           }
         });
       }
