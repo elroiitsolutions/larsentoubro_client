@@ -108,30 +108,6 @@ export function ProjectsPage() {
                 defaultValues={editingProject ? { ...editingProject, projectName: editingProject.name } : undefined}
             />
 
-            {/* Stats row */}
-            <div className="grid gap-6 sm:grid-cols-4">
-                {[
-                    { label: "Total Projects", value: projects.length.toString(), color: "text-foreground", bg: "bg-primary/10", icon: FolderOpenIcon, iconColor: "text-primary" },
-                    { label: "Active", value: projects.filter(p => p.status === 'Active').length.toString(), color: "text-emerald-500", bg: "bg-emerald-500/10", icon: TrendingUpIcon, iconColor: "text-emerald-500" },
-                    { label: "On Hold", value: projects.filter(p => p.status === 'On Hold').length.toString(), color: "text-yellow-500", bg: "bg-yellow-500/10", iconColor: "text-yellow-500" },
-                    { label: "Completed", value: projects.filter(p => p.status === 'Completed').length.toString(), color: "text-blue-500", bg: "bg-blue-500/10", iconColor: "text-blue-500" },
-                ].map((s) => (
-                    <Card key={s.label} className={`${bentoCardClass} p-6 flex flex-col justify-between hover:-translate-y-1`}>
-                        <div className="flex items-start justify-between">
-                            <span className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">{s.label}</span>
-                            {s.icon && (
-                                <div className={`p-2 rounded-lg ${s.bg} ${s.iconColor}`}>
-                                    <s.icon className="size-4" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="mt-4">
-                            <span className={`text-4xl font-black tracking-tighter ${s.color}`}>{s.value}</span>
-                        </div>
-                    </Card>
-                ))}
-            </div>
-
             {/* Table card */}
             <Card className={`${bentoCardClass} flex flex-col mt-2`}>
                 <CardHeader className="flex flex-row items-center gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">

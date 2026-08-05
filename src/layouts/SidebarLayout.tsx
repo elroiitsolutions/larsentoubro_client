@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function SidebarLayout() {
     return (
-        <SidebarProvider className="h-screen overflow-hidden">
+        <SidebarProvider defaultOpen={false} className="h-screen overflow-hidden">
             <AppSidebar />
             <SidebarInset className="h-screen overflow-hidden flex flex-col">
                 <SiteHeader />

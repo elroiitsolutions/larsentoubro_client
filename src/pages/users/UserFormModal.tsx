@@ -9,6 +9,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+    SelectSeparator
+} from "@/components/ui/select"
+import {
     UserPlusIcon,
     UserIcon,
     Loader2,
@@ -236,15 +244,18 @@ export function UserFormModal({
                                 <label className="text-xs font-bold text-foreground block mb-1.5">
                                     Account Role (RBAC) <span className="text-rose-500">*</span>
                                 </label>
-                                <select
-                                    value={role}
-                                    onChange={(e) => setRole(e.target.value as any)}
-                                    className="h-10 w-full rounded-xl bg-background border border-border/70 text-sm font-semibold px-3 focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
-                                >
-                                    <option value="User">User — Controlled access via Projects, Stores & Page Permissions</option>
-                                    <option value="Vendor">Vendor — Simplified workflow for Tool Issue & Return operations</option>
-                                    <option value="Admin">Admin — Full unrestricted application & system access</option>
-                                </select>
+                                <Select value={role} onValueChange={(val: any) => setRole(val)}>
+                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="User">User — Controlled access via Projects, Stores & Page Permissions</SelectItem>
+                                        <SelectSeparator />
+                                        <SelectItem value="Vendor">Vendor — Simplified workflow for Tool Issue & Return operations</SelectItem>
+                                        <SelectSeparator />
+                                        <SelectItem value="Admin">Admin — Full unrestricted application & system access</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <div className="mt-2 p-2.5 rounded-xl border bg-muted/20 text-xs">
                                     {role === "Admin" && (
                                         <p className="text-blue-600 dark:text-blue-400 font-medium">

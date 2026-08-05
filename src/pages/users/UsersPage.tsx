@@ -132,30 +132,6 @@ export function UsersPage() {
                     Create User
                 </Button>
             </div>
-
-            {/* Basic stats */}
-            <div className="grid gap-6 sm:grid-cols-3">
-                {[
-                    { label: "Total Users", value: users.length.toString(), color: "text-foreground", bg: "bg-primary/10", icon: UsersIcon, iconColor: "text-primary" },
-                    { label: "Admins (Full Access)", value: users.filter(u => u.role === "Admin").length.toString(), color: "text-red-500", bg: "bg-red-500/10", icon: ShieldAlertIcon, iconColor: "text-red-500" },
-                    { label: "Assigned Users", value: users.filter(u => u.role !== "Admin").length.toString(), color: "text-blue-500", bg: "bg-blue-500/10", icon: CheckCircle2Icon, iconColor: "text-blue-500" },
-                ].map((s) => (
-                    <Card key={s.label} className={`${bentoCardClass} p-6 flex flex-col justify-between hover:-translate-y-1`}>
-                        <div className="flex items-start justify-between">
-                            <span className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">{s.label}</span>
-                            {s.icon && (
-                                <div className={`p-2 rounded-lg ${s.bg} ${s.iconColor}`}>
-                                    <s.icon className="size-4" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="mt-4">
-                            <span className={`text-4xl font-black tracking-tighter ${s.color}`}>{s.value}</span>
-                        </div>
-                    </Card>
-                ))}
-            </div>
-
             {/* Users table */}
             <Card className={`${bentoCardClass} flex flex-col mt-2`}>
                 <CardHeader className="flex flex-row items-center gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">
