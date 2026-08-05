@@ -3,6 +3,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescri
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+    SelectSeparator
+} from "@/components/ui/select"
 import projectService from "@/services/project.service";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
@@ -139,23 +147,18 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
              return (
                  <HorizontalField key={field.id} label={field.label} required={isRequired} hint={field.helperText}>
                     <div className="relative">
-                        <select
-                            id={field.name}
-                            name={field.name}
-                            defaultValue={defaultValue?._id || defaultValue || ""}
-                            required={isRequired}
-                            className="appearance-none flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer font-medium"
-                        >
-                            <option value="" disabled hidden>Select Project Site...</option>
-                            {projects.map((p) => (
-                                <option key={p._id} value={p._id}>
-                                    {p.name}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
-                            <ChevronDown className="size-4" />
-                        </div>
+                        <Select name={field.name} defaultValue={defaultValue?._id || defaultValue || ""}>
+                            <SelectTrigger className="flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer font-medium">
+                                <SelectValue placeholder="Select Project Site..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {projects.map((p) => (
+                                    <SelectItem key={p._id} value={p._id}>
+                                        {p.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                  </HorizontalField>
              );
@@ -165,23 +168,18 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
             return (
                  <HorizontalField key={field.id} label={field.label} required={isRequired} hint={field.helperText}>
                     <div className="relative">
-                        <select
-                            id={field.name}
-                            name={field.name}
-                            defaultValue={defaultValue || ""}
-                            required={isRequired}
-                            className="appearance-none flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer font-medium"
-                        >
-                            <option value="" disabled hidden>Select {field.label}...</option>
-                            {field.options?.map((opt: any) => (
-                                <option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
-                            <ChevronDown className="size-4" />
-                        </div>
+                        <Select name={field.name} defaultValue={defaultValue || ""}>
+                            <SelectTrigger className="flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer font-medium">
+                                <SelectValue placeholder={`Select ${field.label}...`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {field.options?.map((opt: any) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                  </HorizontalField>
              );

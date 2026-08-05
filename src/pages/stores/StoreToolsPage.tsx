@@ -248,6 +248,26 @@ export function StoreToolsPage() {
                 setTools(data.data || []);
                 setTotal(data.total || 0);
                 setTotalPages(data.totalPages || 1);
+                
+                // If we don't have breadcrumbs in state (e.g. on hard refresh),
+                // infer the projectId from the tools and reconstruct the breadcrumbs!
+                if (!(location.state as any)?.breadcrumbs && data.data && data.data.length > 0) {
+                    const project = data.data[0].project;
+                    const projId = typeof project === 'object' ? project._id : project;
+                    if (projId) {
+                        navigate(".", { 
+                            replace: true, 
+                            state: { 
+                                ...location.state, 
+                                breadcrumbs: [
+                                    { label: 'Projects', href: '/projects' },
+                                    { label: 'Stores', href: `/projects/${projId}/stores` },
+                                    { label: 'Tools', href: `/stores/${storeId}/tools` }
+                                ] 
+                            } 
+                        });
+                    }
+                }
             }
         } catch (error: any) {
             console.error(error);
@@ -682,10 +702,13 @@ export function StoreToolsPage() {
                                             }`}
                                             onClick={() => {
                                                 const toolId = t.toolId || t._id;
-                                                const newBreadcrumbs = [
+                                                const existingBreadcrumbs = (location.state as any)?.breadcrumbs || [
                                                     { label: 'Projects', href: '/projects' },
                                                     { label: 'Stores', href: '/stores' },
-                                                    { label: 'Tools', href: `/stores/${storeId}/tools` },
+                                                    { label: 'Tools', href: `/stores/${storeId}/tools` }
+                                                ];
+                                                const newBreadcrumbs = [
+                                                    ...existingBreadcrumbs,
                                                     { label: toolId, href: `/vt/${encodeURIComponent(toolId)}` }
                                                 ];
                                                 navigate(`/vt/${encodeURIComponent(toolId)}`, { state: { breadcrumbs: newBreadcrumbs } });
