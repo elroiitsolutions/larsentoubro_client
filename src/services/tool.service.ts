@@ -161,6 +161,19 @@ export const toolService = {
         const response = await api.get<{ success: boolean; data: Record<string, string[]> }>(url);
         return response.data?.data || {};
     },
+
+    bulkEditTools: async (
+        storeId: string,
+        payload: {
+            toolIds?: string[];
+            filterCriteria?: Record<string, string>;
+            updates: Record<string, any>;
+        }
+    ): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = storeId ? `/api/stores/${storeId}/tools/bulk-edit` : `/api/tools/bulk-edit`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, payload);
+        return response.data;
+    },
 };
 
 export default toolService;

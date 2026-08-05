@@ -23,7 +23,7 @@ import {
     SheetFooter
 } from "@/components/ui/sheet"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck } from "lucide-react"
+import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
@@ -31,6 +31,7 @@ import { toast } from "sonner"
 import formService from "@/services/form.service"
 import { ToolFormModal } from "./ToolFormModal"
 import { VendorSelectionModal } from "./VendorSelectionModal"
+import { BulkEditToolsModal } from "./BulkEditToolsModal"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -64,6 +65,7 @@ export function StoreToolsPage() {
     const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(new Set());
     const [selectedToolsMap, setSelectedToolsMap] = useState<Record<string, any>>({});
     const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+    const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
     const [isSelectingAll, setIsSelectingAll] = useState(false);
 
     // Pagination and Filter States
@@ -285,10 +287,6 @@ export function StoreToolsPage() {
 
     const handleToggleTool = (tool: any, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (tool.status === "Moving") {
-            toast.warning(`Tool ${tool.toolId} is already Moving and cannot be selected for a new Challan.`);
-            return;
-        }
         const nextIds = new Set(selectedToolIds);
         const nextMap = { ...selectedToolsMap };
         if (nextIds.has(tool._id)) {
@@ -323,10 +321,8 @@ export function StoreToolsPage() {
             const nextIds = new Set<string>();
             const nextMap: Record<string, any> = {};
             filteredTools.forEach((t: any) => {
-                if (t.status !== "Moving") {
-                    nextIds.add(t._id);
-                    nextMap[t._id] = t;
-                }
+                nextIds.add(t._id);
+                nextMap[t._id] = t;
             });
             setSelectedToolIds(nextIds);
             setSelectedToolsMap(nextMap);
@@ -341,6 +337,22 @@ export function StoreToolsPage() {
     const handleClearSelection = () => {
         setSelectedToolIds(new Set());
         setSelectedToolsMap({});
+    };
+
+    const handleOpenBulkEdit = () => {
+        if (selectedToolIds.size === 0) {
+            toast.info("Please select tools first using checkboxes or click 'Select All Filtered'", {
+                action: {
+                    label: "Select All Filtered",
+                    onClick: async () => {
+                        await handleSelectAllFiltered();
+                        setIsBulkEditModalOpen(true);
+                    }
+                }
+            });
+            return;
+        }
+        setIsBulkEditModalOpen(true);
     };
 
     const handleExport = async (exportScope: 'all' | 'filtered', exportType: 'excel' | 'csv') => {
@@ -463,6 +475,16 @@ export function StoreToolsPage() {
                     >
                         <FileUp className="size-4 text-primary" />
                         Bulk Import
+                    </Button>
+
+                    <Button
+                        variant={selectedToolIds.size > 0 ? "default" : "outline"}
+                        size="lg"
+                        className="gap-2 rounded-xl shadow-sm border-border/80 transition-all"
+                        onClick={handleOpenBulkEdit}
+                    >
+                        <Edit3 className="size-4" />
+                        Bulk Edit {selectedToolIds.size > 0 ? `(${selectedToolIds.size})` : ""}
                     </Button>
 
                     <ToolFormModal storeId={storeId!} onSuccess={fetchTools} />
@@ -694,8 +716,7 @@ export function StoreToolsPage() {
                                             <td className="px-4 py-4 text-center" onClick={(e) => handleToggleTool(t, e)}>
                                                 <button
                                                     type="button"
-                                                    className={`flex items-center justify-center text-muted-foreground transition-colors ${t.status === 'Moving' ? 'opacity-30 cursor-not-allowed' : 'hover:text-primary'}`}
-                                                    disabled={t.status === "Moving"}
+                                                    className="flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
                                                 >
                                                     {selectedToolIds.has(t._id) ? (
                                                         <CheckSquare className="size-4 text-primary" />
@@ -805,6 +826,16 @@ export function StoreToolsPage() {
                                 variant="outline"
                                 size="sm"
                                 className="h-9 text-xs rounded-xl"
+                                onClick={() => setIsBulkEditModalOpen(true)}
+                            >
+                                <Edit3 className="size-3.5 mr-1 text-primary" />
+                                Bulk Edit ({selectedToolIds.size})
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 text-xs rounded-xl"
                                 onClick={handleClearSelection}
                             >
                                 <X className="size-3.5 mr-1" />
@@ -840,6 +871,18 @@ export function StoreToolsPage() {
                 onOpenChange={setIsVendorModalOpen}
                 selectedTools={Object.values(selectedToolsMap)}
                 storeId={storeId}
+            />
+
+            <BulkEditToolsModal
+                open={isBulkEditModalOpen}
+                onOpenChange={setIsBulkEditModalOpen}
+                storeId={storeId!}
+                selectedToolIds={Array.from(selectedToolIds)}
+                totalCount={selectedToolIds.size}
+                onSuccess={() => {
+                    handleClearSelection();
+                    fetchTools();
+                }}
             />
         </div>
     )

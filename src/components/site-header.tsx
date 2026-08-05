@@ -139,8 +139,8 @@ export function SiteHeader() {
 
     // Priority 1: Navigation State (if perfectly formed and present)
     // Priority 2: URL Parser generator
-    let finalBreadcrumbs = (state?.breadcrumbs as Array<{ label: string, href: string }> | undefined) 
-                            || generateBreadcrumbs(pathname);
+    let finalBreadcrumbs = (state?.breadcrumbs as Array<{ label: string, href: string }> | undefined)
+        || generateBreadcrumbs(pathname);
 
     // Failsafe
     if (!finalBreadcrumbs || finalBreadcrumbs.length === 0) {
