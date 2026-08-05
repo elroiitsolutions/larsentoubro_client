@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   LayoutDashboardIcon,
@@ -54,27 +55,6 @@ const data = {
       items: [],
     },
     {
-      title: "Stores & Tools",
-      url: "/stores",
-      icon: <StoreIcon />,
-      isActive: false,
-      items: [],
-    },
-    {
-      title: "Challan Register",
-      url: "/challans/history",
-      icon: <FileTextIcon />,
-      isActive: false,
-      items: [],
-    },
-    {
-      title: "Reports & Audit",
-      url: "/settings/reports",
-      icon: <BarChart3Icon />,
-      isActive: false,
-      items: [],
-    },
-    {
       title: "Users",
       url: "/users",
       icon: <UsersIcon />,
@@ -85,17 +65,13 @@ const data = {
       title: "Settings",
       url: "/settings",
       icon: <Settings2Icon />,
-      items: [
-        { title: "General", url: "/settings" },
-        { title: "Forms Management", url: "/settings/forms" },
-        { title: "Reports & Audit", url: "/settings/reports" },
-      ],
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
+  const { setOpen } = useSidebar()
 
   const filteredNavMain = React.useMemo(() => {
     if (!user || user.role === "Admin") {
@@ -118,7 +94,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [user])
 
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar 
+      variant="sidebar" 
+      collapsible="icon"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      {...props}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

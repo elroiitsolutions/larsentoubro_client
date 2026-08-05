@@ -14,6 +14,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { ChevronRightIcon } from "lucide-react"
 
@@ -31,6 +32,14 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  const handleMobileClose = () => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -42,7 +51,7 @@ export function NavMain({
               defaultOpen={item.isActive}
               render={<SidebarMenuItem />}
             >
-              <SidebarMenuButton tooltip={item.title} render={<NavLink to={item.url} />}>
+              <SidebarMenuButton tooltip={item.title} render={<NavLink to={item.url} onClick={handleMobileClose} />}>
                 {item.icon}
                 <span>{item.title}</span>
               </SidebarMenuButton>
@@ -58,7 +67,7 @@ export function NavMain({
                 <SidebarMenuSub>
                   {item.items.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton render={<NavLink to={subItem.url} />}>
+                      <SidebarMenuSubButton render={<NavLink to={subItem.url} onClick={handleMobileClose} />}>
                         <span>{subItem.title}</span>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
@@ -68,7 +77,7 @@ export function NavMain({
             </Collapsible>
           ) : (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} render={<NavLink to={item.url} />}>
+              <SidebarMenuButton tooltip={item.title} render={<NavLink to={item.url} onClick={handleMobileClose} />}>
                 {item.icon}
                 <span>{item.title}</span>
               </SidebarMenuButton>

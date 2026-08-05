@@ -9,7 +9,7 @@ import { Toaster } from "sonner"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider>
+    <ThemeProvider defaultTheme="light" storageKey="ui-theme">
       <AuthProvider>
         <App />
         <Toaster position="top-right" richColors />
