@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+    SelectSeparator
+} from "@/components/ui/select"
 import { 
     Building2, 
     User, 
@@ -258,18 +266,18 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                             Fetching vendor list from database...
                         </div>
                     ) : (
-                        <select
-                            className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all shadow-xs cursor-pointer"
-                            value={selectedVendorId || ""}
-                            onChange={(e) => handleVendorChange(e.target.value)}
-                        >
-                            <option value="" disabled>-- Select a Vendor from Database ({vendors.length} Available) --</option>
-                            {vendors.map(v => (
-                                <option key={v._id} value={v._id}>
-                                    {v.name} ({v.vendorCode}){v.gstNumber ? ` - GST: ${v.gstNumber}` : ""}
-                                </option>
-                            ))}
-                        </select>
+                        <Select value={selectedVendorId || ""} onValueChange={(val) => handleVendorChange(val)}>
+                            <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all shadow-xs cursor-pointer">
+                                <SelectValue placeholder={`-- Select a Vendor from Database (${vendors.length} Available) --`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {vendors.map(v => (
+                                    <SelectItem key={v._id} value={v._id}>
+                                        {v.name} ({v.vendorCode}){v.gstNumber ? ` - GST: ${v.gstNumber}` : ""}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     )}
 
                     {/* Automatic Vendor Details Display */}

@@ -2,6 +2,14 @@ import React, { useEffect, useState } from "react"
 import { useFormBuilderStore } from "@/store/useFormBuilderStore"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+    SelectSeparator
+} from "@/components/ui/select"
 import { 
     ArrowLeftIcon, 
     ArrowUpIcon, 
@@ -235,20 +243,21 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
 
                                         {/* Col 6-7: Input Type Selector (16.6% width) */}
                                         <div className="sm:col-span-2 w-full">
-                                            <select 
-                                                className="flex h-9 w-full rounded-xl border border-border/70 bg-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
-                                                value={field.type} 
-                                                onChange={(e) => updateField(field.id, { type: e.target.value as any })}
-                                            >
-                                                <option value="text">Text Input</option>
-                                                <option value="number">Number</option>
-                                                <option value="email">Email Address</option>
-                                                <option value="select">Dropdown Select</option>
-                                                <option value="checkbox">Checkbox</option>
-                                                <option value="radio">Radio Buttons</option>
-                                                <option value="textarea">Long Text</option>
-                                                <option value="switch">Yes/No Switch</option>
-                                            </select>
+                                            <Select value={field.type} onValueChange={(val: any) => updateField(field.id, { type: val })}>
+                                                <SelectTrigger className="flex h-9 w-full rounded-xl border border-border/70 bg-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer">
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="text">Text Input</SelectItem>
+                                                    <SelectItem value="number">Number</SelectItem>
+                                                    <SelectItem value="email">Email Address</SelectItem>
+                                                    <SelectItem value="select">Dropdown Select</SelectItem>
+                                                    <SelectItem value="checkbox">Checkbox</SelectItem>
+                                                    <SelectItem value="radio">Radio Buttons</SelectItem>
+                                                    <SelectItem value="textarea">Long Text</SelectItem>
+                                                    <SelectItem value="switch">Yes/No Switch</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
 
                                         {/* Col 8-12: Required Toggle, Options Button, Settings Button, Delete (41.6% width - generous room!) */}

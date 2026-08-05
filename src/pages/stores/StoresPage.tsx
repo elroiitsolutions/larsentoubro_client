@@ -148,30 +148,6 @@ export function StoresPage() {
                 defaultValues={editingStore ? { ...editingStore, storeName: editingStore.name } : undefined}
             />
 
-            {/* Stats row */}
-            <div className="grid gap-6 sm:grid-cols-4">
-                {[
-                    { label: "Total Stores", value: stores.length.toString(), color: "text-foreground", bg: "bg-primary/10", icon: StoreIcon, iconColor: "text-primary" },
-                    { label: "Operational", value: stores.filter(s => s.status === 'Operational').length.toString(), color: "text-emerald-500", bg: "bg-emerald-500/10", icon: CheckCircle2Icon, iconColor: "text-emerald-500" },
-                    { label: "Renovation", value: stores.filter(s => s.status === 'Renovation').length.toString(), color: "text-orange-500", bg: "bg-orange-500/10", iconColor: "text-orange-500" },
-                    { label: "Closed", value: stores.filter(s => s.status === 'Closed').length.toString(), color: "text-red-500", bg: "bg-red-500/10", iconColor: "text-red-500" },
-                ].map((s) => (
-                    <Card key={s.label} className={`${bentoCardClass} p-6 flex flex-col justify-between hover:-translate-y-1`}>
-                        <div className="flex items-start justify-between">
-                            <span className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">{s.label}</span>
-                            {s.icon && (
-                                <div className={`p-2 rounded-lg ${s.bg} ${s.iconColor}`}>
-                                    <s.icon className="size-4" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="mt-4">
-                            <span className={`text-4xl font-black tracking-tighter ${s.color}`}>{s.value}</span>
-                        </div>
-                    </Card>
-                ))}
-            </div>
-
             {/* Table card */}
             <Card className={`${bentoCardClass} flex flex-col mt-2`}>
                 <CardHeader className="flex flex-row items-center gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">
@@ -219,7 +195,21 @@ export function StoresPage() {
                                         <tr
                                             key={store._id}
                                             className="border-b border-border/40 last:border-0 hover:bg-muted/60 transition-colors group cursor-pointer"
-                                            onClick={() => navigate(`/stores/${store._id}/tools`)}
+                                            onClick={() => {
+                                                if (projectId) {
+                                                    navigate(`/stores/${store._id}/tools`, {
+                                                        state: {
+                                                            breadcrumbs: [
+                                                                { label: 'Projects', href: '/projects' },
+                                                                { label: 'Stores', href: `/projects/${projectId}/stores` },
+                                                                { label: 'Tools', href: `/stores/${store._id}/tools` }
+                                                            ]
+                                                        }
+                                                    });
+                                                } else {
+                                                    navigate(`/stores/${store._id}/tools`);
+                                                }
+                                            }}
                                         >
                                             <td className="px-6 py-4 font-mono font-medium text-xs text-muted-foreground">{store.storeCode || store._id.substring(0, 8)}</td>
                                             <td className="px-6 py-4 font-bold text-foreground">
@@ -249,7 +239,19 @@ export function StoresPage() {
                                                         className="h-8 px-2.5 text-xs font-semibold hover:bg-primary/10 hover:text-primary cursor-pointer"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            navigate(`/stores/${store._id}/tools`);
+                                                            if (projectId) {
+                                                                navigate(`/stores/${store._id}/tools`, {
+                                                                    state: {
+                                                                        breadcrumbs: [
+                                                                            { label: 'Projects', href: '/projects' },
+                                                                            { label: 'Stores', href: `/projects/${projectId}/stores` },
+                                                                            { label: 'Tools', href: `/stores/${store._id}/tools` }
+                                                                        ]
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                navigate(`/stores/${store._id}/tools`);
+                                                            }
                                                         }}
                                                     >
                                                         Tools ({store.toolsCount || 0})
