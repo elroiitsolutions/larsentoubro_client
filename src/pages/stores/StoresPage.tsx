@@ -14,6 +14,7 @@ import storeService from "@/services/store.service"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 import NoAccessPage from "../NoAccessPage"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 
 const storeStatusColors: Record<string, string> = {
     Operational: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20",
@@ -28,6 +29,7 @@ export function StoresPage() {
     const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingStore, setEditingStore] = useState<any>(null);
+    const [deletingStore, setDeletingStore] = useState<{ id: string; name: string } | null>(null);
     const [stores, setStores] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -72,8 +74,7 @@ export function StoresPage() {
         fetchStores();
     }, [projectId, user]);
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this store?")) return;
+    const handleDeleteStore = async (id: string) => {
         try {
             const data = await storeService.deleteStore(id);
             if (data.success) {
@@ -276,7 +277,7 @@ export function StoresPage() {
                                                                 className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    handleDelete(store._id);
+                                                                    setDeletingStore({ id: store._id, name: store.name || "this store" });
                                                                 }}
                                                             >
                                                                 <TrashIcon className="size-4" />
@@ -293,6 +294,15 @@ export function StoresPage() {
                     )}
                 </CardContent>
             </Card>
+
+            <ConfirmDialog
+                isOpen={!!deletingStore}
+                onClose={() => setDeletingStore(null)}
+                onConfirm={() => deletingStore && handleDeleteStore(deletingStore.id)}
+                title="Delete Store"
+                description={`Are you sure you want to delete "${deletingStore?.name || "this store"}"? This action cannot be undone.`}
+                confirmText="Delete Store"
+            />
         </div>
     );
 }

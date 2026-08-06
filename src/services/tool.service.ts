@@ -134,7 +134,11 @@ export const toolService = {
      */
     previewBulkImport: async (storeId: string, formData: FormData): Promise<BulkImportPreviewResponse> => {
         const url = `/api/stores/${storeId}/tools/bulk-import/preview`;
-        const response = await api.post<BulkImportPreviewResponse>(url, formData);
+        const response = await api.post<BulkImportPreviewResponse>(url, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
         return response.data;
     },
 

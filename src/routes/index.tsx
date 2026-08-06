@@ -17,6 +17,7 @@ import { DeliveryChallanPreviewPage } from "@/pages/challans/DeliveryChallanPrev
 import { ChallanHistoryPage } from "@/pages/challans/ChallanHistoryPage"
 import { ReturnChallanPreviewPage } from "@/pages/challans/ReturnChallanPreviewPage"
 import { ReportsPage } from "@/pages/reports/ReportsPage"
+import { AdminApprovalDashboard } from "@/pages/admin/AdminApprovalDashboard"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 
 function ProtectedRoute() {
@@ -93,6 +94,7 @@ export function AppRouter() {
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/users" element={<UsersPage />} />
                         <Route path="/users/:id/access" element={<UserAccessPage />} />
+                        <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
                         {/* <Route path="/tools" element={<ToolsPage />} /> */}
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/settings/forms" element={<SettingsFormManagementPage />} />

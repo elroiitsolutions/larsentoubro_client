@@ -160,7 +160,7 @@ export function DeliveryChallanPreviewPage() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
                     <p className="text-xs font-semibold text-muted-foreground uppercase">Consignee Vendor</p>
                     <div className="flex items-center gap-2 mt-1">
@@ -170,27 +170,12 @@ export function DeliveryChallanPreviewPage() {
                     <span className="text-xs text-muted-foreground font-mono">{initialVendor.vendorCode}</span>
                 </Card>
                 <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Total Tools</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <Package className="size-4 text-emerald-600" />
-                        <span className="text-xl font-bold text-foreground">{items.length}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Unique items</span>
-                </Card>
-                <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
                     <p className="text-xs font-semibold text-muted-foreground uppercase">Total Quantity</p>
                     <div className="flex items-center gap-2 mt-1">
                         <Truck className="size-4 text-blue-600" />
                         <span className="text-xl font-bold text-foreground">{summary.totalQuantity}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">Units (NOS)</span>
-                </Card>
-                <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Estimated Value</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xl font-bold text-primary">₹ {summary.totalRate.toLocaleString()}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Total Rate across items</span>
                 </Card>
             </div>
 
@@ -255,7 +240,7 @@ export function DeliveryChallanPreviewPage() {
                 <CardHeader className="pb-3">
                     <CardTitle className="text-base font-bold">Tool Items to Dispatch</CardTitle>
                     <CardDescription className="text-xs">
-                        You can adjust the quantity, rate (Rs.), and remarks for each item before generating the Delivery Challan.
+                        You can adjust the quantity and remarks for each item before generating the Delivery Challan.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 overflow-x-auto">
@@ -268,7 +253,6 @@ export function DeliveryChallanPreviewPage() {
                                 <th className="px-4 py-3">Tool Code</th>
                                 <th className="px-4 py-3 w-28">Quantity</th>
                                 <th className="px-4 py-3 w-24">Unit</th>
-                                <th className="px-4 py-3 w-32">Rate (₹)</th>
                                 <th className="px-4 py-3">Item Remarks</th>
                             </tr>
                         </thead>
@@ -297,15 +281,6 @@ export function DeliveryChallanPreviewPage() {
                                     </td>
                                     <td className="px-4 py-3">
                                         <Input
-                                            type="number"
-                                            min={0}
-                                            className="h-8 w-28 text-right font-mono"
-                                            value={item.rate}
-                                            onChange={e => handleItemChange(idx, "rate", Number(e.target.value))}
-                                        />
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Input
                                             placeholder="Optional remarks"
                                             className="h-8 text-xs"
                                             value={item.remarks}
@@ -321,7 +296,6 @@ export function DeliveryChallanPreviewPage() {
                     <span className="text-muted-foreground">Total {items.length} Tool(s)</span>
                     <div className="flex items-center gap-6">
                         <span>Total Qty: <strong className="text-foreground">{summary.totalQuantity}</strong></span>
-                        <span>Total Value: <strong className="text-primary">₹ {summary.totalRate.toLocaleString()}</strong></span>
                     </div>
                 </CardFooter>
             </Card>

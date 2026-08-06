@@ -29,6 +29,7 @@ import userService from "@/services/user.service"
 import type { UserRecord } from "@/services/user.service"
 import { toast } from "sonner"
 import NoAccessPage from "../NoAccessPage"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 
 const avatarColors = [
     "bg-gradient-to-br from-blue-400 to-blue-600",
@@ -48,6 +49,7 @@ export function UsersPage() {
     const [searchTerm, setSearchTerm] = React.useState("")
     const [showModal, setShowModal] = React.useState(false)
     const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
+    const [deletingUser, setDeletingUser] = React.useState<{ id: string; name: string } | null>(null)
     const [loading, setLoading] = React.useState(true)
     const [error, setError] = React.useState<string | null>(null)
 
@@ -82,8 +84,7 @@ export function UsersPage() {
         fetchUsers()
     }, [fetchUsers])
 
-    const handleDeleteUser = async (id: string, userName: string) => {
-        if (!confirm(`Are you sure you want to delete user "${userName}"? This will revoke their platform access.`)) return
+    const handleDeleteUser = async (id: string) => {
         try {
             const res = await userService.deleteUser(id)
             if (res.success) {
@@ -209,9 +210,8 @@ export function UsersPage() {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div
-                                                            className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm ${
-                                                                avatarColors[i % avatarColors.length]
-                                                            }`}
+                                                            className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm ${avatarColors[i % avatarColors.length]
+                                                                }`}
                                                         >
                                                             {initials}
                                                         </div>
@@ -277,7 +277,7 @@ export function UsersPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => handleDeleteUser(u._id, u.name)}
+                                                            onClick={() => setDeletingUser({ id: u._id, name: u.name })}
                                                             className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                                                             title="Delete User"
                                                         >
@@ -305,6 +305,15 @@ export function UsersPage() {
                 onSuccess={() => {
                     fetchUsers()
                 }}
+            />
+
+            <ConfirmDialog
+                isOpen={!!deletingUser}
+                onClose={() => setDeletingUser(null)}
+                onConfirm={() => deletingUser && handleDeleteUser(deletingUser.id)}
+                title="Delete User"
+                description={`Are you sure you want to delete user "${deletingUser?.name || "this user"}"? This will revoke their platform access.`}
+                confirmText="Delete User"
             />
         </div>
     )

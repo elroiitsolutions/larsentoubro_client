@@ -29,6 +29,7 @@ import {
   BuildingIcon,
   FileTextIcon,
   BarChart3Icon,
+  ShieldCheck,
 } from "lucide-react"
 
 import logoUrl from "@/assets/logo.png"
@@ -58,6 +59,13 @@ const data = {
       title: "Users",
       url: "/users",
       icon: <UsersIcon />,
+      isActive: false,
+      items: [],
+    },
+    {
+      title: "Login Approvals",
+      url: "/admin/approvals",
+      icon: <ShieldCheck />,
       isActive: false,
       items: [],
     },

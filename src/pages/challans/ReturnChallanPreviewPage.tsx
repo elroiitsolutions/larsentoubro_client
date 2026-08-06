@@ -208,7 +208,7 @@ export function ReturnChallanPreviewPage() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
                     <p className="text-xs font-semibold text-muted-foreground uppercase">Consignee Vendor</p>
                     <div className="flex items-center gap-2 mt-1">
@@ -234,14 +234,6 @@ export function ReturnChallanPreviewPage() {
                         <span className="text-xl font-bold text-rose-600">{missingItems.length}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">Marked as Missing</span>
-                </Card>
-
-                <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Original Value</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xl font-bold text-primary">₹ {summary.totalRate.toLocaleString()}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Total across items</span>
                 </Card>
             </div>
 

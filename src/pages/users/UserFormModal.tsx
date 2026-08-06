@@ -144,7 +144,7 @@ export function UserFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-h-[90vh]">
+            <DialogContent className="max-w-2xl max-h-[90vh]">
                 {/* Header */}
                 <DialogHeader className="px-6 py-5 border-b border-border/60 bg-muted/20 shrink-0">
                     <div className="flex items-center gap-3">

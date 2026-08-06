@@ -5,7 +5,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { PlusIcon, FolderOpenIcon, SearchIcon, Loader2, EditIcon, TrashIcon, TrendingUpIcon } from "lucide-react"
+import { PlusIcon, FolderOpenIcon, SearchIcon, Loader2, EditIcon, TrashIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -14,6 +14,7 @@ import projectService from "@/services/project.service"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 import NoAccessPage from "../NoAccessPage"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 
 const statusColors: Record<string, string> = {
     Active: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20",
@@ -30,6 +31,7 @@ export function ProjectsPage() {
     const navigate = useNavigate();
 
     const [editingProject, setEditingProject] = useState<any>(null);
+    const [deletingProject, setDeletingProject] = useState<{ id: string; name: string } | null>(null);
 
     const fetchProjects = async () => {
         setLoading(true);
@@ -47,8 +49,7 @@ export function ProjectsPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this project?")) return;
+    const handleDeleteProject = async (id: string) => {
         try {
             const data = await projectService.deleteProject(id);
             if (data.success) {
@@ -95,16 +96,16 @@ export function ProjectsPage() {
                 )}
             </div>
 
-            <DynamicFormSheet 
-                isOpen={isFormOpen} 
-                onClose={() => setIsFormOpen(false)} 
-                formSlug="create-project" 
+            <DynamicFormSheet
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                formSlug="create-project"
                 submitEndpoint={editingProject ? `/projects/${editingProject._id}` : "/projects"}
                 submitMethod={editingProject ? "PUT" : "POST"}
                 onSubmitSuccess={() => {
                     toast.success(editingProject ? "Project updated successfully!" : "Project created successfully!");
                     fetchProjects();
-                }} 
+                }}
                 defaultValues={editingProject ? { ...editingProject, projectName: editingProject.name } : undefined}
             />
 
@@ -181,7 +182,7 @@ export function ProjectsPage() {
                                                         <Button variant="ghost" size="icon" className="size-8 rounded-lg hover:bg-background shadow-sm cursor-pointer" onClick={(e) => { e.stopPropagation(); setEditingProject(p); setIsFormOpen(true); }}>
                                                             <EditIcon className="size-4 text-muted-foreground" />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="size-8 rounded-lg hover:bg-red-500/10 hover:text-red-600 shadow-sm cursor-pointer" onClick={(e) => { e.stopPropagation(); handleDelete(p._id); }}>
+                                                        <Button variant="ghost" size="icon" className="size-8 rounded-lg hover:bg-red-500/10 hover:text-red-600 shadow-sm cursor-pointer" onClick={(e) => { e.stopPropagation(); setDeletingProject({ id: p._id, name: p.name || p.title || "this project" }); }}>
                                                             <TrashIcon className="size-4 text-muted-foreground" />
                                                         </Button>
                                                     </div>
@@ -195,6 +196,15 @@ export function ProjectsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <ConfirmDialog
+                isOpen={!!deletingProject}
+                onClose={() => setDeletingProject(null)}
+                onConfirm={() => deletingProject && handleDeleteProject(deletingProject.id)}
+                title="Delete Project"
+                description={`Are you sure you want to delete "${deletingProject?.name || "this project"}"? This action cannot be undone.`}
+                confirmText="Delete Project"
+            />
         </div>
     );
 }

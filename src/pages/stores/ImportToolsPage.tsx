@@ -11,7 +11,9 @@ import {
     AlertCircle, 
     CheckCircle2, 
     ArrowRight, 
-    RefreshCw
+    RefreshCw,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,8 +37,10 @@ export function ImportToolsPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [downloadingSample, setDownloadingSample] = useState(false);
     
-    // Preview State
+    // Preview & Pagination State
     const [previewData, setPreviewData] = useState<any>(null);
+    const [reviewPage, setReviewPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
 
     // Result State
     const [result, setResult] = useState<BulkImportCommitData | null>(null);
@@ -99,7 +103,7 @@ export function ImportToolsPage() {
 
     const handlePreview = async () => {
         if (!file) {
-            toast.error("Please select a file to upload");
+            toast.error("Please select an Excel (.xlsx, .xls) or CSV file before validating data.");
             return;
         }
 
@@ -118,7 +122,7 @@ export function ImportToolsPage() {
             }
         } catch (error: any) {
             console.error(error);
-            const message = error?.response?.data?.message || "An error occurred during parsing";
+            const message = error?.response?.data?.message || "An error occurred during file validation";
             toast.error(message);
         } finally {
             setLoading(false);
@@ -163,7 +167,7 @@ export function ImportToolsPage() {
     };
 
     return (
-        <div className="flex flex-col gap-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500 h-[calc(100vh-4rem)]">
+        <div className="flex flex-col gap-6 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500 pb-12">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
@@ -188,33 +192,17 @@ export function ImportToolsPage() {
                 </Button>
             </div>
 
-            <Card className="border-border/50 shadow-lg shadow-black/5 rounded-2xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl flex flex-col overflow-hidden h-[800px] max-h-[80vh]">
+            <Card className="border-border/50 shadow-lg shadow-black/5 rounded-2xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl flex flex-col min-h-[550px]">
                 
                 {step === 'upload' && (
                     <div className="flex flex-col h-full">
-                        <CardHeader className="border-b bg-muted/20 flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>Upload Data</CardTitle>
-                                <CardDescription>Upload your .xlsx or .csv file to begin the import process.</CardDescription>
-                            </div>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={handleDownloadSample}
-                                disabled={downloadingSample}
-                                className="gap-2 shrink-0 shadow-sm hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-colors"
-                            >
-                                {downloadingSample ? (
-                                    <Loader2 className="size-3.5 animate-spin" />
-                                ) : (
-                                    <FileDown className="size-3.5 text-primary" />
-                                )}
-                                Download Sample (.xlsx)
-                            </Button>
+                        <CardHeader className="border-b bg-muted/20">
+                            <CardTitle>Upload Data</CardTitle>
+                            <CardDescription>Upload your .xlsx or .csv file to begin the import process.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 p-8 flex flex-col justify-center max-w-3xl mx-auto w-full">
                             <div 
-                                className={`border-2 border-dashed rounded-xl p-16 flex flex-col items-center justify-center text-center transition-all duration-300 ${
+                                className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center transition-all duration-300 ${
                                     isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border/60 hover:border-primary/50 hover:bg-muted/30'
                                 }`}
                                 onDragOver={handleDragOver}
@@ -246,20 +234,6 @@ export function ImportToolsPage() {
                                     >
                                         Select File Manually
                                     </Button>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="shadow-sm hover:shadow transition-shadow cursor-pointer gap-2"
-                                        onClick={handleDownloadSample}
-                                        disabled={downloadingSample}
-                                    >
-                                        {downloadingSample ? (
-                                            <Loader2 className="size-4 animate-spin" />
-                                        ) : (
-                                            <FileDown className="size-4 text-primary" />
-                                        )}
-                                        Download Sample (.xlsx)
-                                    </Button>
                                 </div>
                                 
                                 {file && (
@@ -286,94 +260,154 @@ export function ImportToolsPage() {
                     </div>
                 )}
 
-                {step === 'review' && previewData && (
-                    <div className="flex flex-col h-full overflow-hidden">
-                        <CardHeader className="border-b bg-muted/20 shrink-0">
-                            <CardTitle>Review & Validate</CardTitle>
-                            <CardDescription>Please review the parsed data before importing. Only valid records will be imported.</CardDescription>
+                {step === 'review' && previewData && (() => {
+                    const totalRecords = previewData.records?.length || 0;
+                    const totalReviewPages = Math.ceil(totalRecords / pageSize) || 1;
+                    const startIndex = (reviewPage - 1) * pageSize;
+                    const endIndex = Math.min(startIndex + pageSize, totalRecords);
+                    const currentRecords = previewData.records?.slice(startIndex, endIndex) || [];
+
+                    return (
+                        <div className="flex flex-col h-full overflow-hidden">
+                            <CardHeader className="border-b bg-muted/20 shrink-0">
+                                <CardTitle>Review & Validate</CardTitle>
+                                <CardDescription>Please review the parsed data before importing. Only valid records will be imported.</CardDescription>
+                                
+                                <div className="flex gap-4 mt-6">
+                                    <div className="bg-background border rounded-lg px-5 py-3 flex-1 flex flex-col shadow-sm">
+                                        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-1">Total Rows</span>
+                                        <span className="text-2xl font-bold">{previewData.totalRows}</span>
+                                    </div>
+                                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg px-5 py-3 flex-1 flex flex-col shadow-sm">
+                                        <span className="text-emerald-600/70 dark:text-emerald-500/70 text-xs font-semibold uppercase tracking-wider mb-1">Ready to Import</span>
+                                        <span className="text-2xl font-bold">{previewData.validCount}</span>
+                                    </div>
+                                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 rounded-lg px-5 py-3 flex-1 flex flex-col shadow-sm">
+                                        <span className="text-rose-600/70 dark:text-rose-500/70 text-xs font-semibold uppercase tracking-wider mb-1">Contain Errors</span>
+                                        <span className="text-2xl font-bold">{previewData.invalidCount}</span>
+                                    </div>
+                                </div>
+                            </CardHeader>
                             
-                            <div className="flex gap-4 mt-6">
-                                <div className="bg-background border rounded-lg px-5 py-3 flex-1 flex flex-col shadow-sm">
-                                    <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-1">Total Rows</span>
-                                    <span className="text-2xl font-bold">{previewData.totalRows}</span>
+                            <div className="flex-1 overflow-auto bg-background/50">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="sticky top-0 bg-muted/90 backdrop-blur z-10 text-xs uppercase tracking-wider text-muted-foreground font-semibold shadow-sm">
+                                        <tr>
+                                            <th className="px-6 py-4 whitespace-nowrap">Row</th>
+                                            {previewData.columns?.map((col: any) => (
+                                                <th key={col.name} className="px-6 py-4 whitespace-nowrap">{col.header}</th>
+                                            ))}
+                                            <th className="px-6 py-4 whitespace-nowrap">Status / Errors</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/40">
+                                        {currentRecords.map((r: any, idx: number) => (
+                                            <tr key={idx} className={`transition-colors hover:bg-muted/30 ${r.isValid ? "" : "bg-rose-500/5 hover:bg-rose-500/10"}`}>
+                                                <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{r.rowNumber}</td>
+                                                {previewData.columns?.map((col: any) => {
+                                                    const val = r[col.name] !== undefined ? r[col.name] : r.customFields?.[col.name];
+                                                    if (col.name === 'description') {
+                                                        return <td key={col.name} className="px-6 py-4 font-medium text-foreground min-w-[200px]">{val || <span className="text-muted-foreground italic">Missing</span>}</td>;
+                                                    }
+                                                    if (col.name === 'toolCode') {
+                                                        return <td key={col.name} className="px-6 py-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">{val || '-'}</td>;
+                                                    }
+                                                    return (
+                                                        <td key={col.name} className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                                                            {val || '-'}
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="px-6 py-4 min-w-[250px]">
+                                                    {r.isValid ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold ring-1 ring-emerald-500/20">
+                                                            <CheckCircle2 className="size-3.5" /> Valid
+                                                        </span>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-2">
+                                                            {r.errors.map((err: string, i: number) => (
+                                                                <span key={i} className="inline-flex items-start gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20 text-balance leading-tight">
+                                                                    <AlertCircle className="size-3.5 shrink-0 mt-0.5" /> {err}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Pagination Controls Bar */}
+                            <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 bg-muted/30 border-t border-border/50 text-xs">
+                                <div className="flex items-center gap-3 text-muted-foreground">
+                                    <span>
+                                        Showing <strong className="text-foreground">{totalRecords > 0 ? startIndex + 1 : 0}</strong> to <strong className="text-foreground">{endIndex}</strong> of <strong className="text-foreground">{totalRecords}</strong> rows
+                                    </span>
+                                    <span className="text-border">|</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span>Per page:</span>
+                                        <select
+                                            value={pageSize}
+                                            onChange={(e) => {
+                                                setPageSize(Number(e.target.value));
+                                                setReviewPage(1);
+                                            }}
+                                            className="h-7 px-2 rounded-lg border border-border/60 bg-background text-foreground text-xs focus:outline-none cursor-pointer font-medium"
+                                        >
+                                            <option value={15}>15</option>
+                                            <option value={25}>25</option>
+                                            <option value={50}>50</option>
+                                            <option value={100}>100</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg px-5 py-3 flex-1 flex flex-col shadow-sm">
-                                    <span className="text-emerald-600/70 dark:text-emerald-500/70 text-xs font-semibold uppercase tracking-wider mb-1">Ready to Import</span>
-                                    <span className="text-2xl font-bold">{previewData.validCount}</span>
-                                </div>
-                                <div className="bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 rounded-lg px-5 py-3 flex-1 flex flex-col shadow-sm">
-                                    <span className="text-rose-600/70 dark:text-rose-500/70 text-xs font-semibold uppercase tracking-wider mb-1">Contain Errors</span>
-                                    <span className="text-2xl font-bold">{previewData.invalidCount}</span>
+
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setReviewPage(p => Math.max(p - 1, 1))}
+                                        disabled={reviewPage === 1}
+                                        className="h-8 text-xs px-3 gap-1 cursor-pointer font-medium"
+                                    >
+                                        <ChevronLeft className="size-3.5" /> Previous
+                                    </Button>
+                                    <span className="font-semibold text-foreground px-2">
+                                        Page {reviewPage} of {totalReviewPages}
+                                    </span>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setReviewPage(p => Math.min(p + 1, totalReviewPages))}
+                                        disabled={reviewPage >= totalReviewPages}
+                                        className="h-8 text-xs px-3 gap-1 cursor-pointer font-medium"
+                                    >
+                                        Next <ChevronRight className="size-3.5" />
+                                    </Button>
                                 </div>
                             </div>
-                        </CardHeader>
-                        
-                        <div className="flex-1 overflow-auto bg-background/50">
-                            <table className="w-full text-sm text-left">
-                                <thead className="sticky top-0 bg-muted/90 backdrop-blur z-10 text-xs uppercase tracking-wider text-muted-foreground font-semibold shadow-sm">
-                                    <tr>
-                                        <th className="px-6 py-4 whitespace-nowrap">Row</th>
-                                        {previewData.columns?.map((col: any) => (
-                                            <th key={col.name} className="px-6 py-4 whitespace-nowrap">{col.header}</th>
-                                        ))}
-                                        <th className="px-6 py-4 whitespace-nowrap">Status / Errors</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border/40">
-                                    {previewData.records.map((r: any, idx: number) => (
-                                        <tr key={idx} className={`transition-colors hover:bg-muted/30 ${r.isValid ? "" : "bg-rose-500/5 hover:bg-rose-500/10"}`}>
-                                            <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{r.rowNumber}</td>
-                                            {previewData.columns?.map((col: any) => {
-                                                const val = r[col.name] !== undefined ? r[col.name] : r.customFields?.[col.name];
-                                                if (col.name === 'description') {
-                                                    return <td key={col.name} className="px-6 py-4 font-medium text-foreground min-w-[200px]">{val || <span className="text-muted-foreground italic">Missing</span>}</td>;
-                                                }
-                                                if (col.name === 'toolCode') {
-                                                    return <td key={col.name} className="px-6 py-4 font-mono text-xs text-primary font-semibold whitespace-nowrap">{val || '-'}</td>;
-                                                }
-                                                return (
-                                                    <td key={col.name} className="px-6 py-4 text-muted-foreground whitespace-nowrap">
-                                                        {val || '-'}
-                                                    </td>
-                                                );
-                                            })}
-                                            <td className="px-6 py-4 min-w-[250px]">
-                                                {r.isValid ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold ring-1 ring-emerald-500/20">
-                                                        <CheckCircle2 className="size-3.5" /> Valid
-                                                    </span>
-                                                ) : (
-                                                    <div className="flex flex-col gap-2">
-                                                        {r.errors.map((err: string, i: number) => (
-                                                            <span key={i} className="inline-flex items-start gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20 text-balance leading-tight">
-                                                                <AlertCircle className="size-3.5 shrink-0 mt-0.5" /> {err}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
 
-                        <div className="p-6 border-t bg-muted/20 backdrop-blur-sm flex justify-between shrink-0 mt-auto">
-                            <Button type="button" variant="outline" onClick={() => setStep('upload')} className="shadow-sm">
-                                <RefreshCw className="size-4 mr-2" />
-                                Re-upload File
-                            </Button>
-                            <Button 
-                                onClick={handleCommit} 
-                                disabled={loading || previewData.validCount === 0}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm px-6"
-                            >
-                                {loading && <Loader2 className="size-4 animate-spin mr-2" />}
-                                Import {previewData.validCount} Valid Records
-                            </Button>
+                            <div className="p-6 border-t bg-muted/20 backdrop-blur-sm flex justify-between shrink-0 mt-auto">
+                                <Button type="button" variant="outline" onClick={() => setStep('upload')} className="shadow-sm">
+                                    <RefreshCw className="size-4 mr-2" />
+                                    Re-upload File
+                                </Button>
+                                <Button 
+                                    onClick={handleCommit} 
+                                    disabled={loading || previewData.validCount === 0}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm px-6"
+                                >
+                                    {loading && <Loader2 className="size-4 animate-spin mr-2" />}
+                                    Import {previewData.validCount} Valid Records
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 {step === 'result' && result && (
                     <div className="flex flex-col h-full overflow-hidden">

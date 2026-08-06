@@ -299,14 +299,13 @@ export const generateDeliveryChallanPDF = async (challan: any, options: ChallanP
             String(idx + 1),
             desc,
             String(item.quantity || 1),
-            item.unit || 'NOS',
-            item.rate ? `Rs. ${item.rate}` : ''
+            item.unit || 'NOS'
         ];
     });
 
     doc.autoTable({
         startY: 83,
-        head: [['SL. NO.', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'RATE RS.']],
+        head: [['SL. NO.', 'DESCRIPTION', 'QUANTITY', 'UNIT']],
         body: tableBody,
         theme: 'grid',
         headStyles: {
@@ -326,10 +325,9 @@ export const generateDeliveryChallanPDF = async (challan: any, options: ChallanP
         },
         columnStyles: {
             0: { halign: 'center', cellWidth: 16 },
-            1: { cellWidth: 104 },
+            1: { cellWidth: 126 },
             2: { halign: 'center', cellWidth: 22 },
-            3: { halign: 'center', cellWidth: 18 },
-            4: { halign: 'right', cellWidth: 22 }
+            3: { halign: 'center', cellWidth: 18 }
         },
         margin: { left: 14, right: 14 }
     });

@@ -45,8 +45,7 @@ const statusColors: Record<string, string> = {
     "Expired": "bg-slate-500/15 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400 ring-1 ring-slate-500/30 shadow-sm",
 }
 
-const categories = ["All", "Erection Tools", "Stringing Tools"];
-const statuses = ["All", "Available", "In Use", "Moving", "Missing", "Maintenance", "Damaged", "Expired"];
+const defaultStatuses = ["Available", "In Use", "Moving", "Missing", "Maintenance", "Damaged", "Expired"];
 
 
 export function StoreToolsPage() {
@@ -529,7 +528,7 @@ export function StoreToolsPage() {
                                 <SearchableSelect
                                     value={category}
                                     onValueChange={(val) => { setCategory(val); setPage(1); }}
-                                    options={categories.filter(c => c !== 'All')}
+                                    options={getOptionsForField('toolType')}
                                     placeholder="All Types"
                                     searchPlaceholder="Search tool type..."
                                     allLabel="All Types"
@@ -541,7 +540,7 @@ export function StoreToolsPage() {
                                 <SearchableSelect
                                     value={status}
                                     onValueChange={(val) => { setStatus(val); setPage(1); }}
-                                    options={statuses.filter(s => s !== 'All')}
+                                    options={getOptionsForField('status')}
                                     placeholder="All Statuses"
                                     searchPlaceholder="Search status..."
                                     allLabel="All Statuses"
@@ -583,11 +582,23 @@ export function StoreToolsPage() {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {renderFilterSelect("Tool ID", "toolId", "All Tool IDs")}
                                                 <div>
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category / Tool Type</label>
+                                                    <SearchableSelect
+                                                        value={draftCategory}
+                                                        onValueChange={(val) => setDraftCategory(val)}
+                                                        options={getOptionsForField('toolType')}
+                                                        placeholder="All Types"
+                                                        searchPlaceholder="Search tool type..."
+                                                        allLabel="All Types"
+                                                        allValue="All"
+                                                    />
+                                                </div>
+                                                <div>
                                                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Status</label>
                                                     <SearchableSelect
                                                         value={draftStatus}
                                                         onValueChange={(val) => setDraftStatus(val)}
-                                                        options={statuses.filter(s => s !== 'All')}
+                                                        options={getOptionsForField('status')}
                                                         placeholder="All Statuses"
                                                         searchPlaceholder="Search status..."
                                                         allLabel="All Statuses"

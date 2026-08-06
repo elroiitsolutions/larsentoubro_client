@@ -20,6 +20,8 @@ import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 import { Eye , EyeOff} from "lucide-react"
 
+import { UserWaitingScreen } from "@/components/UserWaitingScreen"
+
 export function LoginForm({
   className,
   ...props
@@ -30,6 +32,7 @@ export function LoginForm({
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [eye, setEye] = React.useState(false)
+  const [pendingReq, setPendingReq] = React.useState<{ requestId: string; email: string } | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +42,14 @@ export function LoginForm({
     try {
       const data = await authService.login({ email, password })
 
+      if (data.requestId || data.data?.requestId || data.message?.includes("Waiting for administrator")) {
+        const reqId = data.requestId || data.data?.requestId
+        setPendingReq({ requestId: reqId, email })
+        toast.info("Login request sent. Waiting for administrator approval.")
+        setLoading(false)
+        return
+      }
+
       if (!data.success) {
         throw new Error(data.message || "Invalid email or password")
       }
@@ -46,10 +57,33 @@ export function LoginForm({
       toast.success("Successfully logged in!")
       login(data.token, data.user)
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || "Invalid email or password"
+      const resData = err?.response?.data
+      if (resData?.requestId || resData?.message?.includes("Waiting for administrator")) {
+        const reqId = resData.requestId || resData?.data?.requestId
+        setPendingReq({ requestId: reqId, email })
+        toast.info("Login request sent. Waiting for administrator approval.")
+        setLoading(false)
+        return
+      }
+
+      const message = resData?.message || err.message || "Invalid email or password"
       setError(message)
       setLoading(false)
     }
+  }
+
+  if (pendingReq) {
+    return (
+      <UserWaitingScreen
+        requestId={pendingReq.requestId}
+        email={pendingReq.email}
+        onApproved={(token, user) => {
+          toast.success("Login request approved!")
+          login(token, user)
+        }}
+        onCancel={() => setPendingReq(null)}
+      />
+    )
   }
 
   return (
