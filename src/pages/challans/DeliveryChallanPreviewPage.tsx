@@ -1,21 +1,24 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
     FileText,
     ArrowLeft,
     CheckCircle2,
     Loader2,
     Building2,
-    Package,
     Truck,
-    AlertCircle
+    AlertCircle,
+    Download,
+    CheckSquare,
+    Square,
+    MapPin
 } from "lucide-react";
 import challanService from "@/services/challan.service";
-import { generateDeliveryChallanPDF } from "@/utils/pdf/challanPdfGenerator";
+import { generateDeliveryChallanPDF, formatDateDDMMYYYY, formatDCNumber } from "@/utils/pdf/challanPdfGenerator";
 import { calculateChallanSummary } from "@/utils/challan/challanCalculations";
 import { toast } from "sonner";
 
@@ -25,18 +28,72 @@ export function DeliveryChallanPreviewPage() {
     const state = location.state as any;
 
     const initialTools = state?.selectedTools || [];
-    const initialVendor = state?.vendor || { name: "Selected Vendor", vendorCode: "V-001" };
+    const initialVendor = state?.vendor || { name: "Selected Subcontractor", vendorCode: "V-001" };
     const storeId = state?.storeId;
 
+    // Header & Company Titles (Static Non-Editable)
+    const companyName = "LARSEN & TOUBRO LIMITED, CONSTRUCTION";
+    const companyDivision = "L&T Construction";
+    const documentTitle = "DELIVERY CHALLAN";
+    const docReferenceCode = "ECC-O&M/STR/906";
+    const registeredOfficeAddress = "Registered Office : L & T House, Ballard Estate, Bombay - 400 038.";
+
+    // Dates & Remarks
     const [challanDate, setChallanDate] = useState(state?.challanDate || new Date().toISOString().split("T")[0]);
     const [deliveryDate, setDeliveryDate] = useState(state?.deliveryDate || new Date().toISOString().split("T")[0]);
     const [remarks, setRemarks] = useState(state?.remarks || "");
     const [notes, setNotes] = useState(state?.notes || "");
 
+    // Consignee / Subcontractor & Location Details (Editable)
+    const [subcontractorName, setSubcontractorName] = useState(initialVendor.name || "Selected Subcontractor");
+    const [consigneeAddress, setConsigneeAddress] = useState(initialVendor.address || "Powai Campus, Saki Vihar Road, Mumbai");
+    const [siteCode, setSiteCode] = useState(initialVendor.vendorCode || "UJ - 0002");
+    const [locationChainage, setLocationChainage] = useState("Loc: 59/3 to 60/0");
+    const [workFrontLocation, setWorkFrontLocation] = useState("Tower Line Workfront");
+    const [consigneeGstNo, setConsigneeGstNo] = useState(initialVendor.gstNumber || "27AAACL0140P1Z0");
+
+    // Accounting & TRN Fields (Editable)
+    const [trnCode, setTrnCode] = useState("M 25");
+    const [sendingCentreCode, setSendingCentreCode] = useState("STR-01");
+    const [mrNo, setMrNo] = useState("-");
+    const [mrDate, setMrDate] = useState("-");
+    const [stockType, setStockType] = useState("CAPTIVE");
+    const [ewayBillNo, setEwayBillNo] = useState("-");
+
+    // Gate Pass & Transport Details (Editable)
+    const [gatePassNo, setGatePassNo] = useState("GP-2026-001");
+    const [gatePassApprovedBy, setGatePassApprovedBy] = useState("APPROVED");
+    const [consignorTaxNo, setConsignorTaxNo] = useState("27AAACL0140P1Z0");
+    const [vehicleNo, setVehicleNo] = useState("-");
+    const [lrNo, setLrNo] = useState("-");
+    const [freightStatus, setFreightStatus] = useState("PAID");
+
+    // Receiver Details (Editable)
+    const [receiverName, setReceiverName] = useState("");
+    const [receiverMobile, setReceiverMobile] = useState("");
+    const [mrnNo, setMrnNo] = useState("");
+    const [receiptDate, setReceiptDate] = useState(new Date().toISOString().split("T")[0]);
+
+    // Copy Distribution Checkboxes (Editable)
+    const [copyDistribution, setCopyDistribution] = useState<string[]>([
+        "CONSIGNEE",
+        "CONSIGNEE - CONSIGNOR",
+        "GATE PASS (SECURITY - ACCOUNTS)",
+        "CONSIGNOR'S FILE"
+    ]);
+
+    const copyDistributionOptions = [
+        { id: "CONSIGNEE", label: "CONSIGNEE" },
+        { id: "CONSIGNEE - CONSIGNOR", label: "CONSIGNEE - CONSIGNOR" },
+        { id: "GATE PASS (SECURITY - ACCOUNTS)", label: "GATE PASS (SECURITY - ACCOUNTS)" },
+        { id: "CONSIGNOR'S FILE", label: "CONSIGNOR'S FILE" }
+    ];
+
     const [items, setItems] = useState<any[]>(
-        initialTools.map((t: any) => ({
+        initialTools.map((t: any, idx: number) => ({
             tool: t._id,
             toolId: t.toolId || t._id,
+            materialCode: t.materialCode || t.toolCode || `MAT-${1000 + idx}`,
             description: t.description || "Tool Item",
             toolCode: t.toolCode || "",
             quantity: Number(t.quantity || 1),
@@ -73,23 +130,76 @@ export function DeliveryChallanPreviewPage() {
         setItems(next);
     };
 
+    const toggleCopyDistribution = (optionId: string) => {
+        if (copyDistribution.includes(optionId)) {
+            setCopyDistribution(copyDistribution.filter(id => id !== optionId));
+        } else {
+            setCopyDistribution([...copyDistribution, optionId]);
+        }
+    };
+
+    const getChallanPayload = () => ({
+        subcontractorName,
+        siteCode,
+        locationChainage,
+        workFrontLocation,
+        vendorId: initialVendor._id,
+        vendor: {
+            ...initialVendor,
+            name: subcontractorName,
+            address: consigneeAddress,
+            vendorCode: siteCode,
+            gstNumber: consigneeGstNo
+        },
+        storeId,
+        challanDate,
+        deliveryDate,
+        trnCode,
+        sendingCentreCode,
+        mrNo,
+        mrDate,
+        stockType,
+        ewayBillNo,
+        gatePassNo,
+        gatePassApprovedBy,
+        consignorTaxNo,
+        vehicleNo,
+        lrNo,
+        freightStatus,
+        receiverName,
+        receiverMobile,
+        mrnNo,
+        receiptDate,
+        docReferenceCode,
+        copyDistribution,
+        remarks,
+        notes,
+        items
+    });
+
+    const handleDownloadDraft = async () => {
+        try {
+            const draftData = {
+                challanNumber: "DC-2026-008",
+                ...getChallanPayload()
+            };
+            await generateDeliveryChallanPDF(draftData, { download: true, fileName: "Delivery_Challan_Draft.pdf" });
+            toast.success("Downloaded Delivery Challan PDF Draft");
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to generate draft PDF");
+        }
+    };
+
     const handleConfirmCreate = async () => {
         try {
             setCreating(true);
-            const res = await challanService.createDeliveryChallan({
-                vendorId: initialVendor._id,
-                storeId,
-                challanDate,
-                deliveryDate,
-                remarks,
-                notes,
-                items
-            });
+            const payload = getChallanPayload();
+            const res = await challanService.createDeliveryChallan(payload);
 
             if (res.success && res.data) {
-                toast.success(`Delivery Challan ${res.data.challanNumber} created successfully! Automatically downloading PDF...`);
+                toast.success(`Delivery Challan ${formatDCNumber(res.data.challanNumber)} created successfully! Automatically downloading PDF...`);
 
-                // Auto generate and download high-fidelity L&T PDF
                 try {
                     await generateDeliveryChallanPDF(res.data, { download: true });
                 } catch (pdfErr) {
@@ -97,7 +207,6 @@ export function DeliveryChallanPreviewPage() {
                     toast.error("Challan created, but automatic PDF download failed.");
                 }
 
-                // Redirect back to store tools or challan history
                 setTimeout(() => {
                     if (storeId) {
                         navigate(`/stores/${storeId}/tools`);
@@ -107,42 +216,45 @@ export function DeliveryChallanPreviewPage() {
                 }, 1500);
             }
         } catch (err: any) {
-            toast.error(err.message || "Failed to create Delivery Challan");
+            toast.error(err?.response?.data?.message || err.message || "Failed to create Delivery Challan");
             setCreating(false);
         }
     };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto space-y-6">
-            {/* Top Navigation & Title */}
-            <div className="flex items-center justify-between">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full py-4 px-2 sm:px-6 space-y-6">
+            
+            {/* Top Toolbar Navigation & Title */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
                         <ArrowLeft className="size-5" />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
                             <FileText className="size-6 text-primary" />
-                            Review & Create Delivery Challan
+                            Official Delivery Challan Document Canvas
                         </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Verify dispatch quantities, rates, and consignee details before issuing an official L&T Delivery Challan.
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                            Subcontractor details, Location chainage, Material codes, Returnable stamp, and Receiver details editor.
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                     <Button
                         variant="outline"
-                        onClick={() => navigate(-1)}
+                        onClick={handleDownloadDraft}
                         disabled={creating}
+                        className="rounded-xl h-10 px-4 text-xs font-bold gap-2 cursor-pointer"
                     >
-                        Back to Selection
+                        <Download className="size-4 text-primary" />
+                        <span>Download PDF Draft</span>
                     </Button>
                     <Button
                         onClick={handleConfirmCreate}
                         disabled={creating}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg flex items-center gap-2 px-5"
+                        className="rounded-xl h-10 px-6 font-bold shadow-md flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
                     >
                         {creating ? (
                             <>
@@ -152,157 +264,368 @@ export function DeliveryChallanPreviewPage() {
                         ) : (
                             <>
                                 <CheckCircle2 className="size-4" />
-                                <span>Confirm & Create Challan</span>
+                                <span>Confirm & Issue Challan</span>
                             </>
                         )}
                     </Button>
                 </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Consignee Vendor</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <Building2 className="size-4 text-primary" />
-                        <span className="font-bold text-foreground truncate">{initialVendor.name}</span>
+            {/* Location & Receiver Details Input Card */}
+            <Card className="border border-border/60 shadow-2xs rounded-2xl bg-card p-4 space-y-4">
+                <div className="flex items-center justify-between border-b pb-3">
+                    <div className="flex items-center gap-2">
+                        <MapPin className="size-4 text-primary" />
+                        <h3 className="text-sm font-extrabold text-foreground">Location & Receiver Entry Details</h3>
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono">{initialVendor.vendorCode}</span>
-                </Card>
-                <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Total Quantity</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <Truck className="size-4 text-blue-600" />
-                        <span className="text-xl font-bold text-foreground">{summary.totalQuantity}</span>
+                    <span className="text-xs text-muted-foreground">Manual Challan Slip Alignments</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1">Site Code</label>
+                        <Input value={siteCode} onChange={e => setSiteCode(e.target.value)} className="h-8 text-xs font-semibold" />
                     </div>
-                    <span className="text-xs text-muted-foreground">Units (NOS)</span>
-                </Card>
-            </div>
+                    <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1">Tower / Location / Chainage</label>
+                        <Input value={locationChainage} onChange={e => setLocationChainage(e.target.value)} placeholder="e.g. Loc: 59/3 to 60/0" className="h-8 text-xs font-semibold" />
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1">Receiver Name</label>
+                        <Input value={receiverName} onChange={e => setReceiverName(e.target.value)} placeholder="Full Name" className="h-8 text-xs font-semibold" />
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1">Receiver Mobile No.</label>
+                        <Input value={receiverMobile} onChange={e => setReceiverMobile(e.target.value)} placeholder="Mobile Number" className="h-8 text-xs font-semibold" />
+                    </div>
+                </div>
+            </Card>
 
-            {/* Challan Metadata Form */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-bold">Challan Header Information</CardTitle>
-                    <CardDescription className="text-xs">
-                        Review consignee address, GST, and delivery timeframe.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <Label className="text-xs">Challan Issue Date *</Label>
-                        <Input
-                            type="date"
-                            className="h-9 mt-1 text-sm"
-                            value={challanDate}
-                            onChange={e => setChallanDate(e.target.value)}
-                        />
+            {/* Footer Copy Distribution Checkboxes Customization Bar */}
+            <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden bg-card">
+                <div className="bg-red-50/80 dark:bg-red-950/30 px-5 py-3 border-b border-red-100 dark:border-red-900 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <span className="size-2 rounded-full bg-red-600 animate-pulse" />
+                        <h3 className="text-xs font-extrabold uppercase tracking-wider text-red-700 dark:text-red-400">
+                            Footer Copy Distribution Checkboxes (Admin Customization)
+                        </h3>
                     </div>
-                    <div>
-                        <Label className="text-xs">Expected Delivery Date</Label>
-                        <Input
-                            type="date"
-                            className="h-9 mt-1 text-sm"
-                            value={deliveryDate}
-                            onChange={e => setDeliveryDate(e.target.value)}
-                        />
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                        Select which copies appear on the printed Delivery Challan footer
+                    </span>
+                </div>
+                <CardContent className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {copyDistributionOptions.map(opt => {
+                            const isChecked = copyDistribution.includes(opt.id);
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => toggleCopyDistribution(opt.id)}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                                        isChecked 
+                                            ? "border-red-500/50 bg-red-500/10 text-red-900 dark:text-red-300 font-bold shadow-2xs" 
+                                            : "border-border/60 bg-muted/20 text-muted-foreground font-medium hover:border-border"
+                                    }`}
+                                >
+                                    {isChecked ? (
+                                        <CheckSquare className="size-4 text-red-600 shrink-0" />
+                                    ) : (
+                                        <Square className="size-4 text-muted-foreground shrink-0" />
+                                    )}
+                                    <span className="text-xs leading-tight">{opt.label}</span>
+                                </button>
+                            );
+                        })}
                     </div>
-                    <div>
-                        <Label className="text-xs">Consignee GST Number</Label>
-                        <Input
-                            disabled
-                            className="h-9 mt-1 text-sm bg-muted font-mono"
-                            value={initialVendor.gstNumber || "Not Provided"}
-                        />
+                </CardContent>
+            </Card>
+
+            {/* Authentic L&T Delivery Challan Document Canvas */}
+            <div className="bg-white text-black p-4 sm:p-8 rounded-2xl border-2 border-slate-900 shadow-xl font-sans max-w-5xl mx-auto w-full space-y-0 text-xs">
+                
+                {/* L&T Top Header (Static Title & Division) */}
+                <div className="text-center space-y-1 pb-4">
+                    <div className="flex items-center justify-start">
+                        <div className="bg-[#0e4c92] text-white px-3 py-1.5 rounded font-bold text-xs tracking-wider inline-block">
+                            {companyDivision}
+                        </div>
                     </div>
-                    <div className="col-span-1 md:col-span-2">
-                        <Label className="text-xs">Remarks / Dispatch Instructions</Label>
-                        <Input
-                            placeholder="Dispatch instructions..."
-                            className="h-9 mt-1 text-sm"
+                    <h2 className="text-lg sm:text-xl font-black text-black uppercase tracking-tight text-center font-serif">
+                        {companyName}
+                    </h2>
+                </div>
+
+                {/* Delivery Challan Document Table Frame */}
+                <div className="border-2 border-black divide-y-2 divide-black">
+                    
+                    {/* Row 1: Title & Consignee / Subcontractor Box */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 divide-y-2 md:divide-y-0 md:divide-x-2 divide-black min-h-[90px]">
+                        <div className="md:col-span-7 flex flex-col divide-y-2 divide-black">
+                            <div className="p-2 text-center bg-slate-50 font-black text-base sm:text-lg text-black uppercase">
+                                {documentTitle}
+                            </div>
+                            <div className="grid grid-cols-2 divide-x-2 divide-black flex-1">
+                                <div className="p-2 space-y-1">
+                                    <span className="font-bold text-[10px] block">DC NO.</span>
+                                    <span className="font-bold text-xs block font-mono text-slate-700">DC-2026-008</span>
+                                </div>
+                                <div className="p-2 space-y-1">
+                                    <span className="font-bold text-[10px] block">DATE (DD-MM-YYYY)</span>
+                                    <Input
+                                        type="date"
+                                        value={challanDate}
+                                        onChange={e => setChallanDate(e.target.value)}
+                                        className="h-7 text-xs font-bold border-slate-400 bg-white"
+                                    />
+                                    <span className="text-[10px] font-mono text-slate-500 font-bold">{formatDateDDMMYYYY(challanDate)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Consignee / Subcontractor Box */}
+                        <div className="md:col-span-5 p-3 space-y-2 bg-slate-50/50">
+                            <span className="font-bold text-[10px] block">CONSIGNEE / SUBCONTRACTOR</span>
+                            <Input 
+                                value={subcontractorName}
+                                onChange={e => setSubcontractorName(e.target.value)}
+                                placeholder="Subcontractor Name"
+                                className="font-extrabold text-xs h-7 border-slate-400 bg-white"
+                            />
+                            <Input 
+                                value={consigneeAddress}
+                                onChange={e => setConsigneeAddress(e.target.value)}
+                                placeholder="Work Location Address"
+                                className="text-xs h-7 border-slate-400 bg-white"
+                            />
+                            <div className="pt-1 flex items-center justify-between text-[11px] gap-2">
+                                <span className="font-bold shrink-0">SITE CODE NO.</span>
+                                <Input 
+                                    value={siteCode}
+                                    onChange={e => setSiteCode(e.target.value)}
+                                    className="h-6 font-mono font-bold text-xs text-right border-slate-400 bg-white w-28"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Row 2: TRN CD & Accounting Details */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 divide-x-2 divide-y-2 sm:divide-y-0 divide-black p-0 bg-slate-50 text-[10px]">
+                        <div className="p-1.5 space-y-1 text-center">
+                            <span className="font-bold block text-[9px]">TRN CD</span>
+                            <Input value={trnCode} onChange={e => setTrnCode(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1" />
+                        </div>
+                        <div className="p-1.5 space-y-1 text-center">
+                            <span className="font-bold block text-[9px]">SENDING / ACCT CENTRE CODE</span>
+                            <Input value={sendingCentreCode} onChange={e => setSendingCentreCode(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1" />
+                        </div>
+                        <div className="p-1.5 space-y-1 text-center">
+                            <span className="font-bold block text-[9px]">M.R.N. NO.</span>
+                            <Input value={mrNo} onChange={e => setMrNo(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1" />
+                        </div>
+                        <div className="p-1.5 space-y-1 text-center">
+                            <span className="font-bold block text-[9px]">M.R.N. DATE</span>
+                            <Input value={mrDate} onChange={e => setMrDate(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1" />
+                        </div>
+                        <div className="p-1.5 space-y-1 text-center">
+                            <span className="font-bold block text-[9px]">STOCK TYPE</span>
+                            <Input value={stockType} onChange={e => setStockType(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1" />
+                        </div>
+                        <div className="p-1.5 space-y-1 text-center">
+                            <span className="font-bold block text-[9px]">SITE CODE NO.</span>
+                            <Input value={siteCode} onChange={e => setSiteCode(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1 font-mono" />
+                        </div>
+                        <div className="p-1.5 space-y-1 text-center">
+                            <span className="font-bold block text-[9px]">E-WAY BILL NO.</span>
+                            <Input value={ewayBillNo} onChange={e => setEwayBillNo(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1" />
+                        </div>
+                    </div>
+
+                    {/* Returnable Stamp Banner */}
+                    <div className="p-2.5 text-center font-black text-xs text-red-700 bg-red-50 border-b border-red-200 uppercase tracking-wide">
+                        NOT FOR SALE – MATERIAL ISSUED ON RETURNABLE BASIS
+                    </div>
+
+                    {/* Row 3: Items Table with Material Code Column */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr className="border-b-2 border-black bg-slate-100 text-center font-bold text-[11px]">
+                                    <th className="p-2 border-r-2 border-black w-12">SL. NO.</th>
+                                    <th className="p-2 border-r-2 border-black w-32">MATERIAL CODE</th>
+                                    <th className="p-2 border-r-2 border-black">DESCRIPTION & QR</th>
+                                    <th className="p-2 border-r-2 border-black w-24">QUANTITY</th>
+                                    <th className="p-2 border-r-2 border-black w-20">UNIT</th>
+                                    <th className="p-2 w-28">RATE RS.</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black">
+                                {items.map((item, idx) => (
+                                    <tr key={item.tool} className="text-center font-medium">
+                                        <td className="p-2 border-r-2 border-black font-bold">{idx + 1}</td>
+                                        <td className="p-2 border-r-2 border-black">
+                                            <Input
+                                                value={item.materialCode}
+                                                onChange={e => handleItemChange(idx, "materialCode", e.target.value)}
+                                                className="font-mono font-bold text-xs h-7 border-slate-400 bg-white text-center"
+                                            />
+                                        </td>
+                                        <td className="p-2 border-r-2 border-black text-left space-y-1">
+                                            <Input
+                                                value={item.description}
+                                                onChange={e => handleItemChange(idx, "description", e.target.value)}
+                                                className="font-extrabold text-xs h-7 border-slate-400 bg-white"
+                                            />
+                                            <p className="font-mono text-[11px] text-blue-700">QR: DSSDOP00{String(item.toolId).replace(/[^a-zA-Z0-9]/g, '')}</p>
+                                        </td>
+                                        <td className="p-2 border-r-2 border-black">
+                                            <Input 
+                                                type="number"
+                                                min={1}
+                                                value={item.quantity}
+                                                onChange={e => handleItemChange(idx, "quantity", Number(e.target.value))}
+                                                className="h-7 w-20 text-center font-bold text-xs border-slate-400 bg-white mx-auto"
+                                            />
+                                        </td>
+                                        <td className="p-2 border-r-2 border-black">
+                                            <Input 
+                                                value={item.unit}
+                                                onChange={e => handleItemChange(idx, "unit", e.target.value)}
+                                                className="h-7 w-16 text-center uppercase font-bold text-xs border-slate-400 bg-white mx-auto"
+                                            />
+                                        </td>
+                                        <td className="p-2">
+                                            <Input 
+                                                type="number"
+                                                value={item.rate || 0}
+                                                onChange={e => handleItemChange(idx, "rate", Number(e.target.value))}
+                                                className="h-7 w-24 text-center font-mono text-xs border-slate-400 bg-white mx-auto"
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Row 4: Gate Pass Approval & Total Qty */}
+                    <div className="grid grid-cols-12 divide-x-2 divide-black p-2 bg-slate-100 items-center font-bold">
+                        <div className="col-span-8 sm:col-span-9 flex items-center gap-2 flex-wrap">
+                            <span>GATE PASS NO:</span>
+                            <Input value={gatePassNo} onChange={e => setGatePassNo(e.target.value)} className="h-7 w-28 font-bold text-xs border-slate-400 bg-white" />
+                            <span className="ml-2">APPROVED BY:</span>
+                            <Input value={gatePassApprovedBy} onChange={e => setGatePassApprovedBy(e.target.value)} className="h-7 w-36 font-bold text-xs border-slate-400 bg-white" />
+                        </div>
+                        <div className="col-span-4 sm:col-span-3 text-right pr-4 text-sm font-black">
+                            TOTAL: <span className="text-base text-blue-900">{summary.totalQuantity}</span>
+                        </div>
+                    </div>
+
+                    {/* Row 5: Tax Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y-2 md:divide-y-0 md:divide-x-2 divide-black p-2 bg-white gap-2">
+                        <div>
+                            <span className="font-bold text-[10px] block">CONSIGNOR SALES / GST TAX NO. & DATE</span>
+                            <Input value={consignorTaxNo} onChange={e => setConsignorTaxNo(e.target.value)} className="h-7 font-bold text-xs border-slate-400 bg-white mt-1" />
+                        </div>
+                        <div>
+                            <span className="font-bold text-[10px] block">CONSIGNEE / SUBCONTRACTOR GST NO. & DATE</span>
+                            <Input value={consigneeGstNo} onChange={e => setConsigneeGstNo(e.target.value)} className="h-7 font-bold text-xs border-slate-400 bg-white mt-1 font-mono" />
+                        </div>
+                    </div>
+
+                    {/* Row 6: Vehicle, LR, Freight */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 divide-y-2 md:divide-y-0 md:divide-x-2 divide-black p-2 bg-slate-50 gap-2">
+                        <div>
+                            <span className="font-bold text-[10px] block">VEHICLE / DESPATCH THROUGH</span>
+                            <Input value={vehicleNo} onChange={e => setVehicleNo(e.target.value)} className="h-7 font-bold text-xs border-slate-400 bg-white mt-1" />
+                        </div>
+                        <div>
+                            <span className="font-bold text-[10px] block">LR / RR NO. & DATE</span>
+                            <Input value={lrNo} onChange={e => setLrNo(e.target.value)} className="h-7 font-bold text-xs border-slate-400 bg-white mt-1" />
+                        </div>
+                        <div>
+                            <span className="font-bold text-[10px] block">FREIGHT RS.</span>
+                            <select 
+                                value={freightStatus} 
+                                onChange={e => setFreightStatus(e.target.value)}
+                                className="h-7 w-full font-bold text-xs border border-slate-400 rounded bg-white mt-1 px-2"
+                            >
+                                <option value="PAID">PAID</option>
+                                <option value="TO PAY">TO PAY</option>
+                                <option value="NOT APPLICABLE">NOT APPLICABLE</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Row 7: Receipt Details & Signature */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y-2 md:divide-y-0 md:divide-x-2 divide-black min-h-[95px] p-3 bg-white">
+                        <div className="flex flex-col justify-between space-y-1">
+                            <span className="font-bold text-[10px]">RECEIPT DETAILS</span>
+                            <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                <div>
+                                    <span className="font-bold text-[9px] text-slate-500">RECEIVER NAME</span>
+                                    <Input value={receiverName} onChange={e => setReceiverName(e.target.value)} placeholder="Full Name" className="h-6 text-[10px] font-bold border-slate-300" />
+                                </div>
+                                <div>
+                                    <span className="font-bold text-[9px] text-slate-500">MOBILE NO.</span>
+                                    <Input value={receiverMobile} onChange={e => setReceiverMobile(e.target.value)} placeholder="Mobile Number" className="h-6 text-[10px] font-bold border-slate-300" />
+                                </div>
+                                <div>
+                                    <span className="font-bold text-[9px] text-slate-500">MRN NO.</span>
+                                    <Input value={mrnNo} onChange={e => setMrnNo(e.target.value)} placeholder="MRN-001" className="h-6 text-[10px] font-bold border-slate-300" />
+                                </div>
+                                <div>
+                                    <span className="font-bold text-[9px] text-slate-500">RECEIPT DATE</span>
+                                    <Input type="date" value={receiptDate} onChange={e => setReceiptDate(e.target.value)} className="h-6 text-[10px] font-bold border-slate-300" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col justify-between text-right font-bold space-y-1">
+                            <span className="text-xs font-black">FOR LARSEN & TOUBRO LIMITED CONSTRUCTION DIVISION</span>
+                            <span className="text-xs text-slate-700">AUTHORIZED SIGNATORY</span>
+                        </div>
+                    </div>
+
+                    {/* Row 8: Remarks */}
+                    <div className="p-3 space-y-1 bg-slate-50">
+                        <span className="font-bold text-[10px] block">REMARKS</span>
+                        <Textarea 
                             value={remarks}
                             onChange={e => setRemarks(e.target.value)}
+                            placeholder="Add remarks or dispatch instructions..."
+                            className="text-xs font-semibold border-slate-400 bg-white h-14"
                         />
                     </div>
-                    <div>
-                        <Label className="text-xs">Internal Notes</Label>
-                        <Input
-                            placeholder="Internal reference..."
-                            className="h-9 mt-1 text-sm"
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+                </div>
 
-            {/* Editable Items Table */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-bold">Tool Items to Dispatch</CardTitle>
-                    <CardDescription className="text-xs">
-                        You can adjust the quantity and remarks for each item before generating the Delivery Challan.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0 overflow-x-auto">
-                    <table className="min-w-full text-sm text-left whitespace-nowrap">
-                        <thead className="bg-muted text-xs uppercase text-muted-foreground font-semibold border-y">
-                            <tr>
-                                <th className="px-4 py-3">#</th>
-                                <th className="px-4 py-3">Tool ID</th>
-                                <th className="px-4 py-3">Description</th>
-                                <th className="px-4 py-3">Tool Code</th>
-                                <th className="px-4 py-3 w-28">Quantity</th>
-                                <th className="px-4 py-3 w-24">Unit</th>
-                                <th className="px-4 py-3">Item Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/50">
-                            {items.map((item, idx) => (
-                                <tr key={item.tool} className="hover:bg-muted/30">
-                                    <td className="px-4 py-3 font-semibold text-muted-foreground">{idx + 1}</td>
-                                    <td className="px-4 py-3 font-mono text-xs font-bold text-primary">{item.toolId}</td>
-                                    <td className="px-4 py-3 font-medium text-foreground">{item.description}</td>
-                                    <td className="px-4 py-3 font-mono text-xs">{item.toolCode || "-"}</td>
-                                    <td className="px-4 py-3">
-                                        <Input
-                                            type="number"
-                                            min={1}
-                                            className="h-8 w-24 text-center font-semibold"
-                                            value={item.quantity}
-                                            onChange={e => handleItemChange(idx, "quantity", Number(e.target.value))}
-                                        />
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Input
-                                            className="h-8 w-20 text-center uppercase font-mono text-xs"
-                                            value={item.unit}
-                                            onChange={e => handleItemChange(idx, "unit", e.target.value)}
-                                        />
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Input
-                                            placeholder="Optional remarks"
-                                            className="h-8 text-xs"
-                                            value={item.remarks}
-                                            onChange={e => handleItemChange(idx, "remarks", e.target.value)}
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </CardContent>
-                <CardFooter className="bg-muted/30 px-6 py-4 flex items-center justify-between text-sm font-semibold border-t">
-                    <span className="text-muted-foreground">Total {items.length} Tool(s)</span>
-                    <div className="flex items-center gap-6">
-                        <span>Total Qty: <strong className="text-foreground">{summary.totalQuantity}</strong></span>
+                {/* Footer Copy Distribution Line with Checkboxes */}
+                <div className="pt-4 space-y-2 text-[11px] font-bold">
+                    <div className="flex flex-wrap items-center justify-between text-slate-600 gap-2">
+                        <span>{docReferenceCode}</span>
+                        <span>{registeredOfficeAddress}</span>
                     </div>
-                </CardFooter>
-            </Card>
+
+                    {/* Copy Distribution Line in Red */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-300">
+                        <span className="text-black font-extrabold">COPY DISTRIBUTION:</span>
+                        <div className="flex flex-wrap items-center gap-3 text-red-700 font-bold">
+                            {copyDistributionOptions.map((opt, idx) => {
+                                const isChecked = copyDistribution.includes(opt.id);
+                                return (
+                                    <div key={opt.id} className="flex items-center gap-1.5 cursor-pointer" onClick={() => toggleCopyDistribution(opt.id)}>
+                                        {isChecked ? <CheckSquare className="size-4 text-red-600" /> : <Square className="size-4 text-slate-400" />}
+                                        <span className={isChecked ? "underline" : "opacity-60"}>{opt.label}</span>
+                                        {idx < copyDistributionOptions.length - 1 && <span className="text-slate-400 ml-2 font-normal">|</span>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     );
 }
 
 export default DeliveryChallanPreviewPage;
-
-// DeliveryChallanPreviewPage component

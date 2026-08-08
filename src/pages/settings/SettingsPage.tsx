@@ -119,6 +119,20 @@ export function SettingsPage() {
                         </p>
                     </CardContent>
                 </Card>
+                <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/settings/tool-view')}>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
+                                <PaletteIcon className="size-5" />
+                            </div>
+                            <h3 className="font-semibold">Tool Card Layout</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            Configure fields and section visibility on the Tool Details View Card.
+                        </p>
+                    </CardContent>
+                </Card>
+
                 <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/settings/reports')}>
                     <CardContent className="p-6">
                         <div className="flex items-center gap-3 mb-3">

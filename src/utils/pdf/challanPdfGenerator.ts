@@ -5,6 +5,28 @@ declare global {
 }
 
 /**
+ * Helper to format any date into DD-MM-YYYY (e.g. 05-08-2026)
+ */
+export const formatDateDDMMYYYY = (dateInput: any): string => {
+    if (!dateInput) return new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+};
+
+/**
+ * Format DC Number with 3-digit padding (e.g. DC-2026-008)
+ */
+export const formatDCNumber = (numStr: any): string => {
+    if (!numStr) return 'DC-2026-008';
+    const str = String(numStr);
+    return str.replace(/DC-(\d{4})-(\d+)/i, (_, yr, num) => `DC-${yr}-${String(num).padStart(3, '0')}`);
+};
+
+/**
  * Dynamically load jsPDF and autotable from reliable CDN if not already in browser bundle
  */
 export const loadJsPDF = async (): Promise<any> => {
@@ -54,129 +76,130 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
 
     // L&T Logo Box
     doc.setFillColor(14, 76, 146); // L&T Navy Blue
-    doc.roundedRect(14, 12, 35, 10, 1.5, 1.5, 'F');
+    doc.roundedRect(14, 10, 35, 10, 1.5, 1.5, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('L&T Construction', 18, 18.5);
+    doc.text('L&T Construction', 18, 16.5);
 
     // Main Company Title
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(15);
-    doc.text('Larsen & Toubro Limited, Construction', pageWidth / 2, 28, { align: 'center' });
+    doc.text('Larsen & Toubro Limited, Construction', pageWidth / 2, 24, { align: 'center' });
 
-    // Top Border Box Frame (Y: 34 to 74)
+    // Top Border Box Frame (Y: 28 to 72)
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.4);
-    doc.rect(14, 34, 182, 40);
+    doc.rect(14, 28, 182, 44);
 
-    // Vertical split between Left title/meta box and Right Consignee box (Y: 34 to 60)
-    doc.line(110, 34, 110, 60);
+    // Vertical split between Left title/meta box and Right Consignee box (Y: 28 to 58)
+    doc.line(110, 28, 110, 58);
 
     // Title inside Left Box
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     const titleText = isReturn ? 'RETURN CHALLAN' : 'DELIVERY CHALLAN';
-    doc.text(titleText, 62, 44, { align: 'center' });
+    doc.text(titleText, 62, 37, { align: 'center' });
 
     // Horizontal divider in Left Box for DC NO and DATE
-    doc.line(14, 50, 110, 50);
+    doc.line(14, 43, 110, 43);
 
     // Vertical line between DC NO and DATE
-    doc.line(62, 50, 62, 60);
+    doc.line(62, 43, 62, 58);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.text(isReturn ? 'RC NO.' : 'DC NO.', 16, 54);
-    doc.text('DATE', 64, 54);
+    doc.text(isReturn ? 'RC NO.' : 'DC NO.', 16, 48);
+    doc.text('DATE', 64, 48);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(String(challan.challanNumber || '-'), 16, 58.5);
-    const dateStr = challan.challanDate
-        ? new Date(challan.challanDate).toLocaleDateString()
-        : new Date().toLocaleDateString();
-    doc.text(dateStr, 64, 58.5);
+    const challanNumFormatted = formatDCNumber(challan.challanNumber);
+    doc.text(challanNumFormatted, 16, 54);
+    doc.text(formatDateDDMMYYYY(challan.challanDate), 64, 54);
 
     // Consignee Right Box
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.text(isReturn ? 'CONSIGNEE (STORE)' : 'CONSIGNEE (VENDOR)', 112, 38);
+    doc.text(isReturn ? 'SUBCONTRACTOR NAME' : 'CONSIGNEE / SUBCONTRACTOR', 112, 33);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    const vendorName = challan.vendor?.name || 'Authorized Vendor';
-    const vendorAddr = challan.vendor?.address || '';
-    const vendorCode = challan.vendor?.vendorCode || 'UJ - 0002';
+    doc.setFontSize(8.5);
+    const vendorName = challan.subcontractorName || challan.vendor?.name || 'Authorized Subcontractor';
+    const vendorAddr = challan.vendor?.address || 'Site Work Location';
+    const siteCodeStr = challan.siteCode || 'UJ - 0002';
+    const locationStr = challan.locationChainage ? `Loc: ${challan.locationChainage}` : '';
 
     if (isReturn) {
-        doc.text('L&T Construction Site Store', 112, 44);
-        doc.setFontSize(8);
-        doc.text(`Return from: ${vendorName}`, 112, 50);
-    } else {
-        doc.text(vendorName, 112, 44);
-        if (vendorAddr) {
+        doc.text(`Subcontractor: ${vendorName}`, 112, 39);
+        if (challan.parentDcNumber) {
             doc.setFontSize(7.5);
-            const addrLines = doc.splitTextToSize(vendorAddr, 80);
-            doc.text(addrLines, 112, 49);
+            doc.text(`Return against DC No.: ${formatDCNumber(challan.parentDcNumber)} dated ${formatDateDDMMYYYY(challan.parentDcDate)}`, 112, 45);
         }
+    } else {
+        doc.text(vendorName, 112, 39);
+        doc.setFontSize(7.5);
+        doc.text(`Addr: ${vendorAddr}`, 112, 44);
+        if (locationStr || challan.workFrontLocation) {
+            doc.text(`${locationStr} ${challan.workFrontLocation ? '| ' + challan.workFrontLocation : ''}`, 112, 49);
+        }
+        doc.text(`Site Code: ${siteCodeStr}`, 112, 54);
     }
 
-    // Horizontal divider line across full box at Y: 60
-    doc.line(14, 60, 196, 60);
+    // Horizontal divider line across full box at Y: 58
+    doc.line(14, 58, 196, 58);
 
-    // TRN CD / ACCOUNTING CENTRE ROW (Y: 60 to 74)
-    doc.line(30, 60, 30, 74);
-    doc.line(60, 60, 60, 74);
-    doc.line(82, 60, 82, 74);
-    doc.line(105, 60, 105, 74);
-    doc.line(132, 60, 132, 74);
-    doc.line(168, 60, 168, 74);
+    // TRN CD / ACCOUNTING CENTRE ROW (Y: 58 to 72)
+    doc.line(30, 58, 30, 72);
+    doc.line(60, 58, 60, 72);
+    doc.line(82, 58, 82, 72);
+    doc.line(105, 58, 105, 72);
+    doc.line(132, 58, 132, 72);
+    doc.line(168, 58, 168, 72);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(5.8);
-    doc.text('TRN CD', 22, 64, { align: 'center' });
-    doc.text('SENDING CENTRE', 45, 64, { align: 'center' });
-    doc.text('M. R. NO.', 71, 64, { align: 'center' });
-    doc.text('M. R. DATE', 93.5, 64, { align: 'center' });
-    doc.text('STOCK TYPE', 118.5, 64, { align: 'center' });
+    doc.setFontSize(5.5);
+    doc.text('TRN CD', 22, 62, { align: 'center' });
+    doc.text('SENDING / ACCT CENTRE CODE', 45, 62, { align: 'center' });
+    doc.text('M.R.N. NO.', 71, 62, { align: 'center' });
+    doc.text('M.R.N. DATE', 93.5, 62, { align: 'center' });
+    doc.text('STOCK TYPE', 118.5, 62, { align: 'center' });
 
-    const col6Label = isReturn ? 'CONSIGNEE / SITE CODE NO.' : 'VENDOR CODE';
-    doc.setFontSize(isReturn ? 5.0 : 5.8);
-    doc.text(col6Label, 150, 64, { align: 'center' });
-
-    doc.setFontSize(5.8);
-    doc.text('E-WAY BILL NO.', 182, 64, { align: 'center' });
+    const col6Label = isReturn ? 'SITE CODE NO.' : 'VENDOR CODE';
+    doc.setFontSize(5.5);
+    doc.text(col6Label, 150, 62, { align: 'center' });
+    doc.text('E-WAY BILL NO.', 182, 62, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(isReturn ? 'RET' : 'M 25', 22, 71, { align: 'center' });
-    doc.text('STR-01', 45, 71, { align: 'center' });
-    doc.text('-', 71, 71, { align: 'center' });
-    doc.text('-', 93.5, 71, { align: 'center' });
-    doc.text('CAPTIVE', 118.5, 71, { align: 'center' });
-    doc.text(String(vendorCode), 150, 71, { align: 'center' });
-    doc.text(String(challan.ewayBillNo || '-'), 182, 71, { align: 'center' });
+    doc.text(String(challan.trnCode || (isReturn ? 'RET' : 'M 25')), 22, 69, { align: 'center' });
+    doc.text(String(challan.sendingCentreCode || 'STR-01'), 45, 69, { align: 'center' });
+    doc.text(String(challan.mrNo || challan.mrnNo || '-'), 71, 69, { align: 'center' });
+    doc.text(String(challan.mrDate || '-'), 93.5, 69, { align: 'center' });
+    doc.text(String(challan.stockType || 'CAPTIVE'), 118.5, 69, { align: 'center' });
+    doc.text(String(siteCodeStr), 150, 69, { align: 'center' });
+    doc.text(String(challan.ewayBillNo || '-'), 182, 69, { align: 'center' });
 
-    // Italic note below box
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(8.5);
-    const noteText = isReturn
-        ? 'We have returned the following goods. Kindly acknowledge receipt of returned goods.'
-        : 'We have despatched the following goods. Kindly return the duplicate copy duly signed acknowledging receipt of goods';
-    doc.text(noteText, pageWidth / 2, 79, { align: 'center' });
+    // Returnable Stamp Banner or Note below box
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(180, 0, 0);
+    const returnableNotice = isReturn
+        ? 'The following is the return status of materials issued under the referenced Delivery Challan.'
+        : 'NOT FOR SALE – MATERIAL ISSUED ON RETURNABLE BASIS';
+    doc.text(returnableNotice, pageWidth / 2, 77, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
 };
 
 /**
  * Draws L&T Construction Footer, Signatures, and Copy Distribution Notice
  */
-const drawLnTFooter = (doc: any, challan: any, finalY: number) => {
+const drawLnTFooter = (doc: any, challan: any, finalY: number, isReturn: boolean = false) => {
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = finalY + 4;
 
-    // Ensure we don't overflow bottom of page
-    if (y > 220) {
+    if (y > 215) {
         doc.addPage();
         y = 25;
     }
@@ -184,98 +207,170 @@ const drawLnTFooter = (doc: any, challan: any, finalY: number) => {
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.4);
 
-    // GATE PASS APPROVED / TOTAL ROW
-    doc.rect(14, y, 140, 10);
-    doc.rect(154, y, 42, 10);
+    if (isReturn) {
+        // Return Challan Specific Signature Blocks
+        doc.rect(14, y, 182, 28);
+        doc.line(74, y, 74, y + 28);
+        doc.line(134, y, 134, y + 28);
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.text('GATE PASS COPY APPROVED BY', 50, y + 6);
-    doc.text('TOTAL', 158, y + 6);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text('SUBCONTRACTOR SIGNATURE', 44, y + 6, { align: 'center' });
+        doc.text('VERIFIED BY', 104, y + 6, { align: 'center' });
+        doc.text('STORE MANAGER', 164, y + 6, { align: 'center' });
 
-    const totalQty = (challan.items || []).reduce((sum: number, it: any) => sum + Number(it.quantity || 1), 0);
-    doc.setFont('helvetica', 'normal');
-    doc.text(String(totalQty), 185, y + 6, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text(`Returned By: ${challan.receiverName || 'Subcontractor Rep'}`, 16, y + 23);
+        doc.text(`Verified Date: ${formatDateDDMMYYYY(challan.receiptDate)}`, 76, y + 23);
+        doc.text('Approved Store Manager', 136, y + 23);
 
-    y += 10;
+        y += 30;
 
-    // TAX & VEHICLE DETAILS ROW (12mm height)
-    doc.rect(14, y, 91, 12);
-    doc.rect(105, y, 91, 12);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.text("CONSIGNOR'S SALES TAX NO. & DATE", 16, y + 4);
-    doc.text("CONSIGNEE'S SALES TAX / GST NO. & DATE", 107, y + 4);
+        // REMARKS ROW
+        doc.rect(14, y, 182, 14);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text('REMARKS', 16, y + 5);
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('27AAACL0140P1Z0', 16, y + 9);
-    doc.text(String(challan.vendor?.gstNumber || '-'), 107, y + 9);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        const remarksText = challan.remarks || 'Returned goods inspected at site store.';
+        doc.text(doc.splitTextToSize(remarksText, 175), 16, y + 10);
 
-    y += 12;
+        y += 18;
+    } else {
+        // Delivery Challan Standard Footer
+        doc.rect(14, y, 140, 10);
+        doc.rect(154, y, 42, 10);
 
-    // VEHICLE / LR / FREIGHT ROW (12mm height)
-    doc.rect(14, y, 70, 12);
-    doc.rect(84, y, 70, 12);
-    doc.rect(154, y, 42, 12);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        const gatePassText = `GATE PASS NO. (${challan.gatePassNo || 'GP-001'}) APPROVED BY (${challan.gatePassApprovedBy || 'APPROVED'})`;
+        doc.text(gatePassText, 16, y + 6);
+        doc.text('TOTAL', 158, y + 6);
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.text('VEHICLE / PATCH THROUGH', 16, y + 4);
-    doc.text('LR / RR NO. & DATE', 86, y + 4);
-    doc.text('FREIGHT RS. TO PAY / PAID', 156, y + 4);
+        const totalQty = (challan.items || []).reduce((sum: number, it: any) => sum + Number(it.quantity || 1), 0);
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(totalQty), 185, y + 6, { align: 'right' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.text(String(challan.vehicleNo || '-'), 16, y + 9);
-    doc.text(String(challan.lrNo || '-'), 86, y + 9);
-    doc.text('PAID', 156, y + 9);
+        y += 10;
 
-    y += 12;
+        // TAX DETAILS ROW
+        doc.rect(14, y, 91, 12);
+        doc.rect(105, y, 91, 12);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.text("CONSIGNOR SALES / GST TAX NO. & DATE", 16, y + 4);
+        doc.text("CONSIGNEE / SUBCONTRACTOR GST NO. & DATE", 107, y + 4);
 
-    // RECEIPT DETAILS & L&T SIGNATURE ROW (30mm height)
-    doc.rect(14, y, 91, 30);
-    doc.rect(105, y, 91, 30);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(String(challan.consignorTaxNo || '27AAACL0140P1Z0'), 16, y + 9);
+        doc.text(String(challan.vendor?.gstNumber || '-'), 107, y + 9);
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.text('RECEIPT DETAILS', 16, y + 5);
-    doc.text('FOR LARSEN & TOUBRO LIMITED CONSTRUCTION DIVISION', 107, y + 5);
+        y += 12;
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.text('(RMN NO.)         (DATE)         (SIGNATURE OF RECEIVER)', 16, y + 27);
-    doc.text('AUTHORIZED SIGNATORY', 150, y + 27, { align: 'center' });
+        // VEHICLE / LR / FREIGHT ROW
+        doc.rect(14, y, 70, 12);
+        doc.rect(84, y, 70, 12);
+        doc.rect(154, y, 42, 12);
 
-    y += 30;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.text('VEHICLE / DESPATCH THROUGH', 16, y + 4);
+        doc.text('LR / RR NO. & DATE', 86, y + 4);
+        doc.text('FREIGHT RS. TO PAY / PAID', 156, y + 4);
 
-    // REMARKS ROW (16mm height)
-    doc.rect(14, y, 182, 16);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.text('REMARKS', 16, y + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(challan.vehicleNo || '-'), 16, y + 9);
+        doc.text(String(challan.lrNo || '-'), 86, y + 9);
+        doc.text(String(challan.freightStatus || 'PAID'), 156, y + 9);
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    const remarksText = challan.remarks || challan.notes || 'No remarks provided.';
-    const remarksLines = doc.splitTextToSize(remarksText, 175);
-    doc.text(remarksLines, 16, y + 10);
+        y += 12;
 
-    y += 19;
+        // RECEIPT DETAILS & SIGNATURE ROW
+        doc.rect(14, y, 91, 28);
+        doc.rect(105, y, 91, 28);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text('RECEIPT DETAILS', 16, y + 5);
+        doc.text('FOR LARSEN & TOUBRO LIMITED CONSTRUCTION DIVISION', 107, y + 5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        const receiverInfo = challan.receiverName ? `Receiver: ${challan.receiverName} (${challan.receiverMobile || '-'})` : 'MRN NO. | DATE | SIGNATURE OF RECEIVER';
+        doc.text(receiverInfo, 16, y + 24);
+        doc.text('AUTHORIZED SIGNATORY', 150, y + 24, { align: 'center' });
+
+        y += 28;
+
+        // REMARKS ROW
+        doc.rect(14, y, 182, 14);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text('REMARKS', 16, y + 5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        const remarksText = challan.remarks || challan.notes || 'No remarks provided.';
+        doc.text(doc.splitTextToSize(remarksText, 175), 16, y + 10);
+
+        y += 17;
+    }
 
     // BOTTOM NOTICE & RED COPY DISTRIBUTION
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text('D&M/STR/906', 14, y);
+    doc.text(String(challan.docReferenceCode || 'ECC-O&M/STR/906'), 14, y);
     doc.text('Registered Office : L & T House, Ballard Estate, Bombay - 400 038.', pageWidth / 2, y, { align: 'center' });
 
     y += 5;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.text('COPY DISTRIBUTION', 14, y);
 
-    doc.setTextColor(204, 0, 0); // L&T Red Accent
-    doc.text('CONSIGNEE   |   CONSIGNEE - CONSIGNOR   |   GATE PASS (SECURITY - ACCOUNTS)   |   CONSIGNOR\'S FILE', 52, y);
+    const allOptions = [
+        { key: 'CONSIGNEE', label: 'CONSIGNEE' },
+        { key: 'CONSIGNEE - CONSIGNOR', label: 'CONSIGNEE - CONSIGNOR' },
+        { key: 'GATE PASS (SECURITY - ACCOUNTS)', label: 'GATE PASS (SECURITY - ACCOUNTS)' },
+        { key: "CONSIGNOR'S FILE", label: "CONSIGNOR'S FILE" }
+    ];
+
+    const selectedList = challan.copyDistribution || [
+        'CONSIGNEE', 'CONSIGNEE - CONSIGNOR', 'GATE PASS (SECURITY - ACCOUNTS)', "CONSIGNOR'S FILE"
+    ];
+
+    const formattedCopies = allOptions.map(opt => {
+        const isChecked = selectedList.includes(opt.key) || selectedList.includes(opt.label);
+        return `${isChecked ? '[X] ' : '[  ] '}${opt.label}`;
+    }).join('  |  ');
+
+    doc.setTextColor(204, 0, 0);
+    doc.setFontSize(6.8);
+    doc.text(formattedCopies, 48, y);
     doc.setTextColor(0, 0, 0);
+};
+
+/**
+ * Add Page Continuation Header to all pages > 1
+ */
+const addContinuationHeaders = (doc: any, challan: any) => {
+    const totalPages = doc.internal.getNumberOfPages();
+    const dcNoStr = formatDCNumber(challan.challanNumber);
+    const dcDateStr = formatDateDDMMYYYY(challan.challanDate);
+
+    for (let p = 2; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`DC No.: ${dcNoStr} | Date: ${dcDateStr} | Page ${p} of ${totalPages}`, 14, 10);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, 12, 196, 12);
+        doc.setTextColor(0, 0, 0);
+    }
 };
 
 /**
@@ -291,21 +386,23 @@ export const generateDeliveryChallanPDF = async (challan: any, options: ChallanP
 
     drawLnTHeader(doc, challan, false);
 
-    // Items Table
+    // Items Table with Material Code Column
     const tableBody = (challan.items || []).map((item: any, idx: number) => {
-        const toolCodeStr = item.toolCode ? `\nCode: ${item.toolCode}` : '';
-        const desc = `${item.description || 'Tool Item'}\nQR: DSSDOP00${String(item.toolId || '').replace(/[^a-zA-Z0-9]/g, '')}${toolCodeStr}`;
+        const matCode = item.materialCode || item.toolCode || `MAT-${String(item.toolId || '').slice(-5)}`;
+        const desc = `${item.description || 'Tool Item'}\nQR: DSSDOP00${String(item.toolId || '').replace(/[^a-zA-Z0-9]/g, '')}`;
         return [
             String(idx + 1),
+            String(matCode),
             desc,
             String(item.quantity || 1),
-            item.unit || 'NOS'
+            item.unit || 'NOS',
+            item.rate ? `Rs. ${item.rate}` : '-'
         ];
     });
 
     doc.autoTable({
-        startY: 83,
-        head: [['SL. NO.', 'DESCRIPTION', 'QUANTITY', 'UNIT']],
+        startY: 81,
+        head: [['SL. NO.', 'MATERIAL CODE', 'DESCRIPTION & QR', 'QUANTITY', 'UNIT', 'RATE RS.']],
         body: tableBody,
         theme: 'grid',
         headStyles: {
@@ -317,26 +414,29 @@ export const generateDeliveryChallanPDF = async (challan: any, options: ChallanP
             lineColor: [0, 0, 0]
         },
         styles: {
-            fontSize: 9,
-            cellPadding: 3,
+            fontSize: 8.5,
+            cellPadding: 2.5,
             lineWidth: 0.3,
             lineColor: [0, 0, 0],
             textColor: [0, 0, 0]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 16 },
-            1: { cellWidth: 126 },
-            2: { halign: 'center', cellWidth: 22 },
-            3: { halign: 'center', cellWidth: 18 }
+            0: { halign: 'center', cellWidth: 14 },
+            1: { halign: 'center', cellWidth: 30, fontStyle: 'bold' },
+            2: { cellWidth: 84 },
+            3: { halign: 'center', cellWidth: 18 },
+            4: { halign: 'center', cellWidth: 16 },
+            5: { halign: 'center', cellWidth: 20 }
         },
         margin: { left: 14, right: 14 }
     });
 
     const finalY = doc.lastAutoTable.finalY;
-    drawLnTFooter(doc, challan, finalY);
+    drawLnTFooter(doc, challan, finalY, false);
+    addContinuationHeaders(doc, challan);
 
     if (options.download !== false) {
-        const filename = options.fileName || `${challan.challanNumber || 'Delivery_Challan'}.pdf`;
+        const filename = options.fileName || `${formatDCNumber(challan.challanNumber)}.pdf`;
         doc.save(filename);
     }
 
@@ -357,20 +457,25 @@ export const generateReturnChallanPDF = async (challan: any, options: ChallanPdf
     drawLnTHeader(doc, challan, true);
 
     const tableBody = (challan.items || []).map((item: any, idx: number) => {
-        const statusTag = item.returnStatus === 'Missing' ? ' [MISSING]' : '';
-        const desc = `${item.description || 'Tool Item'}${statusTag}\nQR: DSSDOP00${String(item.toolId || '').replace(/[^a-zA-Z0-9]/g, '')}`;
+        const matCode = item.materialCode || item.toolCode || `MAT-${String(item.toolId || '').slice(-5)}`;
+        const qrId = `QR: DSSDOP00${String(item.toolId || '').replace(/[^a-zA-Z0-9]/g, '')}`;
         return [
             String(idx + 1),
-            desc,
-            String(item.quantity || 1),
+            String(matCode),
+            qrId,
+            item.description || 'Tool Item',
             item.unit || 'NOS',
-            item.returnStatus || 'Returned'
+            String(item.issuedQuantity || item.quantity || 1),
+            String(item.returnedQuantity || (item.returnStatus === 'Returned' ? item.quantity : 0)),
+            String(item.missingQuantity || (item.returnStatus === 'Missing' ? item.quantity : 0)),
+            item.returnStatus || 'Returned – Good',
+            item.remarks || '-'
         ];
     });
 
     doc.autoTable({
-        startY: 83,
-        head: [['SL. NO.', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'STATUS']],
+        startY: 81,
+        head: [['SL. NO.', 'MAT. CODE', 'QR / ASSET ID', 'DESCRIPTION', 'UOM', 'ISSUED', 'RETURNED', 'MISSING', 'STATUS', 'REMARKS']],
         body: tableBody,
         theme: 'grid',
         headStyles: {
@@ -378,28 +483,35 @@ export const generateReturnChallanPDF = async (challan: any, options: ChallanPdf
             textColor: [0, 0, 0],
             fontStyle: 'bold',
             halign: 'center',
+            fontSize: 7,
             lineWidth: 0.3,
             lineColor: [0, 0, 0]
         },
         styles: {
-            fontSize: 9,
-            cellPadding: 3,
+            fontSize: 7.5,
+            cellPadding: 2,
             lineWidth: 0.3,
             lineColor: [0, 0, 0],
             textColor: [0, 0, 0]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 16 },
-            1: { cellWidth: 104 },
-            2: { halign: 'center', cellWidth: 22 },
-            3: { halign: 'center', cellWidth: 18 },
-            4: { halign: 'center', cellWidth: 22 }
+            0: { halign: 'center', cellWidth: 10 },
+            1: { halign: 'center', cellWidth: 20 },
+            2: { cellWidth: 26 },
+            3: { cellWidth: 38 },
+            4: { halign: 'center', cellWidth: 12 },
+            5: { halign: 'center', cellWidth: 14 },
+            6: { halign: 'center', cellWidth: 14 },
+            7: { halign: 'center', cellWidth: 14 },
+            8: { halign: 'center', cellWidth: 18 },
+            9: { cellWidth: 16 }
         },
         margin: { left: 14, right: 14 }
     });
 
     const finalY = doc.lastAutoTable.finalY;
-    drawLnTFooter(doc, challan, finalY);
+    drawLnTFooter(doc, challan, finalY, true);
+    addContinuationHeaders(doc, challan);
 
     if (options.download !== false) {
         const filename = options.fileName || `${challan.challanNumber || 'Return_Challan'}.pdf`;
