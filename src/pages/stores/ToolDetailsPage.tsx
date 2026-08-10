@@ -1,19 +1,18 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import toolService from "@/services/tool.service";
+import formService from "@/services/form.service";
 import { toast } from "sonner";
 import {
     Wrench,
     CheckCircle2,
     XCircle,
     Building2,
-    HardHat,
     MapPin,
     Calendar,
     Hash,
     Truck,
     UserCircle2,
-    FileText,
     QrCode,
     ShieldCheck,
     Loader2,
@@ -22,8 +21,9 @@ import {
     ExternalLink,
     FileCheck,
     Tag,
-    Sparkles,
-    Edit
+    Edit,
+    ArrowLeft,
+    Layers
 } from "lucide-react";
 
 import { ToolFormModal } from "./ToolFormModal";
@@ -33,43 +33,47 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function ToolDetailsPage() {
     const { storeId, toolId } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
-
-    // Breadcrumbs logic
-    const currentBreadcrumbs = (location.state as any)?.breadcrumbs || [];
 
     const [tool, setTool] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [viewSchema, setViewSchema] = useState<any>(null);
     const [copiedId, setCopiedId] = useState(false);
     const [copiedQr, setCopiedQr] = useState(false);
 
     useEffect(() => {
-        const fetchTool = async () => {
+        const fetchToolData = async () => {
             try {
-                const data = await toolService.getToolById(toolId || '');
+                const [toolRes, schemaRes] = await Promise.allSettled([
+                    toolService.getToolById(toolId || ''),
+                    formService.getFormBySlug('tool-details-view')
+                ]);
 
-                if (data.success) {
-                    setTool(data.data);
+                if (toolRes.status === 'fulfilled' && toolRes.value.success) {
+                    setTool(toolRes.value.data);
                 } else {
-                    toast.error(data.message || "Failed to fetch tool details");
+                    toast.error("Failed to fetch tool details");
+                }
+
+                if (schemaRes.status === 'fulfilled' && schemaRes.value.success && schemaRes.value.data) {
+                    setViewSchema(schemaRes.value.data);
                 }
             } catch (error: any) {
                 console.error(error);
-                const message = error?.response?.data?.message || "Error fetching tool details";
-                toast.error(message);
+                toast.error("Error loading tool information");
             } finally {
                 setLoading(false);
             }
         };
 
         if (toolId) {
-            fetchTool();
+            fetchToolData();
         }
     }, [toolId]);
 
     const handleCopyId = () => {
-        if (tool?.toolId) {
-            navigator.clipboard.writeText(tool.toolId);
+        const idToCopy = tool?.toolCode || tool?.toolId;
+        if (idToCopy) {
+            navigator.clipboard.writeText(idToCopy);
             setCopiedId(true);
             toast.success("Tool ID copied to clipboard!");
             setTimeout(() => setCopiedId(false), 2000);
@@ -80,7 +84,7 @@ export function ToolDetailsPage() {
         if (tool?.qrLink) {
             navigator.clipboard.writeText(tool.qrLink);
             setCopiedQr(true);
-            toast.success("QR Code link copied to clipboard!");
+            toast.success("QR Link copied to clipboard!");
             setTimeout(() => setCopiedQr(false), 2000);
         }
     };
@@ -96,49 +100,147 @@ export function ToolDetailsPage() {
     if (!tool) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <p className="text-muted-foreground text-lg">Tool not found</p>
-                <Button variant="outline" onClick={() => navigate(-1)}>
+                <p className="text-muted-foreground text-lg font-medium">Tool not found</p>
+                <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl">
+                    <ArrowLeft className="size-4 mr-2" />
                     Go Back
                 </Button>
             </div>
         );
     }
 
+    // Helper to check if field is visible per Admin settings
+    const isFieldVisible = (fieldName: string) => {
+        if (!viewSchema?.fields || viewSchema.fields.length === 0) return true;
+        const target = viewSchema.fields.find((f: any) => f.name === fieldName || f.id === fieldName);
+        if (!target) return true;
+        return !target.disabled;
+    };
+
     const isAvailable = tool.status === 'Available';
 
+    // Comprehensive field extraction looking at root properties, customFields Map/Object, and key aliases
+    const getFieldValue = (key: string, aliases: string[] = []) => {
+        const keysToTry = [key, ...aliases];
+        
+        // 1. Try on root tool object
+        for (const k of keysToTry) {
+            if (tool[k] !== undefined && tool[k] !== null && tool[k] !== '') {
+                return tool[k];
+            }
+        }
+
+        // 2. Try on customFields object or Map
+        if (tool.customFields) {
+            const cf = tool.customFields;
+            if (typeof cf.get === 'function') {
+                for (const k of keysToTry) {
+                    const val = cf.get(k);
+                    if (val !== undefined && val !== null && val !== '') return val;
+                }
+            } else if (typeof cf === 'object') {
+                for (const k of keysToTry) {
+                    if (cf[k] !== undefined && cf[k] !== null && cf[k] !== '') return cf[k];
+                }
+                // Case-insensitive lookup in customFields keys
+                const cfKeys = Object.keys(cf);
+                for (const k of keysToTry) {
+                    const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const matchedKey = cfKeys.find(ck => ck.toLowerCase().replace(/[^a-z0-9]/g, '') === normK);
+                    if (matchedKey && cf[matchedKey] !== undefined && cf[matchedKey] !== null && cf[matchedKey] !== '') {
+                        return cf[matchedKey];
+                    }
+                }
+            }
+        }
+
+        return undefined;
+    };
+
+    // Resolving values with intelligent fallbacks for Step 5
+    const toolCodeVal = getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || getFieldValue('toolId') || '-';
+    
+    let makeYearVal = getFieldValue('makeYear', ['make_year', 'Make Year', 'year', 'Year', 'make']);
+    if (!makeYearVal && tool.dateOfSupply) {
+        const dateParts = String(tool.dateOfSupply).split(/[\/\-]/);
+        if (dateParts.length === 3) {
+            if (dateParts[2].length === 4) makeYearVal = dateParts[2];
+            else if (dateParts[0].length === 4) makeYearVal = dateParts[0];
+        }
+    }
+    if (!makeYearVal && tool.createdAt) {
+        makeYearVal = new Date(tool.createdAt).getFullYear().toString();
+    }
+    makeYearVal = makeYearVal || '-';
+
+    const toolVariantVal = getFieldValue('toolVariant', [
+        'tool_variant', 
+        'Tool Variant', 
+        'variant', 
+        'Variant', 
+        'operationType', 
+        'Operation Type',
+        'typeVariant'
+    ]) || 'Standard';
+    const capacityVal = getFieldValue('capacity') || '-';
+    const safeWorkingLoadVal = getFieldValue('safeWorkingLoad') || '-';
+    const toolTypeVal = getFieldValue('toolType') || '-';
+    const metalTypeVal = getFieldValue('metalType') || '-';
+
+    const purchaserNameVal = getFieldValue('purchaserName') || '-';
+    const purchaserContactVal = getFieldValue('purchaserContact') || '-';
+    const supplierCodeVal = getFieldValue('supplierCode') || '-';
+    const dateOfSupplyVal = getFieldValue('dateOfSupply') || '-';
+    const rawValidity = getFieldValue('validityPeriod');
+    const validityPeriodVal = rawValidity ? (String(rawValidity).toLowerCase().includes('year') ? rawValidity : `${rawValidity} Years`) : 'Unlimited / N/A';
+
+    const jobCodeVal = getFieldValue('jobCode') || '-';
+    const jobDescriptionVal = getFieldValue('jobDescription') || '-';
+    const subName = getFieldValue('subcontractorName');
+    const subCode = getFieldValue('subcontractorCode') || getFieldValue('subcontractorMobile');
+
     return (
-        <div className="flex flex-col gap-3.5 mx-auto w-full animate-in fade-in duration-500 h-[calc(100vh-4.5rem)] overflow-hidden pb-1">
-            {/* User-Friendly Application Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 pt-1">
+        <div className="flex flex-col gap-4 w-full animate-in fade-in duration-300 min-h-0 overflow-y-auto pb-10">
+            {/* Top Navigation & Action Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 pt-1 border-b border-border/50 pb-4">
                 <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => navigate(-1)}
+                        className="rounded-xl h-8 px-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                        <ArrowLeft className="size-4 mr-1" />
+                        Back
+                    </Button>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
                         {tool.description}
                     </h1>
-                    <span className={`shrink-0 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors shadow-sm ${isAvailable ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'}`}>
+                    <span className={`shrink-0 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors shadow-2xs ${isAvailable ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'}`}>
                         {isAvailable ? <CheckCircle2 className="size-3.5 mr-1.5" /> : <XCircle className="size-3.5 mr-1.5" />}
                         {tool.status}
                     </span>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 border border-border/60 text-xs font-mono text-muted-foreground">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/60 text-xs font-mono text-muted-foreground">
                         <Hash className="size-3 text-primary" />
                         <span>ID: {tool.toolId}</span>
                         <button
                             type="button"
                             onClick={handleCopyId}
-                            className="ml-1 p-1 rounded hover:bg-background transition-colors text-foreground/70 hover:text-foreground"
+                            className="ml-1 p-1 rounded hover:bg-background transition-colors text-foreground/70 hover:text-foreground cursor-pointer"
                             title="Copy Tool ID"
                         >
                             {copiedId ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
                         </button>
                     </div>
-                    {tool.toolCode && (
+                    {toolCodeVal !== '-' && (
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-xs font-mono text-primary font-semibold">
                             <Tag className="size-3 text-primary" />
-                            <span>Code: {tool.toolCode}</span>
+                            <span>Code: {toolCodeVal}</span>
                         </div>
                     )}
                 </div>
 
-                {/* Quick Action Shortcuts */}
+                {/* Quick Action Buttons */}
                 <div className="flex items-center gap-2">
                     <ToolFormModal
                         storeId={tool.currentSite?._id || storeId || ''}
@@ -148,7 +250,7 @@ export function ToolDetailsPage() {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 rounded-xl text-xs gap-1.5 shadow-sm hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer"
+                                className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer font-medium"
                             >
                                 <Edit className="size-3.5 text-primary" />
                                 Edit Tool
@@ -160,244 +262,198 @@ export function ToolDetailsPage() {
                             variant="outline"
                             size="sm"
                             onClick={handleCopyQr}
-                            className="h-8 rounded-xl text-xs gap-1.5 shadow-sm hover:bg-primary/5 hover:border-primary/30 transition-all"
+                            className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs hover:bg-primary/5 hover:border-primary/30 transition-all font-medium cursor-pointer"
                         >
                             {copiedQr ? <Check className="size-3.5 text-emerald-500" /> : <QrCode className="size-3.5 text-primary" />}
                             Copy QR Link
                         </Button>
                     )}
                     {tool.testCertificate && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            render={
-                                <a href={tool.testCertificate} target="_blank" rel="noopener noreferrer">
-                                    <FileCheck className="size-3.5 text-emerald-500" />
-                                    Test Certificate
-                                    <ExternalLink className="size-3" />
-                                </a>
-                            }
-                            className="h-8 rounded-xl text-xs gap-1.5 shadow-sm hover:bg-primary/5 hover:border-primary/30 transition-all"
-                        />
+                        <a href={tool.testCertificate} target="_blank" rel="noopener noreferrer">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs hover:bg-primary/5 hover:border-primary/30 transition-all font-medium cursor-pointer"
+                            >
+                                <FileCheck className="size-3.5 text-emerald-500" />
+                                Test Certificate
+                                <ExternalLink className="size-3" />
+                            </Button>
+                        </a>
                     )}
                 </div>
             </div>
 
-            {/* 2x2 Bento Grid - Guaranteed 100vh Fit */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 flex-1 min-h-0 overflow-hidden">
+            {/* Single Full View Card Container - Combining Specifications, Procurement & Store Assignment */}
+            <Card className="border border-border/60 shadow-md bg-card rounded-2xl overflow-hidden w-full">
+                <CardHeader className="py-4 px-6 border-b bg-muted/20 flex flex-row items-center justify-between">
+                    <CardTitle className="text-base font-bold tracking-tight uppercase flex items-center gap-2.5 text-foreground">
+                        <span className="p-2 rounded-xl bg-primary/10 text-primary">
+                            <Wrench className="size-4" />
+                        </span>
+                        Tool Details & Inventory Profile
+                    </CardTitle>
+                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                        Full View Profile
+                    </span>
+                </CardHeader>
 
-                {/* Left Column - Core Specifications & Assignment */}
-                <div className="flex flex-col gap-3.5 h-full overflow-hidden">
-                    {/* Core Specifications */}
-                    <Card className="border-border/60 shadow-sm bg-gradient-to-br from-card to-card/60 backdrop-blur flex flex-col flex-1 min-h-0 overflow-hidden rounded-2xl">
-                        <CardHeader className="py-2 px-4 border-b bg-muted/15 shrink-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-foreground/90">
-                                <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                                    <Wrench className="size-3.5" />
-                                </span>
-                                Specifications
-                            </CardTitle>
-                            <span className="text-[11px] font-medium text-muted-foreground">Technical Info</span>
-                        </CardHeader>
-                        <CardContent className="p-3.5 flex-1 min-h-0 overflow-auto">
-                            <div className="grid grid-cols-3 gap-2.5 h-full">
-                                <div className="bg-primary/5 hover:bg-primary/10 border border-primary/20 hover:border-primary/30 transition-all rounded-xl p-2.5 flex flex-col justify-between">
+                <CardContent className="p-6 space-y-6">
+                    {/* Section 1: Specifications & Technical Attributes */}
+                    <div className="space-y-3">
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                            <Wrench className="size-3.5 text-primary" />
+                            Technical Specifications
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                            {isFieldVisible('toolCode') && (
+                                <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-col justify-between">
                                     <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Tool Code</span>
-                                    <span className="text-sm font-extrabold text-primary truncate">{tool.toolCode || '-'}</span>
+                                    <span className="text-sm font-extrabold text-primary truncate mt-1">{toolCodeVal}</span>
                                 </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
+                            )}
+
+                            {isFieldVisible('makeYear') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Make / Year</span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.makeYear || '-'}</span>
+                                    <span className="text-sm font-bold text-foreground truncate mt-1">{makeYearVal}</span>
                                 </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Capacity</span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.capacity || '-'}</span>
-                                </div>
-                                <div className="bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/30 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Safe Working Load</span>
-                                    <span className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400 truncate">{tool.safeWorkingLoad || '-'}</span>
-                                </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tool Type</span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.toolType || '-'}</span>
-                                </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Metal Type</span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.metalType || '-'}</span>
-                                </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
+                            )}
+
+                            {isFieldVisible('toolVariant') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tool Variant</span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.toolVariant || '-'}</span>
+                                    <span className="text-sm font-bold text-foreground truncate mt-1">{toolVariantVal}</span>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            )}
 
-                    {/* Project & Store Assignment */}
-                    <Card className="border-border/60 shadow-sm bg-gradient-to-br from-card to-card/60 backdrop-blur flex flex-col flex-1 min-h-0 overflow-hidden rounded-2xl">
-                        <CardHeader className="py-2 px-4 border-b bg-muted/15 shrink-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-foreground/90">
-                                <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                                    <Building2 className="size-3.5" />
-                                </span>
-                                Project & Store Assignment
-                            </CardTitle>
-                            <span className="text-[11px] font-medium text-muted-foreground">Allocation</span>
-                        </CardHeader>
-                        <CardContent className="p-3.5 flex-1 min-h-0 overflow-auto">
-                            <div className="grid grid-cols-2 gap-2.5 h-full">
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Project</span>
-                                    <span className="text-sm font-bold text-foreground truncate">
-                                        {tool.project?.name || '-'} {tool.project?.code ? `(${tool.project.code})` : ''}
-                                    </span>
+                            {isFieldVisible('capacity') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Capacity</span>
+                                    <span className="text-sm font-bold text-foreground truncate mt-1">{capacityVal}</span>
                                 </div>
-                                <div className="bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/30 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                                        <MapPin className="size-3" /> Assigned Store
-                                    </span>
-                                    <span className="text-sm font-extrabold text-amber-800 dark:text-amber-300 truncate">
-                                        {tool.currentSite?.name || '-'}
-                                    </span>
-                                </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Job Code</span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.jobCode || '-'}</span>
-                                </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Job Description</span>
-                                    <span className="text-xs font-semibold text-foreground/90 truncate">{tool.jobDescription || '-'}</span>
-                                </div>
-                                {(tool.subcontractorName || tool.subcontractorCode || tool.subcontractorMobile) && (
-                                    <div className="col-span-2 bg-muted/40 border border-border/50 rounded-xl p-2 flex items-center justify-between">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Subcontractor:</span>
-                                        <span className="text-xs font-semibold">{tool.subcontractorName || '-'} ({tool.subcontractorCode || tool.subcontractorMobile || '-'})</span>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                            )}
 
-                {/* Right Column - Procurement & Documentation */}
-                <div className="flex flex-col gap-3.5 h-full overflow-hidden">
-                    {/* Procurement Details */}
-                    <Card className="border-border/60 shadow-sm bg-gradient-to-br from-card to-card/60 backdrop-blur flex flex-col flex-1 min-h-0 overflow-hidden rounded-2xl">
-                        <CardHeader className="py-2 px-4 border-b bg-muted/15 shrink-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-foreground/90">
-                                <span className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                                    <Truck className="size-3.5" />
-                                </span>
-                                Procurement & Vendor
-                            </CardTitle>
-                            <span className="text-[11px] font-medium text-muted-foreground">Purchasing</span>
-                        </CardHeader>
-                        <CardContent className="p-3.5 flex-1 min-h-0 overflow-auto">
-                            <div className="grid grid-cols-2 gap-2.5 h-full">
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
+                            {isFieldVisible('safeWorkingLoad') && (
+                                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Safe Working Load</span>
+                                    <span className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400 truncate mt-1">{safeWorkingLoadVal}</span>
+                                </div>
+                            )}
+
+                            <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tool Type</span>
+                                <span className="text-sm font-bold text-foreground truncate mt-1">{toolTypeVal}</span>
+                            </div>
+
+                            <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Metal Type</span>
+                                <span className="text-sm font-bold text-foreground truncate mt-1">{metalTypeVal}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr className="border-border/60" />
+
+                    {/* Section 2: Procurement & Vendor Information */}
+                    <div className="space-y-3">
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                            <Truck className="size-3.5 text-purple-600 dark:text-purple-400" />
+                            Procurement & Vendor Details
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                            {isFieldVisible('purchaserName') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                                         <UserCircle2 className="size-3 text-primary" /> Purchaser Name
                                     </span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.purchaserName || '-'}</span>
+                                    <span className="text-sm font-bold text-foreground truncate mt-1">{purchaserNameVal}</span>
                                 </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Purchaser Contact</span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.purchaserContact || '-'}</span>
-                                </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
+                            )}
+
+                            {isFieldVisible('supplierCode') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Supplier Code</span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.supplierCode || '-'}</span>
+                                    <span className="text-sm font-bold text-foreground truncate mt-1">{supplierCodeVal}</span>
                                 </div>
-                                <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all rounded-xl p-2.5 flex flex-col justify-between">
+                            )}
+
+                            {isFieldVisible('purchaserContact') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Purchaser Contact</span>
+                                    <span className="text-sm font-bold text-foreground truncate mt-1">{purchaserContactVal}</span>
+                                </div>
+                            )}
+
+                            {isFieldVisible('dateOfSupply') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                                         <Calendar className="size-3 text-primary" /> Date of Supply
                                     </span>
-                                    <span className="text-sm font-bold text-foreground truncate">{tool.dateOfSupply || '-'}</span>
+                                    <span className="text-sm font-bold text-foreground truncate mt-1">{dateOfSupplyVal}</span>
                                 </div>
-                                <div className="col-span-2 bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/20 hover:border-purple-500/30 transition-all rounded-xl p-2.5 flex items-center justify-between">
-                                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
-                                        <ShieldCheck className="size-3.5 text-purple-600" /> Validity Period
+                            )}
+
+                            {isFieldVisible('validityPeriod') && (
+                                <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                                        <ShieldCheck className="size-3 text-purple-600" /> Validity Period
                                     </span>
-                                    <span className="text-sm font-extrabold text-purple-800 dark:text-purple-300 truncate">{tool.validityPeriod || 'Unlimited / Not Specified'}</span>
+                                    <span className="text-sm font-extrabold text-purple-800 dark:text-purple-300 truncate mt-1">{validityPeriodVal}</span>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            )}
+                        </div>
+                    </div>
 
-                    {/* Documentation & Remarks */}
-                    <Card className="border-border/60 shadow-sm bg-gradient-to-br from-card to-card/60 backdrop-blur flex flex-col flex-1 min-h-0 overflow-hidden rounded-2xl">
-                        <CardHeader className="py-2 px-4 border-b bg-muted/15 shrink-0 flex flex-row items-center justify-between">
-                            <CardTitle className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-foreground/90">
-                                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                    <FileText className="size-3.5" />
+                    <hr className="border-border/60" />
+
+                    {/* Section 3: Project & Store Allocation */}
+                    <div className="space-y-3">
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                            <Building2 className="size-3.5 text-amber-600 dark:text-amber-400" />
+                            Project & Store Assignment
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                            <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Project</span>
+                                <span className="text-sm font-bold text-foreground truncate mt-1">
+                                    {tool.project?.name || '-'} {tool.project?.code ? `(${tool.project.code})` : ''}
                                 </span>
-                                Documentation & Remarks
-                            </CardTitle>
-                            <span className="text-[11px] font-medium text-muted-foreground">Resources</span>
-                        </CardHeader>
-                        <CardContent className="p-3.5 flex-1 min-h-0 overflow-auto flex flex-col gap-2.5 justify-between">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                {tool.qrLink ? (
-                                    <a
-                                        href={tool.qrLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-muted/30 hover:bg-primary/10 border border-border/40 hover:border-primary/30 transition-all rounded-xl p-2.5 flex flex-col justify-between group"
-                                    >
-                                        <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary uppercase tracking-wider flex items-center justify-between">
-                                            <span className="flex items-center gap-1">
-                                                <QrCode className="size-3 text-primary" /> QR Code
-                                            </span>
-                                            <ExternalLink className="size-3 opacity-60 group-hover:opacity-100" />
-                                        </span>
-                                        <span className="text-xs font-mono text-primary truncate mt-1">Open QR Page</span>
-                                    </a>
-                                ) : (
-                                    <div className="bg-muted/20 border border-dashed border-border/40 rounded-xl p-2.5 flex flex-col justify-center">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">QR Code Link</span>
-                                        <span className="text-xs text-muted-foreground italic mt-0.5">Not generated</span>
-                                    </div>
-                                )}
-
-                                {tool.testCertificate ? (
-                                    <a
-                                        href={tool.testCertificate}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-muted/30 hover:bg-emerald-500/10 border border-border/40 hover:border-emerald-500/30 transition-all rounded-xl p-2.5 flex flex-col justify-between group"
-                                    >
-                                        <span className="text-[10px] font-bold text-muted-foreground group-hover:text-emerald-600 uppercase tracking-wider flex items-center justify-between">
-                                            <span className="flex items-center gap-1">
-                                                <FileCheck className="size-3 text-emerald-500" /> Test Certificate
-                                            </span>
-                                            <ExternalLink className="size-3 opacity-60 group-hover:opacity-100" />
-                                        </span>
-                                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 truncate mt-1">View Certificate</span>
-                                    </a>
-                                ) : (
-                                    <div className="bg-muted/20 border border-dashed border-border/40 rounded-xl p-2.5 flex flex-col justify-center">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Test Certificate</span>
-                                        <span className="text-xs text-muted-foreground italic mt-0.5">No certificate uploaded</span>
-                                    </div>
-                                )}
                             </div>
 
-                            <div className="bg-muted/30 border border-border/50 rounded-xl p-2.5 flex-1 flex flex-col justify-center">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
-                                    <Sparkles className="size-3 text-amber-500" /> Remarks / Notes
+                            <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 flex flex-col justify-between">
+                                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                                    <MapPin className="size-3" /> Assigned Store
                                 </span>
-                                {tool.remarks ? (
-                                    <p className="text-xs italic text-foreground/90 line-clamp-2">
-                                        "{tool.remarks}"
-                                    </p>
-                                ) : (
-                                    <p className="text-xs text-muted-foreground italic">No additional remarks recorded for this tool.</p>
-                                )}
+                                <span className="text-sm font-extrabold text-amber-800 dark:text-amber-300 truncate mt-1">
+                                    {tool.currentSite?.name || '-'}
+                                </span>
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+
+                            {isFieldVisible('jobCode') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Job Code</span>
+                                    <span className="text-sm font-bold text-foreground truncate mt-1">{jobCodeVal}</span>
+                                </div>
+                            )}
+
+                            {isFieldVisible('jobDescription') && (
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Job Description</span>
+                                    <span className="text-xs font-semibold text-foreground/90 truncate mt-1">{jobDescriptionVal}</span>
+                                </div>
+                            )}
+
+                            {subName && (
+                                <div className="col-span-2 bg-muted/40 border border-border/50 rounded-xl p-3 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Subcontractor:</span>
+                                    <span className="text-xs font-semibold text-foreground">{subName} ({subCode || '-'})</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

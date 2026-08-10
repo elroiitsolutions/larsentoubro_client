@@ -18,6 +18,7 @@ import { ChallanHistoryPage } from "@/pages/challans/ChallanHistoryPage"
 import { ReturnChallanPreviewPage } from "@/pages/challans/ReturnChallanPreviewPage"
 import { ReportsPage } from "@/pages/reports/ReportsPage"
 import { AdminApprovalDashboard } from "@/pages/admin/AdminApprovalDashboard"
+import { ToolViewConfigPage } from "@/pages/settings/ToolViewConfigPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 
 function ProtectedRoute() {
@@ -98,6 +99,7 @@ export function AppRouter() {
                         {/* <Route path="/tools" element={<ToolsPage />} /> */}
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/settings/forms" element={<SettingsFormManagementPage />} />
+                        <Route path="/settings/tool-view" element={<ToolViewConfigPage />} />
                     </Route>
                 </Route>
 
