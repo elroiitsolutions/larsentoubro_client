@@ -8,7 +8,6 @@ import {
 import {
     UsersIcon,
     ActivityIcon,
-    Loader2,
     StoreIcon,
     FolderIcon,
     ClockIcon,
@@ -38,7 +37,7 @@ export function DashboardPage() {
     if (isRestricted) {
         return <NoAccessPage />;
     }
-    
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -63,7 +62,7 @@ export function DashboardPage() {
     // Generate Activity Feed
     const getActivities = () => {
         const activities: any[] = [];
-        
+
         projects.forEach(p => {
             if (p.createdAt) {
                 activities.push({
@@ -142,12 +141,12 @@ export function DashboardPage() {
         <div className="w-full mx-auto p-2 pb-10">
             {/* Bento Grid */}
             <div className="pt-2 grid gap-6 md:grid-cols-4 lg:grid-cols-8 auto-rows-[minmax(160px,auto)]">
-                
+
                 {/* 1. Hero Card (4x2) */}
                 <Card className={`md:col-span-4 lg:col-span-4 md:row-span-2 bg-gradient-to-br from-primary/15 via-background to-background border-primary/20 ${bentoCardClass} flex flex-col justify-between`} style={{ animation: "fade-in 0.5s ease-out 0s both, slide-in-from-bottom-8 0.5s ease-out 0s both" }}>
                     {/* Decorative Blob */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-                    
+
                     <CardHeader className="pb-0 relative z-10">
                         <div className="size-14 rounded-2xl bg-primary/20 flex items-center justify-center mb-6 text-primary shadow-inner border border-primary/20">
                             <BuildingIcon className="size-7" />
@@ -161,8 +160,8 @@ export function DashboardPage() {
                         <div className="flex items-center gap-4">
                             <div className="px-5 py-2.5 rounded-full bg-primary/10 text-primary text-sm font-semibold flex items-center gap-2.5 border border-primary/20 backdrop-blur-md">
                                 <span className="relative flex h-3 w-3">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
                                 </span>
                                 System Online
                             </div>
@@ -292,10 +291,9 @@ export function DashboardPage() {
                             {recentActivity.length > 0 ? recentActivity.map((item, index) => (
                                 <div key={item.id} className="flex gap-5 group">
                                     <div className="relative mt-1 flex flex-col items-center">
-                                        <div className={`size-3.5 rounded-full shrink-0 shadow-sm ring-4 ring-background z-10 ${
-                                            item.type === 'project' ? 'bg-blue-500' : 
-                                            item.type === 'store' ? 'bg-orange-500' : 'bg-purple-500'
-                                        }`} />
+                                        <div className={`size-3.5 rounded-full shrink-0 shadow-sm ring-4 ring-background z-10 ${item.type === 'project' ? 'bg-blue-500' :
+                                                item.type === 'store' ? 'bg-orange-500' : 'bg-purple-500'
+                                            }`} />
                                         {index !== recentActivity.length - 1 && (
                                             <div className="w-0.5 h-[calc(100%+24px)] bg-border/60 absolute top-3.5" />
                                         )}

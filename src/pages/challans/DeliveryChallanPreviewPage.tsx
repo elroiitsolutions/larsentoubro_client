@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,12 +9,8 @@ import {
     ArrowLeft,
     CheckCircle2,
     Loader2,
-    Building2,
-    Truck,
     AlertCircle,
     Download,
-    CheckSquare,
-    Square,
     MapPin
 } from "lucide-react";
 import challanService from "@/services/challan.service";
@@ -45,9 +41,10 @@ export function DeliveryChallanPreviewPage() {
     const [notes, setNotes] = useState(state?.notes || "");
 
     // Consignee / Subcontractor & Location Details (Editable)
+    const vendorCode = initialVendor.vendorCode || "V-001";
     const [subcontractorName, setSubcontractorName] = useState(initialVendor.name || "Selected Subcontractor");
     const [consigneeAddress, setConsigneeAddress] = useState(initialVendor.address || "Powai Campus, Saki Vihar Road, Mumbai");
-    const [siteCode, setSiteCode] = useState(initialVendor.vendorCode || "UJ - 0002");
+    const [siteCode, setSiteCode] = useState(state?.siteCode || "LT003");
     const [locationChainage, setLocationChainage] = useState("Loc: 59/3 to 60/0");
     const [workFrontLocation, setWorkFrontLocation] = useState("Tower Line Workfront");
     const [consigneeGstNo, setConsigneeGstNo] = useState(initialVendor.gstNumber || "27AAACL0140P1Z0");
@@ -73,21 +70,6 @@ export function DeliveryChallanPreviewPage() {
     const [receiverMobile, setReceiverMobile] = useState("");
     const [mrnNo, setMrnNo] = useState("");
     const [receiptDate, setReceiptDate] = useState(new Date().toISOString().split("T")[0]);
-
-    // Copy Distribution Checkboxes (Editable)
-    const [copyDistribution, setCopyDistribution] = useState<string[]>([
-        "CONSIGNEE",
-        "CONSIGNEE - CONSIGNOR",
-        "GATE PASS (SECURITY - ACCOUNTS)",
-        "CONSIGNOR'S FILE"
-    ]);
-
-    const copyDistributionOptions = [
-        { id: "CONSIGNEE", label: "CONSIGNEE" },
-        { id: "CONSIGNEE - CONSIGNOR", label: "CONSIGNEE - CONSIGNOR" },
-        { id: "GATE PASS (SECURITY - ACCOUNTS)", label: "GATE PASS (SECURITY - ACCOUNTS)" },
-        { id: "CONSIGNOR'S FILE", label: "CONSIGNOR'S FILE" }
-    ];
 
     const [items, setItems] = useState<any[]>(
         initialTools.map((t: any, idx: number) => ({
@@ -130,17 +112,10 @@ export function DeliveryChallanPreviewPage() {
         setItems(next);
     };
 
-    const toggleCopyDistribution = (optionId: string) => {
-        if (copyDistribution.includes(optionId)) {
-            setCopyDistribution(copyDistribution.filter(id => id !== optionId));
-        } else {
-            setCopyDistribution([...copyDistribution, optionId]);
-        }
-    };
-
     const getChallanPayload = () => ({
         subcontractorName,
         siteCode,
+        vendorCode,
         locationChainage,
         workFrontLocation,
         vendorId: initialVendor._id,
@@ -148,7 +123,7 @@ export function DeliveryChallanPreviewPage() {
             ...initialVendor,
             name: subcontractorName,
             address: consigneeAddress,
-            vendorCode: siteCode,
+            vendorCode: vendorCode,
             gstNumber: consigneeGstNo
         },
         storeId,
@@ -171,7 +146,6 @@ export function DeliveryChallanPreviewPage() {
         mrnNo,
         receiptDate,
         docReferenceCode,
-        copyDistribution,
         remarks,
         notes,
         items
@@ -180,7 +154,7 @@ export function DeliveryChallanPreviewPage() {
     const handleDownloadDraft = async () => {
         try {
             const draftData = {
-                challanNumber: "DC-2026-008",
+                challanNumber: "DC-26-001",
                 ...getChallanPayload()
             };
             await generateDeliveryChallanPDF(draftData, { download: true, fileName: "Delivery_Challan_Draft.pdf" });
@@ -201,7 +175,7 @@ export function DeliveryChallanPreviewPage() {
                 toast.success(`Delivery Challan ${formatDCNumber(res.data.challanNumber)} created successfully! Automatically downloading PDF...`);
 
                 try {
-                    await generateDeliveryChallanPDF(res.data, { download: true });
+                    await generateDeliveryChallanPDF({ ...payload, ...res.data }, { download: true });
                 } catch (pdfErr) {
                     console.error("PDF generation error:", pdfErr);
                     toast.error("Challan created, but automatic PDF download failed.");
@@ -300,47 +274,6 @@ export function DeliveryChallanPreviewPage() {
                 </div>
             </Card>
 
-            {/* Footer Copy Distribution Checkboxes Customization Bar */}
-            <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden bg-card">
-                <div className="bg-red-50/80 dark:bg-red-950/30 px-5 py-3 border-b border-red-100 dark:border-red-900 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <span className="size-2 rounded-full bg-red-600 animate-pulse" />
-                        <h3 className="text-xs font-extrabold uppercase tracking-wider text-red-700 dark:text-red-400">
-                            Footer Copy Distribution Checkboxes (Admin Customization)
-                        </h3>
-                    </div>
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                        Select which copies appear on the printed Delivery Challan footer
-                    </span>
-                </div>
-                <CardContent className="p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                        {copyDistributionOptions.map(opt => {
-                            const isChecked = copyDistribution.includes(opt.id);
-                            return (
-                                <button
-                                    key={opt.id}
-                                    type="button"
-                                    onClick={() => toggleCopyDistribution(opt.id)}
-                                    className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                                        isChecked 
-                                            ? "border-red-500/50 bg-red-500/10 text-red-900 dark:text-red-300 font-bold shadow-2xs" 
-                                            : "border-border/60 bg-muted/20 text-muted-foreground font-medium hover:border-border"
-                                    }`}
-                                >
-                                    {isChecked ? (
-                                        <CheckSquare className="size-4 text-red-600 shrink-0" />
-                                    ) : (
-                                        <Square className="size-4 text-muted-foreground shrink-0" />
-                                    )}
-                                    <span className="text-xs leading-tight">{opt.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </CardContent>
-            </Card>
-
             {/* Authentic L&T Delivery Challan Document Canvas */}
             <div className="bg-white text-black p-4 sm:p-8 rounded-2xl border-2 border-slate-900 shadow-xl font-sans max-w-5xl mx-auto w-full space-y-0 text-xs">
                 
@@ -368,7 +301,7 @@ export function DeliveryChallanPreviewPage() {
                             <div className="grid grid-cols-2 divide-x-2 divide-black flex-1">
                                 <div className="p-2 space-y-1">
                                     <span className="font-bold text-[10px] block">DC NO.</span>
-                                    <span className="font-bold text-xs block font-mono text-slate-700">DC-2026-008</span>
+                                    <span className="font-bold text-xs block font-mono text-slate-700">DC-26-001</span>
                                 </div>
                                 <div className="p-2 space-y-1">
                                     <span className="font-bold text-[10px] block">DATE (DD-MM-YYYY)</span>
@@ -432,8 +365,8 @@ export function DeliveryChallanPreviewPage() {
                             <Input value={stockType} onChange={e => setStockType(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1" />
                         </div>
                         <div className="p-1.5 space-y-1 text-center">
-                            <span className="font-bold block text-[9px]">SITE CODE NO.</span>
-                            <Input value={siteCode} onChange={e => setSiteCode(e.target.value)} className="h-6 text-center text-xs font-bold border-slate-400 bg-white p-1 font-mono" />
+                            <span className="font-bold block text-[9px]">VENDOR CODE</span>
+                            <Input value={vendorCode} readOnly className="h-6 text-center text-xs font-bold border-slate-400 bg-slate-100 p-1 font-mono cursor-not-allowed" />
                         </div>
                         <div className="p-1.5 space-y-1 text-center">
                             <span className="font-bold block text-[9px]">E-WAY BILL NO.</span>
@@ -442,8 +375,11 @@ export function DeliveryChallanPreviewPage() {
                     </div>
 
                     {/* Returnable Stamp Banner */}
-                    <div className="p-2.5 text-center font-black text-xs text-red-700 bg-red-50 border-b border-red-200 uppercase tracking-wide">
-                        NOT FOR SALE – MATERIAL ISSUED ON RETURNABLE BASIS
+                    <div className="p-2 text-center bg-red-50 border-b border-red-200 uppercase tracking-wide space-y-0.5">
+                        <div className="font-black text-xs text-red-700">NOT FOR SALE – MATERIAL ISSUED ON RETURNABLE BASIS</div>
+                        <div className="text-[10px] font-medium text-slate-700 normal-case italic">
+                            We have despatched the following goods. Kindly return the duplicate copy duly signed acknowledging receipt of goods.
+                        </div>
                     </div>
 
                     {/* Row 3: Items Table with Material Code Column */}
@@ -476,7 +412,7 @@ export function DeliveryChallanPreviewPage() {
                                                 onChange={e => handleItemChange(idx, "description", e.target.value)}
                                                 className="font-extrabold text-xs h-7 border-slate-400 bg-white"
                                             />
-                                            <p className="font-mono text-[11px] text-blue-700">QR: DSSDOP00{String(item.toolId).replace(/[^a-zA-Z0-9]/g, '')}</p>
+                                            <p className="font-mono text-[11px] text-blue-700">QR: {item.toolId || item.tool}</p>
                                         </td>
                                         <td className="p-2 border-r-2 border-black">
                                             <Input 
@@ -561,6 +497,9 @@ export function DeliveryChallanPreviewPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 divide-y-2 md:divide-y-0 md:divide-x-2 divide-black min-h-[95px] p-3 bg-white">
                         <div className="flex flex-col justify-between space-y-1">
                             <span className="font-bold text-[10px]">RECEIPT DETAILS</span>
+                            <p className="text-[9.5px] text-slate-600 italic leading-tight font-medium">
+                                We have despatched the following goods. Kindly return the duplicate copy duly signed acknowledging receipt of goods.
+                            </p>
                             <div className="grid grid-cols-2 gap-2 text-[10px]">
                                 <div>
                                     <span className="font-bold text-[9px] text-slate-500">RECEIVER NAME</span>
@@ -598,27 +537,33 @@ export function DeliveryChallanPreviewPage() {
                     </div>
                 </div>
 
-                {/* Footer Copy Distribution Line with Checkboxes */}
+                {/* Footer Copy Distribution Line with Static Printable Checkboxes */}
                 <div className="pt-4 space-y-2 text-[11px] font-bold">
                     <div className="flex flex-wrap items-center justify-between text-slate-600 gap-2">
                         <span>{docReferenceCode}</span>
                         <span>{registeredOfficeAddress}</span>
                     </div>
 
-                    {/* Copy Distribution Line in Red */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-300">
+                    {/* Static Printable Copy Distribution Checkboxes */}
+                    <div className="flex flex-wrap items-center gap-5 pt-2 border-t border-slate-300">
                         <span className="text-black font-extrabold">COPY DISTRIBUTION:</span>
-                        <div className="flex flex-wrap items-center gap-3 text-red-700 font-bold">
-                            {copyDistributionOptions.map((opt, idx) => {
-                                const isChecked = copyDistribution.includes(opt.id);
-                                return (
-                                    <div key={opt.id} className="flex items-center gap-1.5 cursor-pointer" onClick={() => toggleCopyDistribution(opt.id)}>
-                                        {isChecked ? <CheckSquare className="size-4 text-red-600" /> : <Square className="size-4 text-slate-400" />}
-                                        <span className={isChecked ? "underline" : "opacity-60"}>{opt.label}</span>
-                                        {idx < copyDistributionOptions.length - 1 && <span className="text-slate-400 ml-2 font-normal">|</span>}
-                                    </div>
-                                );
-                            })}
+                        <div className="flex flex-wrap items-center gap-4 text-black font-bold">
+                            <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center justify-center size-3.5 border-2 border-black rounded-xs text-[10px]" />
+                                <span>CONSIGNEE</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center justify-center size-3.5 border-2 border-black rounded-xs text-[10px]" />
+                                <span>CONSIGNEE – CONSIGNOR</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center justify-center size-3.5 border-2 border-black rounded-xs text-[10px]" />
+                                <span>GATE PASS (SECURITY - ACCOUNTS)</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center justify-center size-3.5 border-2 border-black rounded-xs text-[10px]" />
+                                <span>CONSIGNOR'S FILE</span>
+                            </div>
                         </div>
                     </div>
                 </div>

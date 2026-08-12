@@ -18,12 +18,15 @@ export const formatDateDDMMYYYY = (dateInput: any): string => {
 };
 
 /**
- * Format DC Number with 3-digit padding (e.g. DC-2026-008)
+ * Format DC/RC Number with 2-digit year and minimum 3-digit padding (e.g. DC-26-001, RC-26-001)
  */
 export const formatDCNumber = (numStr: any): string => {
-    if (!numStr) return 'DC-2026-008';
+    if (!numStr) return 'DC-26-001';
     const str = String(numStr);
-    return str.replace(/DC-(\d{4})-(\d+)/i, (_, yr, num) => `DC-${yr}-${String(num).padStart(3, '0')}`);
+    return str.replace(/(DC|RC)-(\d{2,4})-(\d+)/i, (_, prefix, yr, num) => {
+        const shortYr = String(yr).slice(-2);
+        return `${prefix.toUpperCase()}-${shortYr}-${String(num).padStart(3, '0')}`;
+    });
 };
 
 /**
@@ -128,7 +131,8 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
     doc.setFontSize(8.5);
     const vendorName = challan.subcontractorName || challan.vendor?.name || 'Authorized Subcontractor';
     const vendorAddr = challan.vendor?.address || 'Site Work Location';
-    const siteCodeStr = challan.siteCode || 'UJ - 0002';
+    const siteCodeStr = challan.siteCode !== undefined && challan.siteCode !== null && String(challan.siteCode).trim() !== '' ? String(challan.siteCode) : '-';
+    const vendorCodeStr = challan.vendorCode || challan.vendor?.vendorCode || '-';
     const locationStr = challan.locationChainage ? `Loc: ${challan.locationChainage}` : '';
 
     if (isReturn) {
@@ -138,13 +142,14 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
             doc.text(`Return against DC No.: ${formatDCNumber(challan.parentDcNumber)} dated ${formatDateDDMMYYYY(challan.parentDcDate)}`, 112, 45);
         }
     } else {
-        doc.text(vendorName, 112, 39);
+        doc.text(vendorName, 112, 39, { maxWidth: 82 });
         doc.setFontSize(7.5);
-        doc.text(`Addr: ${vendorAddr}`, 112, 44);
+        doc.text(`Addr: ${vendorAddr}`, 112, 44, { maxWidth: 82 });
         if (locationStr || challan.workFrontLocation) {
-            doc.text(`${locationStr} ${challan.workFrontLocation ? '| ' + challan.workFrontLocation : ''}`, 112, 49);
+            const locText = `${locationStr} ${challan.workFrontLocation ? '| ' + challan.workFrontLocation : ''}`.trim();
+            doc.text(locText, 112, 49, { maxWidth: 82 });
         }
-        doc.text(`Site Code: ${siteCodeStr}`, 112, 54);
+        doc.text(`Site Code: ${siteCodeStr}`, 112, 54, { maxWidth: 82 });
     }
 
     // Horizontal divider line across full box at Y: 58
@@ -178,7 +183,7 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
     doc.text(String(challan.mrNo || challan.mrnNo || '-'), 71, 69, { align: 'center' });
     doc.text(String(challan.mrDate || '-'), 93.5, 69, { align: 'center' });
     doc.text(String(challan.stockType || 'CAPTIVE'), 118.5, 69, { align: 'center' });
-    doc.text(String(siteCodeStr), 150, 69, { align: 'center' });
+    doc.text(String(isReturn ? siteCodeStr : vendorCodeStr), 150, 69, { align: 'center' });
     doc.text(String(challan.ewayBillNo || '-'), 182, 69, { align: 'center' });
 
     // Returnable Stamp Banner or Note below box
@@ -188,7 +193,14 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
     const returnableNotice = isReturn
         ? 'The following is the return status of materials issued under the referenced Delivery Challan.'
         : 'NOT FOR SALE – MATERIAL ISSUED ON RETURNABLE BASIS';
-    doc.text(returnableNotice, pageWidth / 2, 77, { align: 'center' });
+    doc.text(returnableNotice, pageWidth / 2, 75, { align: 'center' });
+
+    if (!isReturn) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(6.5);
+        doc.setTextColor(60, 60, 60);
+        doc.text('We have despatched the following goods. Kindly return the duplicate copy duly signed acknowledging receipt of goods', pageWidth / 2, 79, { align: 'center' });
+    }
     doc.setTextColor(0, 0, 0);
 };
 
@@ -298,6 +310,12 @@ const drawLnTFooter = (doc: any, challan: any, finalY: number, isReturn: boolean
         doc.text('RECEIPT DETAILS', 16, y + 5);
         doc.text('FOR LARSEN & TOUBRO LIMITED CONSTRUCTION DIVISION', 107, y + 5);
 
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(6.5);
+        const dispatchAckNote = 'We have despatched the following goods. Kindly return the duplicate copy duly signed acknowledging receipt of goods.';
+        const splitNote = doc.splitTextToSize(dispatchAckNote, 87);
+        doc.text(splitNote, 16, y + 10);
+
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
         const receiverInfo = challan.receiverName ? `Receiver: ${challan.receiverName} (${challan.receiverMobile || '-'})` : 'MRN NO. | DATE | SIGNATURE OF RECEIVER';
@@ -329,28 +347,30 @@ const drawLnTFooter = (doc: any, challan: any, finalY: number, isReturn: boolean
     y += 5;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
-    doc.text('COPY DISTRIBUTION', 14, y);
-
-    const allOptions = [
-        { key: 'CONSIGNEE', label: 'CONSIGNEE' },
-        { key: 'CONSIGNEE - CONSIGNOR', label: 'CONSIGNEE - CONSIGNOR' },
-        { key: 'GATE PASS (SECURITY - ACCOUNTS)', label: 'GATE PASS (SECURITY - ACCOUNTS)' },
-        { key: "CONSIGNOR'S FILE", label: "CONSIGNOR'S FILE" }
-    ];
-
-    const selectedList = challan.copyDistribution || [
-        'CONSIGNEE', 'CONSIGNEE - CONSIGNOR', 'GATE PASS (SECURITY - ACCOUNTS)', "CONSIGNOR'S FILE"
-    ];
-
-    const formattedCopies = allOptions.map(opt => {
-        const isChecked = selectedList.includes(opt.key) || selectedList.includes(opt.label);
-        return `${isChecked ? '[X] ' : '[  ] '}${opt.label}`;
-    }).join('  |  ');
-
-    doc.setTextColor(204, 0, 0);
-    doc.setFontSize(6.8);
-    doc.text(formattedCopies, 48, y);
     doc.setTextColor(0, 0, 0);
+    doc.text('COPY DISTRIBUTION:', 14, y);
+
+    // Static Printable Checkboxes (Empty squares for manual marking post-print)
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.4);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+
+    // 1. CONSIGNEE Checkbox
+    doc.rect(46, y - 2.5, 2.8, 2.8);
+    doc.text('CONSIGNEE', 50, y);
+
+    // 2. CONSIGNEE – CONSIGNOR Checkbox
+    doc.rect(68, y - 2.5, 2.8, 2.8);
+    doc.text('CONSIGNEE – CONSIGNOR', 72, y);
+
+    // 3. GATE PASS (SECURITY - ACCOUNTS) Checkbox
+    doc.rect(112, y - 2.5, 2.8, 2.8);
+    doc.text('GATE PASS (SECURITY - ACCOUNTS)', 116, y);
+
+    // 4. CONSIGNOR'S FILE Checkbox
+    doc.rect(168, y - 2.5, 2.8, 2.8);
+    doc.text("CONSIGNOR'S FILE", 172, y);
 };
 
 /**
@@ -389,7 +409,7 @@ export const generateDeliveryChallanPDF = async (challan: any, options: ChallanP
     // Items Table with Material Code Column
     const tableBody = (challan.items || []).map((item: any, idx: number) => {
         const matCode = item.materialCode || item.toolCode || `MAT-${String(item.toolId || '').slice(-5)}`;
-        const desc = `${item.description || 'Tool Item'}\nQR: DSSDOP00${String(item.toolId || '').replace(/[^a-zA-Z0-9]/g, '')}`;
+        const desc = `${item.description || 'Tool Item'}\nID: ${item.toolId || ''}`;
         return [
             String(idx + 1),
             String(matCode),
@@ -410,23 +430,25 @@ export const generateDeliveryChallanPDF = async (challan: any, options: ChallanP
             textColor: [0, 0, 0],
             fontStyle: 'bold',
             halign: 'center',
+            fontSize: 7.5,
+            cellPadding: 1.5,
             lineWidth: 0.3,
             lineColor: [0, 0, 0]
         },
         styles: {
-            fontSize: 8.5,
+            fontSize: 7.5,
             cellPadding: 2.5,
             lineWidth: 0.3,
             lineColor: [0, 0, 0],
             textColor: [0, 0, 0]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 14 },
-            1: { halign: 'center', cellWidth: 30, fontStyle: 'bold' },
-            2: { cellWidth: 84 },
-            3: { halign: 'center', cellWidth: 18 },
+            0: { halign: 'center', cellWidth: 12 },
+            1: { halign: 'center', cellWidth: 32, fontStyle: 'bold' },
+            2: { cellWidth: 78 },
+            3: { halign: 'center', cellWidth: 22 },
             4: { halign: 'center', cellWidth: 16 },
-            5: { halign: 'center', cellWidth: 20 }
+            5: { halign: 'center', cellWidth: 22 }
         },
         margin: { left: 14, right: 14 }
     });

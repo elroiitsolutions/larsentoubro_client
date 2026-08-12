@@ -102,8 +102,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [user])
 
   return (
-    <Sidebar 
-      variant="sidebar" 
+    <Sidebar
+      variant="sidebar"
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}

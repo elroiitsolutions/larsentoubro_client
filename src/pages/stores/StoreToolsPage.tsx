@@ -183,7 +183,7 @@ export function StoreToolsPage() {
         toolService.getToolFilterOptions(storeId)
             .then(options => setFilterOptions(options))
             .catch(err => console.error("Failed to fetch tool filter options", err));
-            
+
         formService.getFormBySlug('tool-form')
             .then(res => {
                 if (res.success && res.data) {
@@ -249,23 +249,23 @@ export function StoreToolsPage() {
                 setTools(data.data || []);
                 setTotal(data.total || 0);
                 setTotalPages(data.totalPages || 1);
-                
+
                 // If we don't have breadcrumbs in state (e.g. on hard refresh),
                 // infer the projectId from the tools and reconstruct the breadcrumbs!
                 if (!(location.state as any)?.breadcrumbs && data.data && data.data.length > 0) {
                     const project = data.data[0].project;
                     const projId = typeof project === 'object' ? project._id : project;
                     if (projId) {
-                        navigate(".", { 
-                            replace: true, 
-                            state: { 
-                                ...location.state, 
+                        navigate(".", {
+                            replace: true,
+                            state: {
+                                ...location.state,
                                 breadcrumbs: [
                                     { label: 'Projects', href: '/projects' },
                                     { label: 'Stores', href: `/projects/${projId}/stores` },
                                     { label: 'Tools', href: `/stores/${storeId}/tools` }
-                                ] 
-                            } 
+                                ]
+                            }
                         });
                     }
                 }
@@ -730,9 +730,8 @@ export function StoreToolsPage() {
                                     ) : tools.map((t) => (
                                         <tr
                                             key={t._id}
-                                            className={`group hover:bg-primary/[0.03] transition-colors duration-200 cursor-pointer whitespace-nowrap ${
-                                                selectedToolIds.has(t._id) ? "bg-primary/[0.05]" : ""
-                                            }`}
+                                            className={`group hover:bg-primary/[0.03] transition-colors duration-200 cursor-pointer whitespace-nowrap ${selectedToolIds.has(t._id) ? "bg-primary/[0.05]" : ""
+                                                }`}
                                             onClick={() => {
                                                 const toolId = t.toolId || t._id;
                                                 const existingBreadcrumbs = (location.state as any)?.breadcrumbs || [
@@ -922,4 +921,5 @@ export function StoreToolsPage() {
     )
 }
 
+// StoreToolsPage with dynamic vendor database dropdown modal
 // StoreToolsPage with dynamic vendor database dropdown modal
