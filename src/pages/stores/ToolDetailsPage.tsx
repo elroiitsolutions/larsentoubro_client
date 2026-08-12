@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
 import { toast } from "sonner";
@@ -31,8 +31,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ToolDetailsPage() {
-    const { storeId, toolId } = useParams();
+    const { storeId: paramStoreId, toolId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [tool, setTool] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -207,7 +208,14 @@ export function ToolDetailsPage() {
                     <Button 
                         variant="ghost" 
                         size="sm" 
-                        onClick={() => navigate(-1)}
+                        onClick={() => {
+                            const storeIdVal = paramStoreId || (location.state as any)?.fromStoreId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
+                            if (storeIdVal) {
+                                navigate(`/stores/${storeIdVal}/tools`);
+                            } else {
+                                navigate(-1);
+                            }
+                        }}
                         className="rounded-xl h-8 px-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
                     >
                         <ArrowLeft className="size-4 mr-1" />
@@ -243,7 +251,7 @@ export function ToolDetailsPage() {
                 {/* Quick Action Buttons */}
                 <div className="flex items-center gap-2">
                     <ToolFormModal
-                        storeId={tool.currentSite?._id || storeId || ''}
+                        storeId={tool.currentSite?._id || (typeof tool.currentSite === 'string' ? tool.currentSite : '') || paramStoreId || ''}
                         tool={tool}
                         onSuccess={() => window.location.reload()}
                         triggerButton={

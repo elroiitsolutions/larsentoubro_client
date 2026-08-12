@@ -109,7 +109,19 @@ export function QuickToolViewPage() {
 
     const handleGoToFullDetails = () => {
         if (tool?.toolId) {
-            navigate(`/tooldetails/${encodeURIComponent(tool.toolId)}`);
+            const storeIdVal = fromStoreId || tool.currentSite?._id || tool.currentSite;
+            const detailsBreadcrumbs = [
+                { label: 'Projects', href: '/projects' },
+                { label: 'Stores', href: '/stores' },
+                { label: 'Tools', href: storeIdVal ? `/stores/${storeIdVal}/tools` : '/stores' },
+                { label: `Tool Details (${tool.toolId})`, href: `/tooldetails/${encodeURIComponent(tool.toolId)}` }
+            ];
+            navigate(`/tooldetails/${encodeURIComponent(tool.toolId)}`, {
+                state: {
+                    fromStoreId: storeIdVal,
+                    breadcrumbs: detailsBreadcrumbs
+                }
+            });
         }
     };
 
