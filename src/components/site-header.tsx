@@ -52,7 +52,16 @@ const generateBreadcrumbs = (pathname: string): Array<{ label: string, href: str
                 { label: 'Projects', href: '/projects' },
                 { label: 'Stores', href: '/stores' },
                 { label: 'Tools', href: '/stores' }, // Generic fallback for direct visits
-                { label: m[1], href: `/vt/${m[1]}` }
+                { label: `Quick View (${m[1]})`, href: `/vt/${m[1]}` }
+            ]
+        },
+        {
+            test: /^\/tooldetails\/([^\/]+)$/,
+            build: (m: string[]) => [
+                { label: 'Projects', href: '/projects' },
+                { label: 'Stores', href: '/stores' },
+                { label: 'Tools', href: '/stores' }, // Generic fallback for direct visits
+                { label: `Tool Details (${m[1]})`, href: `/tooldetails/${m[1]}` }
             ]
         },
         {
@@ -95,6 +104,20 @@ const generateBreadcrumbs = (pathname: string): Array<{ label: string, href: str
             build: () => [
                 { label: 'Settings', href: '/settings' },
                 { label: 'Forms Management', href: `/settings/forms` }
+            ]
+        },
+        {
+            test: /^\/settings\/tool-quick-view$/,
+            build: () => [
+                { label: 'Settings', href: '/settings' },
+                { label: 'Tool Quick View Layout', href: `/settings/tool-quick-view` }
+            ]
+        },
+        {
+            test: /^\/settings\/tool-details-view$/,
+            build: () => [
+                { label: 'Settings', href: '/settings' },
+                { label: 'Tool Details Layout', href: `/settings/tool-details-view` }
             ]
         }
     ];

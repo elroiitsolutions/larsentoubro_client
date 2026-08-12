@@ -32,6 +32,7 @@ import formService from "@/services/form.service"
 import { ToolFormModal } from "./ToolFormModal"
 import { VendorSelectionModal } from "./VendorSelectionModal"
 import { BulkEditToolsModal } from "./BulkEditToolsModal"
+import { QuickToolViewPage } from "./QuickToolViewPage"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -48,10 +49,11 @@ const statusColors: Record<string, string> = {
 const defaultStatuses = ["Available", "In Use", "Moving", "Missing", "Maintenance", "Damaged", "Expired"];
 
 
-export function StoreToolsPage() {
-    const { storeId } = useParams();
+export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string } = {}) {
+    const { storeId: paramStoreId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const storeId = overrideStoreId || paramStoreId || (location.state as any)?.fromStoreId;
 
     // Pass along dynamic breadcrumbs if they exist
     const currentBreadcrumbs = (location.state as any)?.breadcrumbs || [];
@@ -741,9 +743,9 @@ export function StoreToolsPage() {
                                                 ];
                                                 const newBreadcrumbs = [
                                                     ...existingBreadcrumbs,
-                                                    { label: toolId, href: `/vt/${encodeURIComponent(toolId)}` }
+                                                    { label: `Quick View (${toolId})`, href: `/vt/${encodeURIComponent(toolId)}` }
                                                 ];
-                                                navigate(`/vt/${encodeURIComponent(toolId)}`, { state: { breadcrumbs: newBreadcrumbs } });
+                                                navigate(`/vt/${encodeURIComponent(toolId)}`, { state: { initialTool: t, backgroundLocation: location, fromStoreId: storeId, breadcrumbs: newBreadcrumbs } });
                                             }}
                                         >
                                             <td className="px-4 py-4 text-center" onClick={(e) => handleToggleTool(t, e)}>
