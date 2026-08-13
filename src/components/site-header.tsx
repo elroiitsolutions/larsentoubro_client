@@ -12,7 +12,10 @@ import {
 import React from "react"
 import { HomeIcon, ChevronRightIcon } from "lucide-react"
 
-const generateBreadcrumbs = (pathname: string): Array<{ label: string, href: string }> => {
+const generateBreadcrumbs = (pathname: string, state?: any): Array<{ label: string, href: string }> => {
+    const fromStoreId = state?.fromStoreId;
+    const toolsHref = fromStoreId ? `/stores/${fromStoreId}/tools` : '/stores';
+
     // 1. Explicit Route Maps for perfect structural matching
     const routes = [
         {
@@ -51,8 +54,17 @@ const generateBreadcrumbs = (pathname: string): Array<{ label: string, href: str
             build: (m: string[]) => [
                 { label: 'Projects', href: '/projects' },
                 { label: 'Stores', href: '/stores' },
-                { label: 'Tools', href: '/stores' }, // Generic fallback for direct visits
-                { label: m[1], href: `/vt/${m[1]}` }
+                { label: 'Tools', href: toolsHref },
+                { label: `Quick View (${m[1]})`, href: `/vt/${m[1]}` }
+            ]
+        },
+        {
+            test: /^\/tooldetails\/([^\/]+)$/,
+            build: (m: string[]) => [
+                { label: 'Projects', href: '/projects' },
+                { label: 'Stores', href: '/stores' },
+                { label: 'Tools', href: toolsHref },
+                { label: `Tool Details (${m[1]})`, href: `/tooldetails/${m[1]}` }
             ]
         },
         {
@@ -96,6 +108,20 @@ const generateBreadcrumbs = (pathname: string): Array<{ label: string, href: str
                 { label: 'Settings', href: '/settings' },
                 { label: 'Forms Management', href: `/settings/forms` }
             ]
+        },
+        {
+            test: /^\/settings\/tool-quick-view$/,
+            build: () => [
+                { label: 'Settings', href: '/settings' },
+                { label: 'Tool Quick View Layout', href: `/settings/tool-quick-view` }
+            ]
+        },
+        {
+            test: /^\/settings\/tool-details-view$/,
+            build: () => [
+                { label: 'Settings', href: '/settings' },
+                { label: 'Tool Details Layout', href: `/settings/tool-details-view` }
+            ]
         }
     ];
 
@@ -137,15 +163,7 @@ const generateBreadcrumbs = (pathname: string): Array<{ label: string, href: str
 export function SiteHeader() {
     const { pathname, state } = useLocation()
 
-    // Priority 1: Navigation State (if perfectly formed and present)
-    // Priority 2: URL Parser generator
-    let finalBreadcrumbs = (state?.breadcrumbs as Array<{ label: string, href: string }> | undefined)
-        || generateBreadcrumbs(pathname);
-
-    // Failsafe
-    if (!finalBreadcrumbs || finalBreadcrumbs.length === 0) {
-        finalBreadcrumbs = generateBreadcrumbs(pathname);
-    }
+    let finalBreadcrumbs = generateBreadcrumbs(pathname, state);
 
     return (
         <header className="sticky top-0  flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-background/60 backdrop-blur-xl px-4 transition-all duration-300 shadow-sm">

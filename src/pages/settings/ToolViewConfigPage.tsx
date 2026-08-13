@@ -1,21 +1,17 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
     ArrowLeftIcon,
     SaveIcon,
-    Sparkles,
-    CheckCircle2,
     Wrench,
-    Sliders,
-    Layers,
-    ShieldCheck
+    Sliders
 } from "lucide-react"
 import { toast } from "sonner"
 import formService from "@/services/form.service"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 
 function ToggleSwitch({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (val: boolean) => void }) {
     return (
@@ -37,12 +33,23 @@ function ToggleSwitch({ checked, onCheckedChange }: { checked: boolean; onChecke
     );
 }
 
-export function ToolViewConfigPage() {
+export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'details' }) {
     const { user } = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
+
+    // Determine mode from prop or URL
+    const mode = propMode || (location.pathname.includes('quick') ? 'quick' : 'details')
+    const formSlug = mode === 'quick' ? 'tool-quick-view' : 'tool-details-view'
+    const pageTitle = mode === 'quick'
+        ? 'Tool Quick View Module Access & Configuration'
+        : 'Full Tool Details View Access & Configuration'
+    const pageDescription = mode === 'quick'
+        ? 'Customization settings for fields shown on the Quick Tool View Module (/vt).'
+        : 'Customization settings for fields shown on the Full Tool Details Page (/tooldetails).'
+
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-    const [schema, setSchema] = useState<any>(null)
     const [fields, setFields] = useState<any[]>([])
     const [activeTab, setActiveTab] = useState<string>("all")
 
@@ -78,14 +85,12 @@ export function ToolViewConfigPage() {
     const fetchSchema = async () => {
         setLoading(true)
         try {
-            const data = await formService.getFormBySlug("tool-details-view")
+            const data = await formService.getFormBySlug(formSlug)
             if (data.success && data.data) {
-                setSchema(data.data)
                 const fetchedFields = data.data.fields || []
                 if (fetchedFields.length === 0) {
                     setFields(defaultFields)
                 } else {
-                    // Merge fetched fields with default categories
                     const merged = defaultFields.map(def => {
                         const existing = fetchedFields.find((f: any) => f.name === def.name || f.id === def.id)
                         if (existing) {
@@ -99,7 +104,7 @@ export function ToolViewConfigPage() {
                 setFields(defaultFields)
             }
         } catch (err) {
-            console.error("Failed to load tool-details-view schema", err)
+            console.error(`Failed to load ${formSlug} schema`, err)
             setFields(defaultFields)
         } finally {
             setLoading(false)
@@ -108,7 +113,7 @@ export function ToolViewConfigPage() {
 
     useEffect(() => {
         fetchSchema()
-    }, [])
+    }, [formSlug])
 
     if (isRestricted) {
         return <NoAccessPage />
@@ -142,15 +147,15 @@ export function ToolViewConfigPage() {
             }))
 
             const payload = {
-                name: "Tool Details Card Layout",
-                slug: "tool-details-view",
-                description: "Customization settings for fields shown on the Tool Details View Card.",
+                name: mode === 'quick' ? "Tool Quick View Module Layout" : "Tool Details Card Layout",
+                slug: formSlug,
+                description: pageDescription,
                 fields: sanitizedFields
             }
 
             const res = await formService.saveForm(payload)
             if (res.success) {
-                toast.success("View layout settings saved successfully!")
+                toast.success(`${mode === 'quick' ? 'Quick View' : 'Full Details'} layout settings saved successfully!`)
                 fetchSchema()
             } else {
                 toast.error(res.message || "Failed to save settings")
@@ -171,7 +176,7 @@ export function ToolViewConfigPage() {
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full py-4 px-2 sm:px-6">
             <div className="max-w-7xl mx-auto w-full space-y-6 pb-12">
                 
-                {/* Header Title Section - Matching Screenshot 2 style */}
+                {/* Header Title Section */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
                     <div className="flex items-center gap-3">
                         <Button 
@@ -186,9 +191,9 @@ export function ToolViewConfigPage() {
                         <div className="h-4 w-px bg-border/60" />
                         <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
                             <span className="p-2 rounded-xl bg-primary/10 text-primary">
-                                <Wrench className="size-5" />
+                                {mode === 'quick' ? <Sliders className="size-5" /> : <Wrench className="size-5" />}
                             </span>
-                            Tool Details View Access & Configuration
+                            {pageTitle}
                         </h1>
                     </div>
 
@@ -202,7 +207,7 @@ export function ToolViewConfigPage() {
                     </Button>
                 </div>
 
-                {/* Category Navigation Tabs - Matching Screenshot 2 bar */}
+                {/* Category Navigation Tabs */}
                 <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/50 flex flex-wrap items-center gap-1.5">
                     <button
                         onClick={() => setActiveTab("all")}
@@ -246,14 +251,14 @@ export function ToolViewConfigPage() {
                     </button>
                 </div>
 
-                {/* Main Card Container - Clean 4-Column Layout matching Screenshot 2 */}
+                {/* Main Card Container */}
                 <Card className="border border-border/60 shadow-md bg-card rounded-3xl overflow-hidden">
                     <CardContent className="p-0">
                         
                         {/* "Select All" Top Banner Bar */}
                         <div className="bg-blue-50/80 dark:bg-blue-950/40 px-6 py-4 border-b border-blue-100 dark:border-blue-900 flex items-center justify-between">
                             <span className="text-sm font-extrabold text-foreground tracking-tight">
-                                Select All Fields
+                                Select All Fields ({mode === 'quick' ? 'Quick View' : 'Full Details'})
                             </span>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground">
@@ -266,7 +271,7 @@ export function ToolViewConfigPage() {
                             </div>
                         </div>
 
-                        {/* 4-Column Grid of Fields with Labels & Switches - Pixel-perfect match to Screenshot 2 */}
+                        {/* 4-Column Grid of Fields */}
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary mb-3" />
