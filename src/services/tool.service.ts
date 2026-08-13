@@ -60,10 +60,17 @@ export interface ToolMutationResponse {
 export interface BulkImportPreviewResponse {
     success: boolean;
     data: {
+        jobId: string;
         records: any[];
-        totalCount: number;
+        totalRows: number;
         validCount: number;
         invalidCount: number;
+        columns: any[];
+        pagination: {
+            page: number;
+            pageSize: number;
+            totalPages: number;
+        };
     };
     message?: string;
 }
@@ -76,9 +83,31 @@ export interface BulkImportCommitData {
 
 export interface BulkImportCommitResponse {
     success: boolean;
-    data: BulkImportCommitData;
-    count?: number;
+    data: {
+        jobId: string;
+        status: string;
+        totalToProcess: number;
+    };
     message?: string;
+}
+
+export interface ImportJobProgress {
+    processedCount: number;
+    successCount: number;
+    failedCount: number;
+    totalToProcess: number;
+    percentage: number;
+    failedRows: Array<{ row: number | string; reason: string }>;
+}
+
+export interface ImportJobStatus {
+    _id: string;
+    status: 'parsing' | 'preview_ready' | 'processing' | 'completed' | 'failed';
+    totalRows: number;
+    validCount: number;
+    invalidCount: number;
+    progress: ImportJobProgress;
+    completedAt?: string;
 }
 
 export const toolService = {
@@ -130,25 +159,56 @@ export const toolService = {
     },
 
     /**
-     * Previews a bulk import spreadsheet before committing.
+     * Previews a bulk import spreadsheet — returns jobId + first page of records.
+     * Records are stored server-side; client fetches pages on demand.
      */
     previewBulkImport: async (storeId: string, formData: FormData): Promise<BulkImportPreviewResponse> => {
         const url = `/api/stores/${storeId}/tools/bulk-import/preview`;
         const response = await api.post<BulkImportPreviewResponse>(url, formData, {
             headers: {
                 "Content-Type": "multipart/form-data"
-            }
+            },
+            timeout: 120000 // 2 min timeout for large file uploads
         });
         return response.data;
     },
 
     /**
-     * Commits validated records from bulk import into the store.
+     * Fetches paginated preview records from a stored import job.
      */
-    commitBulkImport: async (storeId: string, records: any[]): Promise<BulkImportCommitResponse> => {
-        const url = `/api/stores/${storeId}/tools/bulk-import/commit`;
-        const response = await api.post<BulkImportCommitResponse>(url, { records });
+    getImportJobRecords: async (storeId: string, jobId: string, page: number, pageSize: number) => {
+        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/records?page=${page}&pageSize=${pageSize}`;
+        const response = await api.get(url);
         return response.data;
+    },
+
+    /**
+     * Fetches import job status (for page reload recovery).
+     */
+    getImportJobStatus: async (storeId: string, jobId: string): Promise<{ success: boolean; data: ImportJobStatus }> => {
+        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}`;
+        const response = await api.get(url);
+        return response.data;
+    },
+
+    /**
+     * Commits an import job — returns immediately, processing happens in background.
+     */
+    commitBulkImport: async (storeId: string, jobId: string): Promise<BulkImportCommitResponse> => {
+        const url = `/api/stores/${storeId}/tools/bulk-import/commit`;
+        const response = await api.post<BulkImportCommitResponse>(url, { jobId });
+        return response.data;
+    },
+
+    /**
+     * Creates an EventSource for SSE progress streaming of an import job.
+     * Returns the EventSource instance; caller must manage cleanup.
+     */
+    createImportProgressStream: (storeId: string, jobId: string): EventSource => {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const token = localStorage.getItem('token') || '';
+        const url = `${baseUrl}/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/progress?token=${token}`;
+        return new EventSource(url);
     },
 
     /**
