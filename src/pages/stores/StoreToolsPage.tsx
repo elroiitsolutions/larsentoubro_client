@@ -48,6 +48,55 @@ const statusColors: Record<string, string> = {
 
 const defaultStatuses = ["Available", "In Use", "Moving", "Missing", "Maintenance", "Damaged", "Expired"];
 
+const TOOL_COLUMNS = [
+    { key: "description", label: "Description" },
+    { key: "makeYear", label: "Make" },
+    { key: "capacity", label: "Capacity" },
+    { key: "safeWorkingLoad", label: "Safe Working Load" },
+    { key: "purchaserName", label: "Purchaser Name" },
+    { key: "supplierCode", label: "Supplier Code" },
+    { key: "dateOfSupply", label: "Date of Supply" },
+    { key: "toolType", label: "Tool Type" },
+    { key: "metalType", label: "Metal Type" },
+    { key: "toolVariant", label: "Tool Variant" },
+    { key: "purchaserContact", label: "Purchaser Contact" },
+    { key: "jobCode", label: "Job Code" },
+    { key: "jobDescription", label: "Job Description" },
+    { key: "currentSite", label: "Current Site" },
+    { key: "validation", label: "Validation" },
+    { key: "toolCode", label: "Item Code" }
+];
+
+const renderFieldValue = (tool: any, key: string) => {
+    let val: any = undefined;
+    if (key === 'currentSite') {
+        val = tool.storeName || (tool.currentSite && typeof tool.currentSite === 'object' ? (tool.currentSite.name || tool.currentSite.location) : tool.currentSite);
+    } else if (key === 'validation') {
+        val = tool.validityPeriod || tool.validation || tool.customFields?.validation;
+    } else if (key === 'toolCode') {
+        val = tool.toolCode || tool.itemCode || tool.customFields?.toolCode || tool.customFields?.itemCode;
+    } else {
+        val = tool[key] !== undefined ? tool[key] : tool.customFields?.[key];
+    }
+
+    if (val === undefined || val === null || String(val).trim() === '') {
+        return '-';
+    }
+
+    if (typeof val === 'object') {
+        val = val.name || val.location || val.projectCode || JSON.stringify(val);
+    } else if (key === 'dateOfSupply' && val) {
+        let parsedDate = new Date(val);
+        if (isNaN(parsedDate.getTime()) && typeof val === 'string' && val.includes('/')) {
+            const parts = val.split('/');
+            if (parts.length === 3) {
+                parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+            }
+        }
+        val = isNaN(parsedDate.getTime()) ? val : parsedDate.toLocaleDateString();
+    }
+    return String(val);
+};
 
 export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string } = {}) {
     const { storeId: paramStoreId } = useParams();
@@ -230,8 +279,8 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         );
     };
 
-    const [sortBy, setSortBy] = useState("createdAt");
-    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [sortBy, setSortBy] = useState("serialNumber");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
     const fetchTools = useCallback(async () => {
         if (!storeId) return;
@@ -289,16 +338,18 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     }, [fetchTools]);
 
     const handleSort = (field: string) => {
-        if (sortBy === field) {
+        const targetField = (field === 'toolId' || field === 'systemId') ? 'serialNumber' : field;
+        if (sortBy === targetField || (sortBy === 'serialNumber' && (field === 'toolId' || field === 'systemId'))) {
             setSortOrder(sortOrder === "asc" ? "desc" : "asc");
         } else {
-            setSortBy(field);
+            setSortBy(targetField);
             setSortOrder("asc");
         }
     };
 
     const renderSortIcon = (field: string) => {
-        if (sortBy !== field) return <span className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-30 transition-opacity" />;
+        const isMatch = sortBy === field || (sortBy === 'serialNumber' && (field === 'toolId' || field === 'systemId'));
+        if (!isMatch) return <span className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-30 transition-opacity" />;
         return sortOrder === "asc"
             ? <ArrowUpIcon className="size-3.5 ml-1 text-primary animate-in slide-in-from-bottom-1" />
             : <ArrowDownIcon className="size-3.5 ml-1 text-primary animate-in slide-in-from-top-1" />;
@@ -666,6 +717,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <div className="h-full overflow-auto">
                             <table className="h-full min-w-full text-sm text-left whitespace-nowrap">
+
                                 <thead className="sticky top-0 z-10 bg-card shadow-xs">
                                     <tr className="border-b bg-muted text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                                         <th className="w-12 px-4 py-4 select-none text-center">
@@ -691,9 +743,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('status')}>
                                             <div className="flex items-center">Status {renderSortIcon('status')}</div>
                                         </th>
-                                        {formSchema?.fields?.filter((f: any) => !f.disabled).sort((a: any, b: any) => a.order - b.order).map((field: any) => (
-                                            <th key={field.id} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(field.name)}>
-                                                <div className="flex items-center">{field.label} {renderSortIcon(field.name)}</div>
+                                        {TOOL_COLUMNS.map((col) => (
+                                            <th key={col.key} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(col.key)}>
+                                                <div className="flex items-center">{col.label} {renderSortIcon(col.key)}</div>
                                             </th>
                                         ))}
                                     </tr>
@@ -701,7 +753,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <tbody className="divide-y divide-border/40">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={18} className="px-6 py-20 text-center">
+                                            <td colSpan={19} className="px-6 py-20 text-center">
                                                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                                                     <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
                                                     <p className="text-sm font-medium animate-pulse">Loading inventory...</p>
@@ -710,7 +762,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         </tr>
                                     ) : tools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={18} className="px-6 py-24 text-center">
+                                            <td colSpan={19} className="px-6 py-24 text-center">
                                                 <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
                                                     <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                                                         <SearchIcon className="size-8 text-muted-foreground/50" />
@@ -771,30 +823,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                     {t.status}
                                                 </span>
                                             </td>
-                                            {formSchema?.fields?.filter((f: any) => !f.disabled).sort((a: any, b: any) => a.order - b.order).map((field: any) => {
-                                                let val = t[field.name];
-                                                if (val === undefined && t.customFields) {
-                                                    val = t.customFields[field.name];
-                                                }
-                                                if (typeof val === 'object' && val !== null) {
-                                                    val = val.name || val.location || val.projectCode || JSON.stringify(val);
-                                                } else if (field.type === 'date' && val) {
-                                                    let parsedDate = new Date(val);
-                                                    if (isNaN(parsedDate.getTime()) && typeof val === 'string' && val.includes('/')) {
-                                                        const parts = val.split('/');
-                                                        if (parts.length === 3) {
-                                                            // Assume DD/MM/YYYY or MM/DD/YYYY, try DD/MM/YYYY first for Indian format
-                                                            parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                                                        }
-                                                    }
-                                                    val = isNaN(parsedDate.getTime()) ? val : parsedDate.toLocaleDateString();
-                                                }
-                                                return (
-                                                    <td key={field.id} className="px-6 py-4 text-foreground/80">
-                                                        {val || "-"}
-                                                    </td>
-                                                );
-                                            })}
+                                            {TOOL_COLUMNS.map((col) => (
+                                                <td key={col.key} className="px-6 py-4 text-foreground/80">
+                                                    {renderFieldValue(t, col.key)}
+                                                </td>
+                                            ))}
                                         </tr>
                                     ))}
                                 </tbody>

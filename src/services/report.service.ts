@@ -7,31 +7,21 @@ export interface ReportListResponse<T> {
     page: number;
     limit: number;
     totalPages: number;
+    summary?: Record<string, any>;
 }
 
 const reportService = {
-    getDeliveryChallanReport: async (params: Record<string, any> = {}): Promise<ReportListResponse<any>> => {
-        const res = await api.get('/api/reports/delivery-challans', { params });
+    getToolsReport: async (params: Record<string, any> = {}): Promise<ReportListResponse<any>> => {
+        const res = await api.get('/api/reports/tools', { params });
         return res.data;
     },
 
-    getReturnChallanReport: async (params: Record<string, any> = {}): Promise<ReportListResponse<any>> => {
-        const res = await api.get('/api/reports/return-challans', { params });
-        return res.data;
-    },
-
-    getMissingToolsReport: async (params: Record<string, any> = {}): Promise<ReportListResponse<any>> => {
-        const res = await api.get('/api/reports/missing-tools', { params });
-        return res.data;
-    },
-
-    getToolMovementReport: async (params: Record<string, any> = {}): Promise<ReportListResponse<any>> => {
-        const res = await api.get('/api/reports/tool-movements', { params });
-        return res.data;
-    },
-
-    getAuditLogsReport: async (params: Record<string, any> = {}): Promise<ReportListResponse<any>> => {
-        const res = await api.get('/api/reports/audit-logs', { params });
+    exportReport: async (type: string, params: Record<string, any> = {}): Promise<Blob> => {
+        const { exportType = 'excel', ...rest } = params;
+        const res = await api.get('/api/reports/export', {
+            params: { ...rest, type, format: exportType },
+            responseType: 'blob'
+        });
         return res.data;
     },
 
