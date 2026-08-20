@@ -49,6 +49,56 @@ const statusColors: Record<string, string> = {
 
 const defaultStatuses = ["Available", "In Use", "Moving", "Missing", "Maintenance", "Damaged", "Expired"];
 
+const TOOL_COLUMNS = [
+    { key: "description", label: "Description" },
+    { key: "makeYear", label: "Make" },
+    { key: "capacity", label: "Capacity" },
+    { key: "safeWorkingLoad", label: "Safe Working Load" },
+    { key: "purchaserName", label: "Purchaser Name" },
+    { key: "supplierCode", label: "Supplier Code" },
+    { key: "dateOfSupply", label: "Date of Supply" },
+    { key: "toolType", label: "Tool Type" },
+    { key: "metalType", label: "Metal Type" },
+    { key: "toolVariant", label: "Tool Variant" },
+    { key: "purchaserContact", label: "Purchaser Contact" },
+    { key: "jobCode", label: "Job Code" },
+    { key: "jobDescription", label: "Job Description" },
+    { key: "currentSite", label: "Current Site" },
+    { key: "validation", label: "Validation" },
+    { key: "toolCode", label: "Item Code" }
+];
+
+const renderFieldValue = (tool: any, key: string) => {
+    let val: any = undefined;
+    if (key === 'currentSite') {
+        val = tool.storeName || (tool.currentSite && typeof tool.currentSite === 'object' ? (tool.currentSite.name || tool.currentSite.location) : tool.currentSite);
+    } else if (key === 'validation') {
+        const rawVal = tool.validityPeriod || tool.validation;
+        val = (rawVal && rawVal !== 'N/A') ? rawVal : (tool.customFields?.validation || tool.customFields?.validityPeriod || rawVal);
+    } else if (key === 'toolCode') {
+        val = tool.toolCode || tool.itemCode || tool.customFields?.toolCode || tool.customFields?.itemCode;
+    } else {
+        val = tool[key] !== undefined ? tool[key] : tool.customFields?.[key];
+    }
+
+    if (val === undefined || val === null || String(val).trim() === '') {
+        return '-';
+    }
+
+    if (typeof val === 'object') {
+        val = val.name || val.location || val.projectCode || JSON.stringify(val);
+    } else if (key === 'dateOfSupply' && val) {
+        let parsedDate = new Date(val);
+        if (isNaN(parsedDate.getTime()) && typeof val === 'string' && val.includes('/')) {
+            const parts = val.split('/');
+            if (parts.length === 3) {
+                parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+            }
+        }
+        val = isNaN(parsedDate.getTime()) ? val : parsedDate.toLocaleDateString();
+    }
+    return String(val);
+};
 
 export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string } = {}) {
     const { storeId: paramStoreId } = useParams();
@@ -201,7 +251,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         const stateOpts = Array.from(
             new Set(
                 tools
-                    .map((t: any) => t[field] ?? t.customFields?.[field])
+                    .map((t: any) => {
+                        if (field === 'validityPeriod') {
+                            const raw = t.validityPeriod || t.validation;
+                            return (raw && raw !== 'N/A') ? raw : (t.customFields?.validation || t.customFields?.validityPeriod || raw);
+                        }
+                        return t[field] ?? t.customFields?.[field];
+                    })
                     .filter((v: any) => v !== null && v !== undefined && String(v).trim() !== "")
                     .map((v: any) => String(v))
             )
@@ -231,8 +287,8 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         );
     };
 
-    const [sortBy, setSortBy] = useState("createdAt");
-    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [sortBy, setSortBy] = useState("serialNumber");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
     const fetchTools = useCallback(async () => {
         if (!storeId) return;
@@ -314,16 +370,18 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     }, [storeId]);
 
     const handleSort = (field: string) => {
-        if (sortBy === field) {
+        const targetField = (field === 'toolId' || field === 'systemId') ? 'serialNumber' : field;
+        if (sortBy === targetField || (sortBy === 'serialNumber' && (field === 'toolId' || field === 'systemId'))) {
             setSortOrder(sortOrder === "asc" ? "desc" : "asc");
         } else {
-            setSortBy(field);
+            setSortBy(targetField);
             setSortOrder("asc");
         }
     };
 
     const renderSortIcon = (field: string) => {
-        if (sortBy !== field) return <span className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-30 transition-opacity" />;
+        const isMatch = sortBy === field || (sortBy === 'serialNumber' && (field === 'toolId' || field === 'systemId'));
+        if (!isMatch) return <span className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-30 transition-opacity" />;
         return sortOrder === "asc"
             ? <ArrowUpIcon className="size-3.5 ml-1 text-primary animate-in slide-in-from-bottom-1" />
             : <ArrowDownIcon className="size-3.5 ml-1 text-primary animate-in slide-in-from-top-1" />;
@@ -608,6 +666,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                             <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">General</h4>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {renderFilterSelect("Tool ID", "toolId", "All Tool IDs")}
+                                                {renderFilterSelect("Validation", "validityPeriod", "All Validations")}
                                                 <div>
                                                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category / Tool Type</label>
                                                     <SearchableSelect
@@ -691,6 +750,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <div className="h-full overflow-auto">
                             <table className="h-full min-w-full text-sm text-left whitespace-nowrap">
+
                                 <thead className="sticky top-0 z-10 bg-card shadow-xs">
                                     <tr className="border-b bg-muted text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                                         <th className="w-12 px-4 py-4 select-none text-center">
@@ -716,9 +776,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('status')}>
                                             <div className="flex items-center">Status {renderSortIcon('status')}</div>
                                         </th>
-                                        {formSchema?.fields?.filter((f: any) => !f.disabled).sort((a: any, b: any) => a.order - b.order).map((field: any) => (
-                                            <th key={field.id} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(field.name)}>
-                                                <div className="flex items-center">{field.label} {renderSortIcon(field.name)}</div>
+                                        {TOOL_COLUMNS.map((col) => (
+                                            <th key={col.key} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(col.key)}>
+                                                <div className="flex items-center">{col.label} {renderSortIcon(col.key)}</div>
                                             </th>
                                         ))}
                                     </tr>
@@ -726,7 +786,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <tbody className="divide-y divide-border/40">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={18} className="px-6 py-20 text-center">
+                                            <td colSpan={19} className="px-6 py-20 text-center">
                                                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                                                     <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
                                                     <p className="text-sm font-medium animate-pulse">Loading inventory...</p>
@@ -735,7 +795,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         </tr>
                                     ) : tools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={18} className="px-6 py-24 text-center">
+                                            <td colSpan={19} className="px-6 py-24 text-center">
                                                 <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
                                                     <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                                                         <SearchIcon className="size-8 text-muted-foreground/50" />
@@ -796,30 +856,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                     {t.status}
                                                 </span>
                                             </td>
-                                            {formSchema?.fields?.filter((f: any) => !f.disabled).sort((a: any, b: any) => a.order - b.order).map((field: any) => {
-                                                let val = t[field.name];
-                                                if (val === undefined && t.customFields) {
-                                                    val = t.customFields[field.name];
-                                                }
-                                                if (typeof val === 'object' && val !== null) {
-                                                    val = val.name || val.location || val.projectCode || JSON.stringify(val);
-                                                } else if (field.type === 'date' && val) {
-                                                    let parsedDate = new Date(val);
-                                                    if (isNaN(parsedDate.getTime()) && typeof val === 'string' && val.includes('/')) {
-                                                        const parts = val.split('/');
-                                                        if (parts.length === 3) {
-                                                            // Assume DD/MM/YYYY or MM/DD/YYYY, try DD/MM/YYYY first for Indian format
-                                                            parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                                                        }
-                                                    }
-                                                    val = isNaN(parsedDate.getTime()) ? val : parsedDate.toLocaleDateString();
-                                                }
-                                                return (
-                                                    <td key={field.id} className="px-6 py-4 text-foreground/80">
-                                                        {val || "-"}
-                                                    </td>
-                                                );
-                                            })}
+                                            {TOOL_COLUMNS.map((col) => (
+                                                <td key={col.key} className="px-6 py-4 text-foreground/80">
+                                                    {renderFieldValue(t, col.key)}
+                                                </td>
+                                            ))}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -829,34 +870,91 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
                     {/* Premium Pagination Bar */}
                     <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t bg-muted/10 backdrop-blur-sm gap-4 shrink-0">
-                        <div className="text-sm font-medium text-muted-foreground">
+                        <div className="text-sm font-medium text-muted-foreground w-full sm:w-1/4 text-center sm:text-left">
                             Showing <span className="text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="text-foreground">{Math.min(page * limit, total)}</span> of <span className="text-foreground">{total}</span> items
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-full shadow-sm hover:shadow active:scale-95 transition-all px-4"
-                                disabled={page === 1 || loading}
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap flex-1 w-full">
+                            {/* First Page */}
+                            {page > 1 && (
+                                <button
+                                    onClick={() => setPage(1)}
+                                    disabled={loading}
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    title="First Page"
+                                >
+                                    «
+                                </button>
+                            )}
+
+                            {/* Previous Page */}
+                            <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1 || loading}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Previous Page"
                             >
-                                Previous
-                            </Button>
+                                ‹
+                            </button>
 
-                            <div className="flex items-center justify-center min-w-[5rem] px-2 py-1 rounded-full bg-background border shadow-inner text-sm font-semibold">
-                                {page} <span className="text-muted-foreground mx-1">/</span> {totalPages}
-                            </div>
+                            {/* Page Range Buttons */}
+                            {(() => {
+                                const pageRange = [];
+                                const maxVisiblePages = 10;
+                                let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+                                let endPage = startPage + maxVisiblePages - 1;
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-full shadow-sm hover:shadow active:scale-95 transition-all px-4"
-                                disabled={page >= totalPages || loading}
+                                if (endPage > totalPages) {
+                                    endPage = totalPages;
+                                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                }
+
+                                for (let i = startPage; i <= endPage; i++) {
+                                    pageRange.push(i);
+                                }
+
+                                return pageRange.map((pNum) => {
+                                    const isActive = pNum === page;
+                                    return (
+                                        <button
+                                            key={pNum}
+                                            onClick={() => setPage(pNum)}
+                                            disabled={loading}
+                                            className={`h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all cursor-pointer border ${
+                                                isActive
+                                                    ? "bg-primary border-primary text-primary-foreground shadow-md"
+                                                    : "bg-background border-border/85 hover:bg-muted text-foreground"
+                                            }`}
+                                        >
+                                            {pNum}
+                                        </button>
+                                    );
+                                });
+                            })()}
+
+                            {/* Next Page */}
+                            <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages || loading}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Next Page"
                             >
-                                Next
-                            </Button>
+                                ›
+                            </button>
+
+                            {/* Last Page */}
+                            {page < totalPages && (
+                                <button
+                                    onClick={() => setPage(totalPages)}
+                                    disabled={loading}
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    title="Last Page"
+                                >
+                                    »
+                                </button>
+                            )}
                         </div>
+                        {/* Spacer block to balance the layout and keep the center block aligned exactly in the middle */}
+                        <div className="hidden sm:block w-full sm:w-1/4" />
                     </div>
                 </CardContent>
             </Card>

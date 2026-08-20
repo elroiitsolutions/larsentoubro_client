@@ -73,7 +73,7 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
         { id: "supplierCode", name: "supplierCode", label: "Supplier Code", category: "vendor", disabled: false, order: 9 },
         { id: "purchaserContact", name: "purchaserContact", label: "Purchaser Contact", category: "vendor", disabled: false, order: 10 },
         { id: "dateOfSupply", name: "dateOfSupply", label: "Date of Supply / Receipt", category: "vendor", disabled: false, order: 11 },
-        { id: "validityPeriod", name: "validityPeriod", label: "Safety Validity Period", category: "vendor", disabled: false, order: 12 },
+        { id: "validityPeriod", name: "validityPeriod", label: "Validation", category: "vendor", disabled: false, order: 12 },
 
         { id: "jobCode", name: "jobCode", label: "Job Number / Code", category: "allocation", disabled: false, order: 13 },
         { id: "jobDescription", name: "jobDescription", label: "Job Description", category: "allocation", disabled: false, order: 14 },
@@ -174,21 +174,11 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
 
     return (
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full py-4 px-2 sm:px-6">
-            <div className="max-w-7xl mx-auto w-full space-y-6 pb-12">
+            <div className="w-full space-y-6 pb-12">
                 
                 {/* Header Title Section */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
                     <div className="flex items-center gap-3">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => navigate('/settings')}
-                            className="h-9 px-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                            <ArrowLeftIcon className="size-4 mr-1" />
-                            Settings
-                        </Button>
-                        <div className="h-4 w-px bg-border/60" />
                         <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
                             <span className="p-2 rounded-xl bg-primary/10 text-primary">
                                 {mode === 'quick' ? <Sliders className="size-5" /> : <Wrench className="size-5" />}
@@ -208,7 +198,7 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
                 </div>
 
                 {/* Category Navigation Tabs */}
-                <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/50 flex flex-wrap items-center gap-1.5">
+                {/* <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/50 flex flex-wrap items-center gap-1.5">
                     <button
                         onClick={() => setActiveTab("all")}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -219,37 +209,7 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
                     >
                         All Fields ({fields.length})
                     </button>
-                    <button
-                        onClick={() => setActiveTab("specs")}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            activeTab === "specs" 
-                                ? "bg-primary text-primary-foreground shadow-xs" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-                        }`}
-                    >
-                        Technical Specifications
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("vendor")}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            activeTab === "vendor" 
-                                ? "bg-primary text-primary-foreground shadow-xs" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-                        }`}
-                    >
-                        Procurement & Vendor
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("allocation")}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            activeTab === "allocation" 
-                                ? "bg-primary text-primary-foreground shadow-xs" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-                        }`}
-                    >
-                        Project & Store Allocation
-                    </button>
-                </div>
+                </div> */}
 
                 {/* Main Card Container */}
                 <Card className="border border-border/60 shadow-md bg-card rounded-3xl overflow-hidden">

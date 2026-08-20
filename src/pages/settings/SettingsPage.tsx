@@ -66,32 +66,9 @@ export function SettingsPage() {
 
     if (activeTab === 'profile') return <ProfileSettings onBack={() => setActiveTab(null)} />
 
-
     return (
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1 pb-12">
-            {/* <div className="flex items-center justify-between border-b pb-4">
-                <div className="relative pt-4">
-                    <Input placeholder="Search settings..." className="w-64 h-9 bg-muted/50" />
-                </div>
-            </div> */}
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pt-5 gap-6">
-                {/* <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => setActiveTab('profile')}>
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2.5 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-                                <UserIcon className="size-5" />
-                            </div>
-                            <h3 className="font-semibold">Manage Profile</h3>
-                        </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                            Update your personal information, display name, and email address.
-                        </p>
-                    </CardContent>
-                </Card> */}
-
-               
-
                 <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/settings/forms')}>
                     <CardContent className="p-6">
                         <div className="flex items-center gap-3 mb-3">
@@ -115,7 +92,7 @@ export function SettingsPage() {
                             <h3 className="font-semibold">Challan Register</h3>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            View and manage challan history.
+                            View and manage delivery & return challan history.
                         </p>
                     </CardContent>
                 </Card>
@@ -156,7 +133,7 @@ export function SettingsPage() {
                             <h3 className="font-semibold">Reports & Audit</h3>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            View system reports and audit logs.
+                            View operational reports, inventory analytics, and loss audit registers.
                         </p>
                     </CardContent>
                 </Card>
@@ -164,3 +141,5 @@ export function SettingsPage() {
         </div>
     )
 }
+
+export default SettingsPage

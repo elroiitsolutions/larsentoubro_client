@@ -31,7 +31,12 @@ export function SettingsFormManagementPage() {
         setLoading(true)
         try {
             const data = await formService.getForms()
-            if (data.success) setForms(data.data)
+            if (data.success) {
+                const filtered = (data.data || []).filter(
+                    (f: any) => f.slug !== 'tool-quick-view' && f.slug !== 'tool-details-view'
+                );
+                setForms(filtered);
+            }
         } catch (err) {
             console.error(err)
             toast.error("Failed to load forms")
@@ -93,7 +98,7 @@ export function SettingsFormManagementPage() {
 
     return (
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1">
-            <div className="max-w-7xl mx-auto w-full space-y-6 pb-12">
+            <div className="w-full space-y-6 pb-12">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-card to-card/60 border border-border/60 rounded-2xl p-6 shadow-sm">
                     <div className="space-y-1.5">

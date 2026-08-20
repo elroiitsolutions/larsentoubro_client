@@ -17,7 +17,10 @@ import { SettingsFormManagementPage } from "@/pages/settings/SettingsFormManagem
 import { DeliveryChallanPreviewPage } from "@/pages/challans/DeliveryChallanPreviewPage"
 import { ChallanHistoryPage } from "@/pages/challans/ChallanHistoryPage"
 import { ReturnChallanPreviewPage } from "@/pages/challans/ReturnChallanPreviewPage"
-import { ReportsPage } from "@/pages/reports/ReportsPage"
+
+// Tools Report Import
+import { ToolsReportPage } from "@/pages/reports/ToolsReportPage"
+
 import { AdminApprovalDashboard } from "@/pages/admin/AdminApprovalDashboard"
 import { ToolViewConfigPage } from "@/pages/settings/ToolViewConfigPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
@@ -82,7 +85,7 @@ function AppRoutes() {
                     <Route path="/login" element={<LoginPage />} />
                 </Route>
 
-                {/* Protected routes - only allowed if logged in */}
+                {/* Protected routes */}
                 <Route element={<ProtectedRoute />}>
                     <Route element={<SidebarLayout />}>
                         <Route index element={<IndexRedirect />} />
@@ -97,12 +100,17 @@ function AppRoutes() {
                         <Route path="/challans/delivery/preview" element={<DeliveryChallanPreviewPage />} />
                         <Route path="/challans/history" element={<ChallanHistoryPage />} />
                         <Route path="/challans/return/preview/:dcId" element={<ReturnChallanPreviewPage />} />
-                        <Route path="/settings/reports" element={<ReportsPage />} />
-                        <Route path="/reports" element={<ReportsPage />} />
+                        
+                        {/* Reports Navigation Flow: Settings -> Tools Report */}
+                        <Route path="/settings/reports" element={<ToolsReportPage />} />
+                        <Route path="/settings/reports/tools" element={<ToolsReportPage />} />
+                        
+                        <Route path="/reports" element={<ToolsReportPage />} />
+                        <Route path="/reports/tools" element={<ToolsReportPage />} />
+
                         <Route path="/users" element={<UsersPage />} />
                         <Route path="/users/:id/access" element={<UserAccessPage />} />
                         <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
-                        {/* <Route path="/tools" element={<ToolsPage />} /> */}
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/settings/forms" element={<SettingsFormManagementPage />} />
                         <Route path="/settings/tool-quick-view" element={<ToolViewConfigPage mode="quick" />} />

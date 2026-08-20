@@ -149,7 +149,7 @@ export function BulkEditToolsModal({
                     <form onSubmit={handleProceedToReview} className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Expiry Date / Validity</Label>
+                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Validation</Label>
                                 <Input
                                     type="text"
                                     placeholder="e.g. 31-12-2028 or 2 Years"

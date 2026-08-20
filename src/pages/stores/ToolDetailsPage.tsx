@@ -192,7 +192,10 @@ export function ToolDetailsPage() {
     const supplierCodeVal = getFieldValue('supplierCode') || '-';
     const dateOfSupplyVal = getFieldValue('dateOfSupply') || '-';
     const rawValidity = getFieldValue('validityPeriod');
-    const validityPeriodVal = rawValidity ? (String(rawValidity).toLowerCase().includes('year') ? rawValidity : `${rawValidity} Years`) : 'Unlimited / N/A';
+    const resolvedValidity = (rawValidity && rawValidity !== 'N/A')
+        ? rawValidity
+        : (tool?.customFields?.validation || tool?.customFields?.validityPeriod || rawValidity);
+    const validityPeriodVal = resolvedValidity ? (String(resolvedValidity).toLowerCase().includes('year') ? resolvedValidity : `${resolvedValidity} Years`) : 'Unlimited / N/A';
 
     const jobCodeVal = getFieldValue('jobCode') || '-';
     const jobDescriptionVal = getFieldValue('jobDescription') || '-';
@@ -204,22 +207,6 @@ export function ToolDetailsPage() {
             {/* Top Navigation & Action Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 pt-1 border-b border-border/50 pb-4">
                 <div className="flex flex-wrap items-center gap-3">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => {
-                            const storeIdVal = paramStoreId || (location.state as any)?.fromStoreId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
-                            if (storeIdVal) {
-                                navigate(`/stores/${storeIdVal}/tools`);
-                            } else {
-                                navigate(-1);
-                            }
-                        }}
-                        className="rounded-xl h-8 px-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-                    >
-                        <ArrowLeft className="size-4 mr-1" />
-                        Back
-                    </Button>
                     <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
                         {tool.description}
                     </h1>
@@ -300,9 +287,6 @@ export function ToolDetailsPage() {
                         </span>
                         Tool Details & Inventory Profile
                     </CardTitle>
-                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                        Full View Profile
-                    </span>
                 </CardHeader>
 
                 <CardContent className="p-6 space-y-6">
@@ -404,7 +388,7 @@ export function ToolDetailsPage() {
                             {isFieldVisible('validityPeriod') && (
                                 <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-3 flex flex-col justify-between">
                                     <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1">
-                                        <ShieldCheck className="size-3 text-purple-600" /> Validity Period
+                                        <ShieldCheck className="size-3 text-purple-600" /> Validation
                                     </span>
                                     <span className="text-sm font-extrabold text-purple-800 dark:text-purple-300 truncate mt-1">{validityPeriodVal}</span>
                                 </div>
