@@ -23,7 +23,6 @@ import {
     Tag,
     Edit,
     ArrowLeft,
-    Layers
 } from "lucide-react";
 
 import { ToolFormModal } from "./ToolFormModal";

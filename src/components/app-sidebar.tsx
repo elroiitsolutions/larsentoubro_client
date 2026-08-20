@@ -5,7 +5,6 @@ import { NavLink } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -20,15 +19,8 @@ import {
 import {
   LayoutDashboardIcon,
   FolderOpenIcon,
-  StoreIcon,
   UsersIcon,
-  WrenchIcon,
   Settings2Icon,
-  LifeBuoyIcon,
-  SendIcon,
-  BuildingIcon,
-  FileTextIcon,
-  BarChart3Icon,
   ShieldCheck,
 } from "lucide-react"
 

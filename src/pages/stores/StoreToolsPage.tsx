@@ -27,6 +27,7 @@ import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, 
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
+import storeService from "@/services/store.service"
 import { toast } from "sonner"
 import formService from "@/services/form.service"
 import { ToolFormModal } from "./ToolFormModal"
@@ -287,6 +288,30 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         }, 300);
         return () => clearTimeout(timeout);
     }, [fetchTools]);
+
+    useEffect(() => {
+        if (!storeId) return;
+        storeService.getStoreById(storeId).then((res) => {
+            if (res.success && res.data) {
+                const storeObj: any = res.data;
+                const projId = storeObj.projectId || (typeof storeObj.project === 'object' ? storeObj.project?._id : storeObj.project);
+                if (projId && (location.state as any)?.projectId !== projId) {
+                    navigate(".", {
+                        replace: true,
+                        state: {
+                            ...location.state,
+                            projectId: projId,
+                            breadcrumbs: [
+                                { label: 'Projects', href: '/projects' },
+                                { label: 'Stores', href: `/projects/${projId}/stores` },
+                                { label: 'Tools', href: `/stores/${storeId}/tools` }
+                            ]
+                        }
+                    });
+                }
+            }
+        }).catch((err) => console.error("Failed to fetch store details for breadcrumbs", err));
+    }, [storeId]);
 
     const handleSort = (field: string) => {
         if (sortBy === field) {
@@ -738,7 +763,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                 const toolId = t.toolId || t._id;
                                                 const existingBreadcrumbs = (location.state as any)?.breadcrumbs || [
                                                     { label: 'Projects', href: '/projects' },
-                                                    { label: 'Stores', href: '/stores' },
+                                                    { label: 'Stores', href: (location.state as any)?.projectId ? `/projects/${(location.state as any).projectId}/stores` : '/projects' },
                                                     { label: 'Tools', href: `/stores/${storeId}/tools` }
                                                 ];
                                                 const newBreadcrumbs = [
