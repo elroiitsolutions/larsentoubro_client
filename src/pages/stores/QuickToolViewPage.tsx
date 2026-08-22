@@ -110,10 +110,11 @@ export function QuickToolViewPage() {
     const handleGoToFullDetails = () => {
         if (tool?.toolId) {
             const storeIdVal = fromStoreId || tool.currentSite?._id || tool.currentSite;
+            const projId = (location.state as any)?.projectId || (tool?.project?._id || tool?.project);
             const detailsBreadcrumbs = [
                 { label: 'Projects', href: '/projects' },
-                { label: 'Stores', href: '/stores' },
-                { label: 'Tools', href: storeIdVal ? `/stores/${storeIdVal}/tools` : '/stores' },
+                { label: 'Stores', href: projId ? `/projects/${projId}/stores` : '/projects' },
+                { label: 'Tools', href: storeIdVal ? `/stores/${storeIdVal}/tools` : '/projects' },
                 { label: `Tool Details (${tool.toolId})`, href: `/tooldetails/${encodeURIComponent(tool.toolId)}` }
             ];
             navigate(`/tooldetails/${encodeURIComponent(tool.toolId)}`, {
@@ -128,22 +129,57 @@ export function QuickToolViewPage() {
     const isAvailable = tool?.status === 'Available' || tool?.status === 'Usable';
     const isMoving = tool?.status === 'Moving' || tool?.status === 'In Use';
 
+    // Helper to calculate expiration date dynamically
+    const getValidUntilDate = (supplyDateStr: string, validityStr: string) => {
+        if (!supplyDateStr || supplyDateStr === '-' || !validityStr || validityStr === '-') return '-';
+        
+        let date = new Date(supplyDateStr);
+        if (isNaN(date.getTime()) && supplyDateStr.includes('/')) {
+            const parts = supplyDateStr.split('/');
+            if (parts.length === 3) {
+                // Try DD/MM/YYYY
+                date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                if (isNaN(date.getTime())) {
+                    // Try MM/DD/YYYY
+                    date = new Date(`${parts[2]}-${parts[0]}-${parts[1]}`);
+                }
+            }
+        }
+        
+        if (isNaN(date.getTime())) return '-';
+        
+        const yearsMatch = validityStr.match(/(\d+)/);
+        if (!yearsMatch) return '-';
+        
+        const years = parseInt(yearsMatch[1], 10);
+        date.setFullYear(date.getFullYear() + years);
+        return date.toLocaleDateString();
+    };
+
     // Extracted Field Values
     const toolCodeVal = getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || tool?.toolId || '-';
-    const makeYearVal = getFieldValue('makeYear', ['make_year', 'Make Year', 'year']) || '2026';
-    const capacityVal = getFieldValue('capacity') || '2 Tonnes';
-    const safeWorkingLoadVal = getFieldValue('safeWorkingLoad') || 'SWL 3 Tonnes';
+    const makeYearVal = getFieldValue('makeYear', ['make_year', 'Make Year', 'year']) || '-';
+    const capacityVal = getFieldValue('capacity') || '-';
+    const safeWorkingLoadVal = getFieldValue('safeWorkingLoad') || '-';
     
-    const purchaserNameVal = getFieldValue('purchaserName') || 'UJ Enterprises';
-    const supplierCodeVal = getFieldValue('supplierCode') || 'wer';
-    const purchaserContactVal = getFieldValue('purchaserContact') || '9445438846';
+    const purchaserNameVal = getFieldValue('purchaserName') || '-';
+    const supplierCodeVal = getFieldValue('supplierCode') || '-';
+    const purchaserContactVal = getFieldValue('purchaserContact') || '-';
     
-    const dateOfSupplyVal = getFieldValue('dateOfSupply') || '2/28/2026';
-    const validityPeriodVal = getFieldValue('validityPeriod') || '3 Years';
-    const validUntilVal = getFieldValue('validUntil') || '2/28/2029';
+    const dateOfSupplyVal = getFieldValue('dateOfSupply') || '-';
+    const rawValidity = getFieldValue('validityPeriod');
+    const resolvedValidity = (rawValidity && rawValidity !== 'N/A')
+        ? rawValidity
+        : (tool?.customFields?.validation || tool?.customFields?.validityPeriod || rawValidity);
+    const validityPeriodVal = resolvedValidity ? (String(resolvedValidity).toLowerCase().includes('year') ? resolvedValidity : `${resolvedValidity} Years`) : '-';
+    const validUntilVal = getValidUntilDate(dateOfSupplyVal, validityPeriodVal);
 
-    const jobCodeVal = getFieldValue('jobCode') || 'job - 001';
-    const jobDescriptionVal = getFieldValue('jobDescription', ['job_description']) || 'test';
+    const jobCodeVal = getFieldValue('jobCode') || '-';
+    const jobDescriptionVal = getFieldValue('jobDescription', ['job_description']) || '-';
+
+    const lastInspectionDateVal = tool?.lastInspectionDate
+        ? new Date(tool.lastInspectionDate).toLocaleDateString()
+        : '-';
 
     const modalContent = (
         <div 
@@ -196,11 +232,30 @@ export function QuickToolViewPage() {
                                 </div>
 
                                 {/* Specs Subtitle Line */}
-                                {(isFieldVisible('makeYear') || isFieldVisible('capacity') || isFieldVisible('safeWorkingLoad')) && (
-                                    <p className="text-xs text-muted-foreground font-medium">
-                                        {[makeYearVal, capacityVal, safeWorkingLoadVal].filter(v => v && v !== '-').join(' • ')}
-                                    </p>
-                                )}
+                                {(isFieldVisible('makeYear') || isFieldVisible('capacity') || isFieldVisible('safeWorkingLoad')) && (() => {
+                                    const specs = [];
+                                    if (isFieldVisible('makeYear') && makeYearVal && makeYearVal !== '-') {
+                                        specs.push(`Make/Year: ${makeYearVal}`);
+                                    }
+                                    if (isFieldVisible('capacity') && capacityVal && capacityVal !== '-') {
+                                        const capStr = String(capacityVal).toLowerCase().includes('capacity') || String(capacityVal).toLowerCase().includes('tonne')
+                                            ? capacityVal
+                                            : `Capacity: ${capacityVal}`;
+                                        specs.push(capStr);
+                                    }
+                                    if (isFieldVisible('safeWorkingLoad') && safeWorkingLoadVal && safeWorkingLoadVal !== '-') {
+                                        const swlStr = String(safeWorkingLoadVal).toLowerCase().includes('swl') || String(safeWorkingLoadVal).toLowerCase().includes('load')
+                                            ? safeWorkingLoadVal
+                                            : `SWL: ${safeWorkingLoadVal}`;
+                                        specs.push(swlStr);
+                                    }
+                                    if (specs.length === 0) return null;
+                                    return (
+                                        <p className="text-xs text-muted-foreground font-medium">
+                                            {specs.join(' • ')}
+                                        </p>
+                                    );
+                                })()}
                             </div>
                         </div>
 
@@ -210,20 +265,22 @@ export function QuickToolViewPage() {
                         {/* Section 1: Supplier & Date of Receipt (2 Columns) */}
                         <div className="grid grid-cols-2 gap-4 text-xs">
                             {/* Supplier Box */}
-                            {isFieldVisible('purchaserName') && (
+                            {(isFieldVisible('purchaserName') || isFieldVisible('supplierCode') || isFieldVisible('purchaserContact')) && (
                                 <div className="space-y-0.5">
                                     <span className="text-[11px] font-medium text-muted-foreground block">
-                                        Supplier
+                                        Supplier Details
                                     </span>
-                                    <span className="font-bold text-foreground block truncate">
-                                        {purchaserNameVal}
-                                    </span>
-                                    {supplierCodeVal !== '-' && (
+                                    {isFieldVisible('purchaserName') && purchaserNameVal !== '-' && (
+                                        <span className="font-bold text-foreground block truncate">
+                                            {purchaserNameVal}
+                                        </span>
+                                    )}
+                                    {isFieldVisible('supplierCode') && supplierCodeVal !== '-' && (
                                         <span className="text-[11px] text-muted-foreground block">
                                             Code: {supplierCodeVal}
                                         </span>
                                     )}
-                                    {purchaserContactVal !== '-' && (
+                                    {isFieldVisible('purchaserContact') && purchaserContactVal !== '-' && (
                                         <span className="text-[11px] text-muted-foreground block">
                                             Contact: {purchaserContactVal}
                                         </span>
@@ -232,18 +289,27 @@ export function QuickToolViewPage() {
                             )}
 
                             {/* Date of Receipt Box */}
-                            {isFieldVisible('dateOfSupply') && (
+                            {(isFieldVisible('dateOfSupply') || isFieldVisible('validityPeriod')) && (
                                 <div className="space-y-0.5">
-                                    <span className="text-[11px] font-medium text-muted-foreground block">
-                                        Date of Receipt
-                                    </span>
-                                    <span className="font-bold text-foreground block">
-                                        {dateOfSupplyVal}
-                                    </span>
-                                    {validityPeriodVal !== '-' && (
-                                        <span className="text-[11px] text-muted-foreground block">
-                                            Validity: {validityPeriodVal}
-                                        </span>
+                                    {isFieldVisible('dateOfSupply') && dateOfSupplyVal !== '-' && (
+                                        <>
+                                            <span className="text-[11px] font-medium text-muted-foreground block">
+                                                Date of Receipt
+                                            </span>
+                                            <span className="font-bold text-foreground block">
+                                                {dateOfSupplyVal}
+                                            </span>
+                                        </>
+                                    )}
+                                    {isFieldVisible('validityPeriod') && validityPeriodVal !== '-' && (
+                                        <div className={isFieldVisible('dateOfSupply') && dateOfSupplyVal !== '-' ? "pt-1" : ""}>
+                                            <span className="text-[11px] font-medium text-muted-foreground block">
+                                                Validation
+                                            </span>
+                                            <span className="font-bold text-foreground block">
+                                                {validityPeriodVal}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -257,7 +323,7 @@ export function QuickToolViewPage() {
                                     Last Inspection
                                 </span>
                                 <div className="flex items-center gap-1.5">
-                                    <span className="font-semibold text-muted-foreground text-xs">-</span>
+                                    <span className="font-semibold text-foreground text-xs">{lastInspectionDateVal}</span>
                                 </div>
                                 <span className={`inline-flex items-center text-[11px] font-extrabold ${
                                     isAvailable 

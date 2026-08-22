@@ -54,6 +54,14 @@ export const storeService = {
     },
 
     /**
+     * Retrieves a single store by its unique ID.
+     */
+    getStoreById: async (id: string): Promise<{ success: boolean; data?: StoreRecord; message?: string }> => {
+        const response = await api.get<{ success: boolean; data?: StoreRecord; message?: string }>(`/api/stores/${id}`);
+        return response.data;
+    },
+
+    /**
      * Updates an existing store.
      */
     updateStore: async (id: string, data: Record<string, unknown>, endpoint?: string): Promise<StoreMutationResponse> => {

@@ -117,7 +117,7 @@ export function AdminApprovalDashboard() {
     }
 
     return (
-        <div className="p-6 space-y-6 max-w-7xl mx-auto w-full">
+        <div className="p-6 space-y-6 w-full">
             {/* Header section */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card border border-border/60 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center gap-3.5">

@@ -27,6 +27,7 @@ import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, 
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
+import storeService from "@/services/store.service"
 import { toast } from "sonner"
 import formService from "@/services/form.service"
 import { ToolFormModal } from "./ToolFormModal"
@@ -72,7 +73,8 @@ const renderFieldValue = (tool: any, key: string) => {
     if (key === 'currentSite') {
         val = tool.storeName || (tool.currentSite && typeof tool.currentSite === 'object' ? (tool.currentSite.name || tool.currentSite.location) : tool.currentSite);
     } else if (key === 'validation') {
-        val = tool.validityPeriod || tool.validation || tool.customFields?.validation;
+        const rawVal = tool.validityPeriod || tool.validation;
+        val = (rawVal && rawVal !== 'N/A') ? rawVal : (tool.customFields?.validation || tool.customFields?.validityPeriod || rawVal);
     } else if (key === 'toolCode') {
         val = tool.toolCode || tool.itemCode || tool.customFields?.toolCode || tool.customFields?.itemCode;
     } else {
@@ -249,7 +251,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         const stateOpts = Array.from(
             new Set(
                 tools
-                    .map((t: any) => t[field] ?? t.customFields?.[field])
+                    .map((t: any) => {
+                        if (field === 'validityPeriod') {
+                            const raw = t.validityPeriod || t.validation;
+                            return (raw && raw !== 'N/A') ? raw : (t.customFields?.validation || t.customFields?.validityPeriod || raw);
+                        }
+                        return t[field] ?? t.customFields?.[field];
+                    })
                     .filter((v: any) => v !== null && v !== undefined && String(v).trim() !== "")
                     .map((v: any) => String(v))
             )
@@ -336,6 +344,30 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         }, 300);
         return () => clearTimeout(timeout);
     }, [fetchTools]);
+
+    useEffect(() => {
+        if (!storeId) return;
+        storeService.getStoreById(storeId).then((res) => {
+            if (res.success && res.data) {
+                const storeObj: any = res.data;
+                const projId = storeObj.projectId || (typeof storeObj.project === 'object' ? storeObj.project?._id : storeObj.project);
+                if (projId && (location.state as any)?.projectId !== projId) {
+                    navigate(".", {
+                        replace: true,
+                        state: {
+                            ...location.state,
+                            projectId: projId,
+                            breadcrumbs: [
+                                { label: 'Projects', href: '/projects' },
+                                { label: 'Stores', href: `/projects/${projId}/stores` },
+                                { label: 'Tools', href: `/stores/${storeId}/tools` }
+                            ]
+                        }
+                    });
+                }
+            }
+        }).catch((err) => console.error("Failed to fetch store details for breadcrumbs", err));
+    }, [storeId]);
 
     const handleSort = (field: string) => {
         const targetField = (field === 'toolId' || field === 'systemId') ? 'serialNumber' : field;
@@ -634,6 +666,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                             <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">General</h4>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {renderFilterSelect("Tool ID", "toolId", "All Tool IDs")}
+                                                {renderFilterSelect("Validation", "validityPeriod", "All Validations")}
                                                 <div>
                                                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category / Tool Type</label>
                                                     <SearchableSelect
@@ -790,7 +823,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                 const toolId = t.toolId || t._id;
                                                 const existingBreadcrumbs = (location.state as any)?.breadcrumbs || [
                                                     { label: 'Projects', href: '/projects' },
-                                                    { label: 'Stores', href: '/stores' },
+                                                    { label: 'Stores', href: (location.state as any)?.projectId ? `/projects/${(location.state as any).projectId}/stores` : '/projects' },
                                                     { label: 'Tools', href: `/stores/${storeId}/tools` }
                                                 ];
                                                 const newBreadcrumbs = [
@@ -837,34 +870,91 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
                     {/* Premium Pagination Bar */}
                     <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t bg-muted/10 backdrop-blur-sm gap-4 shrink-0">
-                        <div className="text-sm font-medium text-muted-foreground">
+                        <div className="text-sm font-medium text-muted-foreground w-full sm:w-1/4 text-center sm:text-left">
                             Showing <span className="text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="text-foreground">{Math.min(page * limit, total)}</span> of <span className="text-foreground">{total}</span> items
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-full shadow-sm hover:shadow active:scale-95 transition-all px-4"
-                                disabled={page === 1 || loading}
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap flex-1 w-full">
+                            {/* First Page */}
+                            {page > 1 && (
+                                <button
+                                    onClick={() => setPage(1)}
+                                    disabled={loading}
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    title="First Page"
+                                >
+                                    «
+                                </button>
+                            )}
+
+                            {/* Previous Page */}
+                            <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1 || loading}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Previous Page"
                             >
-                                Previous
-                            </Button>
+                                ‹
+                            </button>
 
-                            <div className="flex items-center justify-center min-w-[5rem] px-2 py-1 rounded-full bg-background border shadow-inner text-sm font-semibold">
-                                {page} <span className="text-muted-foreground mx-1">/</span> {totalPages}
-                            </div>
+                            {/* Page Range Buttons */}
+                            {(() => {
+                                const pageRange = [];
+                                const maxVisiblePages = 10;
+                                let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+                                let endPage = startPage + maxVisiblePages - 1;
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-full shadow-sm hover:shadow active:scale-95 transition-all px-4"
-                                disabled={page >= totalPages || loading}
+                                if (endPage > totalPages) {
+                                    endPage = totalPages;
+                                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                }
+
+                                for (let i = startPage; i <= endPage; i++) {
+                                    pageRange.push(i);
+                                }
+
+                                return pageRange.map((pNum) => {
+                                    const isActive = pNum === page;
+                                    return (
+                                        <button
+                                            key={pNum}
+                                            onClick={() => setPage(pNum)}
+                                            disabled={loading}
+                                            className={`h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all cursor-pointer border ${
+                                                isActive
+                                                    ? "bg-primary border-primary text-primary-foreground shadow-md"
+                                                    : "bg-background border-border/85 hover:bg-muted text-foreground"
+                                            }`}
+                                        >
+                                            {pNum}
+                                        </button>
+                                    );
+                                });
+                            })()}
+
+                            {/* Next Page */}
+                            <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages || loading}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Next Page"
                             >
-                                Next
-                            </Button>
+                                ›
+                            </button>
+
+                            {/* Last Page */}
+                            {page < totalPages && (
+                                <button
+                                    onClick={() => setPage(totalPages)}
+                                    disabled={loading}
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    title="Last Page"
+                                >
+                                    »
+                                </button>
+                            )}
                         </div>
+                        {/* Spacer block to balance the layout and keep the center block aligned exactly in the middle */}
+                        <div className="hidden sm:block w-full sm:w-1/4" />
                     </div>
                 </CardContent>
             </Card>

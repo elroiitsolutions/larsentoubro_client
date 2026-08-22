@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon, EditIcon, TrashIcon, Loader2, CheckCircle2Icon, ShieldAlertIcon } from "lucide-react"
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, Navigate } from "react-router-dom"
 import { DynamicFormSheet } from "@/components/DynamicFormSheet"
 import storeService from "@/services/store.service"
 import { useAuth } from "@/contexts/AuthContext"
@@ -26,6 +26,12 @@ const storeStatusColors: Record<string, string> = {
 export function StoresPage() {
     const { projectId } = useParams();
     const navigate = useNavigate();
+
+    // If accessed globally via /stores without a projectId, redirect to Projects
+    if (!projectId) {
+        return <Navigate to="/projects" replace />;
+    }
+
     const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingStore, setEditingStore] = useState<any>(null);
