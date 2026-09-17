@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import {
     FileText,
     ArrowLeft,
     CheckCircle2,
@@ -194,28 +201,28 @@ export function DeliveryChallanPreviewPage() {
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full py-4 px-2 sm:px-6 space-y-6">
             
             {/* Top Toolbar Navigation & Title */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
-                <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 border-b border-border/60 pb-3 sm:pb-4">
+                <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
+                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl shrink-0 mt-0.5 sm:mt-0">
                         <ArrowLeft className="size-5" />
                     </Button>
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
-                            <FileText className="size-6 text-primary" />
-                            Official Delivery Challan Document Canvas
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+                            <FileText className="size-5 sm:size-6 text-primary shrink-0" />
+                            <span>Official Delivery Challan Document Canvas</span>
                         </h1>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-2 sm:line-clamp-none">
                             Subcontractor details, Location chainage, Material codes, Returnable stamp, and Receiver details editor.
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0">
                     <Button
                         variant="outline"
                         onClick={handleDownloadDraft}
                         disabled={creating}
-                        className="rounded-xl h-10 px-4 text-xs font-bold gap-2 cursor-pointer"
+                        className="rounded-xl h-9 sm:h-10 px-4 text-xs font-bold gap-2 cursor-pointer flex items-center justify-center w-full sm:w-auto"
                     >
                         <Download className="size-4 text-primary" />
                         <span>Download PDF Draft</span>
@@ -223,7 +230,7 @@ export function DeliveryChallanPreviewPage() {
                     <Button
                         onClick={handleConfirmCreate}
                         disabled={creating}
-                        className="rounded-xl h-10 px-6 font-bold shadow-md flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                        className="rounded-xl h-9 sm:h-10 px-5 sm:px-6 font-bold shadow-md flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer w-full sm:w-auto text-xs sm:text-sm"
                     >
                         {creating ? (
                             <>
@@ -241,15 +248,15 @@ export function DeliveryChallanPreviewPage() {
             </div>
 
             {/* Location & Receiver Details Input Card */}
-            <Card className="border border-border/60 shadow-2xs rounded-2xl bg-card p-4 space-y-4">
-                <div className="flex items-center justify-between border-b pb-3">
+            <Card className="border border-border/60 shadow-2xs rounded-2xl bg-card p-3.5 sm:p-4 space-y-3 sm:space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b pb-2.5 sm:pb-3">
                     <div className="flex items-center gap-2">
-                        <MapPin className="size-4 text-primary" />
-                        <h3 className="text-sm font-extrabold text-foreground">Location & Receiver Entry Details</h3>
+                        <MapPin className="size-4 text-primary shrink-0" />
+                        <h3 className="text-xs sm:text-sm font-extrabold text-foreground">Location & Receiver Entry Details</h3>
                     </div>
-                    <span className="text-xs text-muted-foreground">Manual Challan Slip Alignments</span>
+                    <span className="text-[11px] sm:text-xs text-muted-foreground">Manual Challan Slip Alignments</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                     <div>
                         <label className="text-xs font-bold text-muted-foreground block mb-1">Site Code</label>
                         <Input value={siteCode} onChange={e => setSiteCode(e.target.value)} className="h-8 text-xs font-semibold" />
@@ -269,8 +276,18 @@ export function DeliveryChallanPreviewPage() {
                 </div>
             </Card>
 
-            {/* Authentic L&T Delivery Challan Document Canvas */}
-            <div className="bg-white text-black p-4 sm:p-8 rounded-2xl border-2 border-slate-900 shadow-xl font-sans max-w-5xl mx-auto w-full space-y-0 text-xs">
+            {/* Mobile Scroll Hint Banner */}
+            <div className="sm:hidden flex items-center justify-between px-3 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
+                <span className="flex items-center gap-1.5">
+                    <FileText className="size-3.5" />
+                    Official Challan Canvas
+                </span>
+                <span className="text-[11px] text-muted-foreground">Swipe horizontally to view/edit →</span>
+            </div>
+
+            {/* Authentic L&T Delivery Challan Document Canvas Scroll Container */}
+            <div className="w-full overflow-x-auto pb-4">
+                <div className="min-w-[760px] lg:min-w-0 bg-white text-black p-4 sm:p-8 rounded-2xl border-2 border-slate-900 shadow-xl font-sans max-w-5xl mx-auto w-full space-y-0 text-xs">
                 
                 {/* L&T Top Header (Static Title & Division) */}
                 <div className="text-center space-y-1 pb-4">
@@ -476,15 +493,16 @@ export function DeliveryChallanPreviewPage() {
                         </div>
                         <div>
                             <span className="font-bold text-[10px] block">FREIGHT RS.</span>
-                            <select 
-                                value={freightStatus} 
-                                onChange={e => setFreightStatus(e.target.value)}
-                                className="h-7 w-full font-bold text-xs border border-slate-400 rounded bg-white mt-1 px-2"
-                            >
-                                <option value="PAID">PAID</option>
-                                <option value="TO PAY">TO PAY</option>
-                                <option value="NOT APPLICABLE">NOT APPLICABLE</option>
-                            </select>
+                            <Select value={freightStatus} onValueChange={(val: any) => val && setFreightStatus(val)}>
+                                <SelectTrigger className="h-7 w-full font-bold text-xs border border-slate-400 rounded bg-white mt-1 px-2 shadow-none focus:ring-1 focus:ring-primary">
+                                    <SelectValue placeholder="Select Freight" />
+                                </SelectTrigger>
+                                <SelectContent align="end" className="z-50 min-w-36 max-w-[calc(100vw-2rem)] bg-white text-black border border-slate-300 shadow-xl rounded-xl">
+                                    <SelectItem value="PAID">PAID</SelectItem>
+                                    <SelectItem value="TO PAY">TO PAY</SelectItem>
+                                    <SelectItem value="NOT APPLICABLE">NOT APPLICABLE</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 
@@ -562,6 +580,7 @@ export function DeliveryChallanPreviewPage() {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
 
         </div>

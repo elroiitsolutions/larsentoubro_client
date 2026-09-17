@@ -9,21 +9,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import {
     PlusIcon,
     Building2,
     SearchIcon,
     EditIcon,
     TrashIcon,
     FileText,
-    CheckCircle2,
-    XCircle,
     Hash,
     Phone,
     Mail,
@@ -53,7 +44,6 @@ export function ProfileManagementPage() {
 
     const [profiles, setProfiles] = React.useState<ProfileRecord[]>([])
     const [searchTerm, setSearchTerm] = React.useState("")
-    const [statusFilter, setStatusFilter] = React.useState<string>("All")
     const [loading, setLoading] = React.useState(true)
     const [error, setError] = React.useState<string | null>(null)
 
@@ -116,7 +106,7 @@ export function ProfileManagementPage() {
 
     const filteredProfiles = profiles.filter((p) => {
         const term = searchTerm.toLowerCase()
-        const matchesSearch = (
+        return (
             p.name.toLowerCase().includes(term) ||
             p.code.toLowerCase().includes(term) ||
             (p.contactPerson || "").toLowerCase().includes(term) ||
@@ -126,12 +116,9 @@ export function ProfileManagementPage() {
             (p.panNumber || "").toLowerCase().includes(term) ||
             (p.licenseNumber || "").toLowerCase().includes(term)
         )
-
-        const matchesStatus = statusFilter === "All" || p.status === statusFilter
-        return matchesSearch && matchesStatus
     })
 
-    const activeCount = profiles.filter(p => p.status === "Active").length
+    const taxRecordsCount = profiles.filter(p => p.gstNumber || p.panNumber || p.licenseNumber).length
     const totalDocsCount = profiles.reduce((sum, p) => sum + (p.documents?.length || 0), 0)
 
     const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
@@ -141,18 +128,18 @@ export function ProfileManagementPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 w-full mx-auto p-2 pb-10 animate-in fade-in duration-300">
+        <div className="flex flex-col gap-5 sm:gap-6 w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-6 pb-12 animate-in fade-in duration-300">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">Centralized Profile Management</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Centralized Profile Management</h1>
+                    <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
                         Create, configure, and manage business records for Subcontractors, Scrap Dealers, and Suppliers with document attachments and dynamic forms.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
                     <Button
-                        className="gap-2 rounded-xl shadow-md bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-10 px-5"
+                        className="gap-2 rounded-xl shadow-md bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-10 px-5 w-full sm:w-auto justify-center"
                         onClick={() => {
                             setEditingProfile(null)
                             setShowModal(true)
@@ -219,45 +206,51 @@ export function ProfileManagementPage() {
             </div>
 
             {/* Metrics Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="rounded-2xl border border-border/60 bg-card p-4 flex items-center gap-4 shadow-xs">
-                    <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                        <Layers className="size-6" />
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Total Profiles</p>
-                        <p className="text-2xl font-black text-foreground">{profiles.length}</p>
-                    </div>
-                </Card>
-
-                <Card className="rounded-2xl border border-border/60 bg-card p-4 flex items-center gap-4 shadow-xs">
-                    <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 className="size-6" />
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Active Records</p>
-                        <p className="text-2xl font-black text-foreground">{activeCount}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <Card className="rounded-2xl border border-border/60 bg-card p-3.5 sm:p-4 shadow-xs">
+                    <div className="flex flex-row items-center gap-3.5">
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-primary/10 text-primary shrink-0">
+                            <Layers className="size-5 sm:size-6" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">Total Profiles</p>
+                            <p className="text-xl sm:text-2xl font-black text-foreground">{profiles.length}</p>
+                        </div>
                     </div>
                 </Card>
 
-                <Card className="rounded-2xl border border-border/60 bg-card p-4 flex items-center gap-4 shadow-xs">
-                    <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                        <FileCheck className="size-6" />
+                <Card className="rounded-2xl border border-border/60 bg-card p-3.5 sm:p-4 shadow-xs">
+                    <div className="flex flex-row items-center gap-3.5">
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                            <Hash className="size-5 sm:size-6" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">Tax & Licenses Listed</p>
+                            <p className="text-xl sm:text-2xl font-black text-foreground">{taxRecordsCount}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Legal Documents Uploaded</p>
-                        <p className="text-2xl font-black text-foreground">{totalDocsCount}</p>
+                </Card>
+
+                <Card className="rounded-2xl border border-border/60 bg-card p-3.5 sm:p-4 shadow-xs">
+                    <div className="flex flex-row items-center gap-3.5">
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                            <FileCheck className="size-5 sm:size-6" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">Legal Documents Uploaded</p>
+                            <p className="text-xl sm:text-2xl font-black text-foreground">{totalDocsCount}</p>
+                        </div>
                     </div>
                 </Card>
             </div>
 
             {/* Profile Table Card */}
-            <Card className={`${bentoCardClass} flex flex-col mt-2`}>
-                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">
-                    <div>
-                        <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                            <Building2 className="size-5 text-primary" />
-                            {activeTab === "Subcontractor" ? "Subcontractors & Vendor Companies" : activeTab === "ScrapDealer" ? "Scrap Dealers Directory" : "Suppliers & Procurement Sources"}
+            <Card className={`${bentoCardClass} flex flex-col mt-1`}>
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/50 bg-muted/20 px-4 py-4 sm:px-6 sm:py-5">
+                    <div className="w-full sm:w-auto">
+                        <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                            <Building2 className="size-5 text-primary shrink-0" />
+                            <span>{activeTab === "Subcontractor" ? "Subcontractors & Vendor Companies" : activeTab === "ScrapDealer" ? "Scrap Dealers Directory" : "Suppliers & Procurement Sources"}</span>
                         </CardTitle>
                         <CardDescription className="mt-1 text-xs">
                             {activeTab === "Subcontractor"
@@ -268,23 +261,12 @@ export function ProfileManagementPage() {
                         </CardDescription>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                        <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
-                            <SelectTrigger className="h-9 w-32 rounded-xl bg-background/50 border-border/50 text-xs font-semibold">
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="All">All Statuses</SelectItem>
-                                <SelectItem value="Active">Active Only</SelectItem>
-                                <SelectItem value="Inactive">Inactive Only</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        <div className="relative flex-1 sm:w-64">
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:w-80">
                             <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search by name, code, GST, phone..."
-                                className="pl-9 h-9 rounded-xl border-border/50 bg-background/50 text-xs focus-visible:ring-primary/30"
+                                className="pl-9 h-9 rounded-xl border-border/50 bg-background/50 text-xs focus-visible:ring-primary/30 w-full"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -294,7 +276,7 @@ export function ProfileManagementPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => fetchProfiles()}
-                            className="h-9 w-9 p-0 rounded-xl border border-border/50 hover:bg-muted"
+                            className="h-9 w-9 p-0 rounded-xl border border-border/50 hover:bg-muted shrink-0"
                             title="Refresh profiles"
                         >
                             <RefreshCcw className="size-4" />
@@ -325,8 +307,8 @@ export function ProfileManagementPage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                        <div className="overflow-x-auto w-full">
+                            <table className="w-full text-sm min-w-[700px]">
                                 <thead>
                                     <tr className="border-b border-border/50 bg-muted/10">
                                         <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Name & Code</th>
@@ -334,7 +316,6 @@ export function ProfileManagementPage() {
                                         <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Phone & Email</th>
                                         <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Tax & Licenses</th>
                                         <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Documents</th>
-                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Status</th>
                                         <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -418,17 +399,6 @@ export function ProfileManagementPage() {
                                                         <FileText className="size-3.5" />
                                                         <span>{docCount} {docCount === 1 ? 'Doc' : 'Docs'}</span>
                                                     </button>
-                                                </td>
-
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
-                                                        p.status === 'Active'
-                                                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-                                                            : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30'
-                                                    }`}>
-                                                        {p.status === 'Active' ? <CheckCircle2 className="size-3" /> : <XCircle className="size-3" />}
-                                                        {p.status || 'Active'}
-                                                    </span>
                                                 </td>
 
                                                 <td className="px-6 py-4 text-right">

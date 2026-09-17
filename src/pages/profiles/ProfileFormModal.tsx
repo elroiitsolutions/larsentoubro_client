@@ -31,8 +31,7 @@ import {
     Download,
     ShieldCheck,
     FileCheck,
-    Hash,
-    BadgeAlert
+    Hash
 } from "lucide-react"
 import profileService, { type ProfileRecord, type ProfileType } from "@/services/profile.service"
 import formService from "@/services/form.service"
@@ -328,30 +327,30 @@ export function ProfileFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
+            <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl">
                 {/* Header */}
-                <DialogHeader className="px-6 py-4 border-b border-border/60 bg-muted/20 shrink-0">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className={`p-2.5 rounded-xl ${meta.bgColor} ${meta.color}`}>
-                                <Building2 className="size-6" />
+                <DialogHeader className="p-3.5 sm:px-6 sm:py-4 border-b border-border/60 bg-muted/20 shrink-0 pr-10 sm:pr-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                            <div className={`p-2 sm:p-2.5 rounded-xl ${meta.bgColor} ${meta.color} shrink-0`}>
+                                <Building2 className="size-5 sm:size-6" />
                             </div>
-                            <div>
-                                <DialogTitle className="text-xl font-bold text-foreground">
+                            <div className="min-w-0">
+                                <DialogTitle className="text-base sm:text-xl font-bold text-foreground leading-snug">
                                     {isEdit ? `Edit ${meta.title} Record` : `Create ${meta.title} Profile`}
                                 </DialogTitle>
-                                <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                                    Manage contact profile, tax identifiers, custom fields, and legal document uploads.
+                                <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-normal truncate sm:whitespace-normal">
+                                    Manage contact profile, tax identifiers, and legal document uploads.
                                 </DialogDescription>
                             </div>
                         </div>
 
                         {/* Navigation Tabs */}
-                        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl">
+                        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl w-full sm:w-auto shrink-0">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("details")}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
                                     activeTab === "details"
                                         ? "bg-background text-foreground shadow-xs"
                                         : "text-muted-foreground hover:text-foreground"
@@ -362,7 +361,7 @@ export function ProfileFormModal({
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("documents")}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                                     activeTab === "documents"
                                         ? "bg-background text-foreground shadow-xs"
                                         : "text-muted-foreground hover:text-foreground"
@@ -381,7 +380,7 @@ export function ProfileFormModal({
                 </DialogHeader>
 
                 {/* Body Content */}
-                <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
                     {activeTab === "details" && (
                         <div className="space-y-6">
                             {/* Non-Login Record Notice */}
@@ -393,7 +392,7 @@ export function ProfileFormModal({
                             </div>
 
                             {/* Section 1: Standard Company Details */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
                                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
                                     <Building2 className="size-4 text-primary" />
                                     Business Identity & Code
@@ -415,7 +414,7 @@ export function ProfileFormModal({
                                     </div>
 
                                     {/* Code */}
-                                    <div>
+                                    <div className="md:col-span-2">
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
                                             Profile Code <span className="text-muted-foreground font-normal">(Auto-generated if left blank)</span>
                                         </label>
@@ -426,27 +425,11 @@ export function ProfileFormModal({
                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono uppercase font-medium"
                                         />
                                     </div>
-
-                                    {/* Status */}
-                                    <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            Profile Status <span className="text-rose-500">*</span>
-                                        </label>
-                                        <Select value={status} onValueChange={(val: any) => setStatus(val)}>
-                                            <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
-                                                <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Active">Active — Available across portal modules</SelectItem>
-                                                <SelectItem value="Inactive">Inactive — Suspended / Inactive</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
                                 </div>
                             </div>
 
                             {/* Section 2: Contact Person & Details */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
                                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
                                     <UserCheck className="size-4 text-primary" />
                                     Key Personnel & Contact Details
@@ -521,7 +504,7 @@ export function ProfileFormModal({
                             </div>
 
                             {/* Section 3: Identifiers, PAN, GST, Licenses */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
                                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
                                     <Hash className="size-4 text-primary" />
                                     Tax Identification & Licenses
@@ -592,8 +575,14 @@ export function ProfileFormModal({
                             </div>
 
                             {/* Section 4: Dynamic Custom Fields configured in Forms Management */}
+                            {loadingForm && (
+                                <div className="flex items-center gap-2 p-3 text-xs text-muted-foreground">
+                                    <Loader2 className="size-4 animate-spin text-primary" />
+                                    <span>Loading custom fields...</span>
+                                </div>
+                            )}
                             {formDefinition && formDefinition.fields && formDefinition.fields.length > 0 && (
-                                <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                                <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
                                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
                                         <FileCheck className="size-4 text-primary" />
                                         Custom Fields (Configured in Forms Management)
@@ -662,7 +651,7 @@ export function ProfileFormModal({
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
                                             Document Category <span className="text-rose-500">*</span>
                                         </label>
-                                        <Select value={docCategory} onValueChange={(val) => setDocCategory(val)}>
+                                        <Select value={docCategory} onValueChange={(val) => val && setDocCategory(val)}>
                                             <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-medium">
                                                 <SelectValue placeholder="Select Category" />
                                             </SelectTrigger>
@@ -690,7 +679,7 @@ export function ProfileFormModal({
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
                                             Select Document File <span className="text-rose-500">*</span>
                                         </label>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                             <Input
                                                 type="file"
                                                 accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
@@ -702,7 +691,7 @@ export function ProfileFormModal({
                                                     type="button"
                                                     onClick={handleUploadDocumentNow}
                                                     disabled={uploadingDoc || !selectedFile}
-                                                    className="h-10 rounded-xl px-4 font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 shadow-xs cursor-pointer"
+                                                    className="w-full sm:w-auto h-10 rounded-xl px-4 font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 shadow-xs cursor-pointer flex items-center justify-center"
                                                 >
                                                     {uploadingDoc ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
                                                     Upload Document
@@ -714,7 +703,7 @@ export function ProfileFormModal({
                             </div>
 
                             {/* Documents List */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
                                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40 justify-between">
                                     <span className="flex items-center gap-2">
                                         <FileText className="size-4 text-primary" />
@@ -736,7 +725,7 @@ export function ProfileFormModal({
                                             const fileUrl = doc.fileName ? profileService.getDocumentDownloadUrl(doc.fileName) : doc.fileUrl;
 
                                             return (
-                                                <div key={doc._id || i} className="py-3.5 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
+                                                <div key={doc._id || i} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 first:pt-0 last:pb-0">
                                                     <div className="flex items-center gap-3 min-w-0">
                                                         <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
                                                             <FileText className="size-5" />
@@ -754,7 +743,7 @@ export function ProfileFormModal({
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                    <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
                                                         {fileUrl && (
                                                             <>
                                                                 <a
@@ -800,12 +789,12 @@ export function ProfileFormModal({
                 </form>
 
                 {/* Footer Action Bar */}
-                <div className="p-4 border-t border-border/60 bg-muted/30 flex items-center justify-end gap-3 shrink-0">
+                <div className="p-3.5 sm:p-4 border-t border-border/60 bg-muted/30 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 shrink-0">
                     <Button
                         type="button"
                         variant="outline"
                         onClick={onClose}
-                        className="h-10 rounded-xl px-5 font-semibold cursor-pointer"
+                        className="w-full sm:w-auto h-10 rounded-xl px-5 font-semibold cursor-pointer"
                         disabled={saving}
                     >
                         Cancel
@@ -813,7 +802,7 @@ export function ProfileFormModal({
                     <Button
                         type="button"
                         onClick={handleSubmit}
-                        className="h-10 rounded-xl px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 gap-2 cursor-pointer shadow-sm"
+                        className="w-full sm:w-auto h-10 rounded-xl px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 gap-2 cursor-pointer shadow-sm flex items-center justify-center"
                         disabled={saving}
                     >
                         {saving && <Loader2 className="size-4 animate-spin" />}
