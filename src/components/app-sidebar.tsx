@@ -22,6 +22,9 @@ import {
   UsersIcon,
   Settings2Icon,
   ShieldCheck,
+  Trash2Icon,
+  ArchiveIcon,
+  Building2,
 } from "lucide-react"
 
 import logoUrl from "@/assets/logo.png"
@@ -44,6 +47,27 @@ const data = {
       title: "Projects",
       url: "/projects",
       icon: <FolderOpenIcon />,
+      isActive: false,
+      items: [],
+    },
+    {
+      title: "Profile Management",
+      url: "/profiles",
+      icon: <Building2 />,
+      isActive: false,
+      items: [],
+    },
+    {
+      title: "Trash",
+      url: "/tools/trash",
+      icon: <Trash2Icon />,
+      isActive: false,
+      items: [],
+    },
+    {
+      title: "Scrap",
+      url: "/tools/scrap",
+      icon: <ArchiveIcon />,
       isActive: false,
       items: [],
     },
@@ -81,7 +105,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return data.navMain.filter((item) => item.url === "/stores")
     }
     const allowed = user.allowedPages || []
-    return data.navMain.filter((item) => allowed.includes(item.url) || (item.url === "/stores" && allowed.includes("/tools")))
+    return data.navMain.filter((item) => allowed.includes(item.url) || item.url === "/tools/trash" || item.url === "/tools/scrap" || (item.url === "/stores" && allowed.includes("/tools")))
   }, [user])
 
   const currentUserData = React.useMemo(() => {

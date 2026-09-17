@@ -14,19 +14,17 @@ import {
     SearchIcon,
     ShieldIcon,
     ShieldAlertIcon,
-    CheckCircle2Icon,
     EditIcon,
     TrashIcon,
     FolderOpenIcon,
     StoreIcon,
     LayoutDashboardIcon,
-    Settings2Icon
+    Building2
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { UserFormModal } from "./UserFormModal"
-import userService from "@/services/user.service"
-import type { UserRecord } from "@/services/user.service"
+import userService, { type UserRecord } from "@/services/user.service"
 import { toast } from "sonner"
 import NoAccessPage from "../NoAccessPage"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
@@ -44,12 +42,15 @@ const avatarColors = [
 
 export function UsersPage() {
     const navigate = useNavigate()
-    const { token, user: currentUser } = useAuth()
+    const { user: currentUser } = useAuth()
+    
+    // Internal Users State
     const [users, setUsers] = React.useState<UserRecord[]>([])
-    const [searchTerm, setSearchTerm] = React.useState("")
-    const [showModal, setShowModal] = React.useState(false)
+    const [userSearchTerm, setUserSearchTerm] = React.useState("")
+    const [showUserModal, setShowUserModal] = React.useState(false)
     const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
     const [deletingUser, setDeletingUser] = React.useState<{ id: string; name: string } | null>(null)
+
     const [loading, setLoading] = React.useState(true)
     const [error, setError] = React.useState<string | null>(null)
 
@@ -68,17 +69,19 @@ export function UsersPage() {
         setError(null)
         try {
             const resData = await userService.getUsers()
-            if (!resData.success) {
-                throw new Error(resData.message || "Failed to fetch users")
+            if (resData.success) {
+                // Filter out any leftover role: Vendor items if present so users list remains strictly internal members
+                const internalOnly = (resData.data || []).filter((u: any) => u.role !== 'Vendor')
+                setUsers(internalOnly)
             }
-            setUsers(resData.data)
         } catch (err: any) {
-            const message = err?.response?.data?.message || err.message || "Something went wrong fetching users"
+            console.error("Error fetching users:", err)
+            const message = err?.response?.data?.message || err.message || "Something went wrong loading internal users"
             setError(message)
         } finally {
             setLoading(false)
         }
-    }, [token, isRestricted])
+    }, [isRestricted])
 
     React.useEffect(() => {
         fetchUsers()
@@ -99,7 +102,7 @@ export function UsersPage() {
     }
 
     const filteredUsers = users.filter((u) => {
-        const term = searchTerm.toLowerCase()
+        const term = userSearchTerm.toLowerCase()
         return (
             u.name.toLowerCase().includes(term) ||
             u.email.toLowerCase().includes(term) ||
@@ -108,7 +111,7 @@ export function UsersPage() {
         )
     })
 
-    const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden";
+    const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
 
     if (isRestricted) {
         return <NoAccessPage />
@@ -116,50 +119,63 @@ export function UsersPage() {
 
     return (
         <div className="flex flex-col gap-6 w-full mx-auto p-2 pb-10">
-            <div className="flex items-center justify-between pt-2">
+            {/* Header with System User Creation & Link to Business Profiles */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">Users & Access Management</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">Manage team members, page-level permissions, and Project → Store dependencies.</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Internal System Users</h1>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                        Manage internal team members with platform authentication access (Admin & User RBAC permissions).
+                    </p>
                 </div>
-                <Button
-                    className="gap-2 rounded-xl shadow-md cursor-pointer"
-                    size="lg"
-                    onClick={() => {
-                        setEditingUser(null)
-                        setShowModal(true)
-                    }}
-                >
-                    <PlusIcon className="size-4" />
-                    Create User
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        className="gap-2 rounded-xl shadow-xs border-primary/30 hover:bg-primary/10 text-primary font-semibold cursor-pointer h-10 px-4"
+                        onClick={() => navigate("/profiles")}
+                    >
+                        <Building2 className="size-4" />
+                        Manage Business Profiles (Vendors/Scrap/Suppliers)
+                    </Button>
+                    <Button
+                        className="gap-2 rounded-xl shadow-md bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-10 px-5"
+                        onClick={() => {
+                            setEditingUser(null)
+                            setShowUserModal(true)
+                        }}
+                    >
+                        <PlusIcon className="size-4" />
+                        Create User / Admin
+                    </Button>
+                </div>
             </div>
-            {/* Users table */}
+
+            {/* Internal Users Table */}
             <Card className={`${bentoCardClass} flex flex-col mt-2`}>
                 <CardHeader className="flex flex-row items-center gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">
                     <div className="flex-1">
                         <CardTitle className="flex items-center gap-2 text-lg font-bold">
                             <UsersIcon className="size-5 text-primary" />
-                            All Members & Authorized Scope
+                            Internal Application Users & RBAC Roles ({users.length})
                         </CardTitle>
                         <CardDescription className="mt-1">
                             <span className="flex items-center gap-1.5 text-xs">
                                 <ShieldIcon className="size-3.5 text-primary/70" />
-                                Admins can grant/revoke page-level access and manage Project & Store assignments
+                                Configure authentication credentials, page permissions, and assigned Project & Store scope.
                             </span>
                         </CardDescription>
                     </div>
                     <div className="relative w-64">
                         <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search users..."
+                            placeholder="Search users by name, email, ID..."
                             className="pl-9 h-9 rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            value={userSearchTerm}
+                            onChange={(e) => setUserSearchTerm(e.target.value)}
                         />
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    {error && !showModal && (
+                    {error && !showUserModal && (
                         <div className="mx-6 my-4 rounded-xl bg-destructive/10 border border-destructive/20 p-4 text-sm font-medium text-destructive flex items-center gap-2">
                             <ShieldAlertIcon className="size-4" />
                             {error}
@@ -170,14 +186,14 @@ export function UsersPage() {
                         <div className="flex items-center justify-center py-16">
                             <div className="flex flex-col items-center gap-4">
                                 <div className="size-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent shadow-sm" />
-                                <p className="font-medium text-muted-foreground">Loading members...</p>
+                                <p className="font-medium text-muted-foreground">Loading internal members...</p>
                             </div>
                         </div>
                     ) : filteredUsers.length === 0 ? (
                         <div className="py-16 text-center text-muted-foreground">
                             <div className="flex flex-col items-center justify-center opacity-50">
                                 <UsersIcon className="size-12 mb-4" />
-                                <p className="font-medium">No users found.</p>
+                                <p className="font-medium">No internal users found.</p>
                             </div>
                         </div>
                     ) : (
@@ -210,8 +226,7 @@ export function UsersPage() {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div
-                                                            className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm ${avatarColors[i % avatarColors.length]
-                                                                }`}
+                                                            className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm ${avatarColors[i % avatarColors.length]}`}
                                                         >
                                                             {initials}
                                                         </div>
@@ -267,11 +282,23 @@ export function UsersPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => navigate(`/users/${u._id}/access`)}
-                                                            className="h-8 px-2.5 text-xs font-semibold hover:bg-primary/10 hover:text-primary gap-1.5 cursor-pointer"
-                                                            title="Manage Page Access & Project/Store Dependencies on Dedicated Page"
+                                                            onClick={() => {
+                                                                setEditingUser(u)
+                                                                setShowUserModal(true)
+                                                            }}
+                                                            className="h-8 px-2 text-xs font-semibold hover:bg-muted"
+                                                            title="Edit Profile"
                                                         >
                                                             <EditIcon className="size-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => navigate(`/users/${u._id}/access`)}
+                                                            className="h-8 px-2.5 text-xs font-semibold hover:bg-primary/10 hover:text-primary gap-1.5 cursor-pointer"
+                                                            title="Manage Access & Permissions"
+                                                        >
+                                                            <ShieldIcon className="size-3.5 text-primary" />
                                                             <span>Manage Access</span>
                                                         </Button>
                                                         <Button
@@ -295,10 +322,11 @@ export function UsersPage() {
                 </CardContent>
             </Card>
 
+            {/* Modals */}
             <UserFormModal
-                isOpen={showModal}
+                isOpen={showUserModal}
                 onClose={() => {
-                    setShowModal(false)
+                    setShowUserModal(false)
                     setEditingUser(null)
                 }}
                 editingUser={editingUser}
@@ -310,11 +338,15 @@ export function UsersPage() {
             <ConfirmDialog
                 isOpen={!!deletingUser}
                 onClose={() => setDeletingUser(null)}
-                onConfirm={() => deletingUser && handleDeleteUser(deletingUser.id)}
-                title="Delete User"
+                onConfirm={async () => {
+                    if (deletingUser) await handleDeleteUser(deletingUser.id)
+                }}
+                title="Delete Internal User"
                 description={`Are you sure you want to delete user "${deletingUser?.name || "this user"}"? This will revoke their platform access.`}
                 confirmText="Delete User"
             />
         </div>
     )
 }
+
+export default UsersPage

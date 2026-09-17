@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, ShieldAlert, ShieldCheck, Award, ArrowUpRight } from "lucide-react";
+import { Clock, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { ToolLifeAgeData } from "@/services/dashboard.service";
 import ToolLifeExtensionModal from "./ToolLifeExtensionModal";
 
@@ -13,13 +13,6 @@ interface Props {
 export const ToolLifeAgeSection: React.FC<Props> = ({ ageData, onRefresh }) => {
     const [modalOpen, setModalOpen] = useState<boolean>(false);
 
-    const totalCalculated =
-        ageData.under1Year +
-        ageData.yr1To2 +
-        ageData.yr2To3 +
-        ageData.over3YrPendingInspection +
-        ageData.extended1Yr +
-        ageData.extended2Yr;
 
     return (
         <>

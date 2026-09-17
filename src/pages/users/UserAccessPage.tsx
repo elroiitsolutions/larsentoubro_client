@@ -26,7 +26,6 @@ import {
     MailIcon,
     PhoneIcon,
     BadgeCheckIcon,
-    FilterIcon,
     XIcon,
     KeyIcon
 } from "lucide-react"

@@ -6,10 +6,21 @@ import { StoreToolsPage } from "./StoreToolsPage";
 import { toast } from "sonner";
 import {
     Loader2,
-    ExternalLink,
-    X
+    X,
+    Tag,
+    Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function QuickToolViewPage() {
     const { toolId } = useParams();
@@ -22,6 +33,8 @@ export function QuickToolViewPage() {
     const [tool, setTool] = useState<any>(initialTool || null);
     const [loading, setLoading] = useState(!initialTool);
     const [viewSchema, setViewSchema] = useState<any>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const fromStoreId = (location.state as any)?.fromStoreId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
 
@@ -30,6 +43,24 @@ export function QuickToolViewPage() {
             navigate(`/stores/${fromStoreId}/tools`);
         } else {
             navigate(-1);
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!tool?._id) return;
+        setDeleting(true);
+        try {
+            const res = await toolService.deleteTool(tool._id);
+            if (res.success) {
+                toast.success(res.message || "Tool soft-deleted successfully");
+                handleClose();
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || "Failed to delete tool");
+        } finally {
+            setDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -107,24 +138,24 @@ export function QuickToolViewPage() {
         return undefined;
     };
 
-    const handleGoToFullDetails = () => {
-        if (tool?.toolId) {
-            const storeIdVal = fromStoreId || tool.currentSite?._id || tool.currentSite;
-            const projId = (location.state as any)?.projectId || (tool?.project?._id || tool?.project);
-            const detailsBreadcrumbs = [
-                { label: 'Projects', href: '/projects' },
-                { label: 'Stores', href: projId ? `/projects/${projId}/stores` : '/projects' },
-                { label: 'Tools', href: storeIdVal ? `/stores/${storeIdVal}/tools` : '/projects' },
-                { label: `Tool Details (${tool.toolId})`, href: `/tooldetails/${encodeURIComponent(tool.toolId)}` }
-            ];
-            navigate(`/tooldetails/${encodeURIComponent(tool.toolId)}`, {
-                state: {
-                    fromStoreId: storeIdVal,
-                    breadcrumbs: detailsBreadcrumbs
-                }
-            });
-        }
-    };
+    // const handleGoToFullDetails = () => {
+    //     if (tool?.toolId) {
+    //         const storeIdVal = fromStoreId || tool.currentSite?._id || tool.currentSite;
+    //         const projId = (location.state as any)?.projectId || (tool?.project?._id || tool?.project);
+    //         const detailsBreadcrumbs = [
+    //             { label: 'Projects', href: '/projects' },
+    //             { label: 'Stores', href: projId ? `/projects/${projId}/stores` : '/projects' },
+    //             { label: 'Tools', href: storeIdVal ? `/stores/${storeIdVal}/tools` : '/projects' },
+    //             { label: `Tool Details (${tool.toolId})`, href: `/tooldetails/${encodeURIComponent(tool.toolId)}` }
+    //         ];
+    //         navigate(`/tooldetails/${encodeURIComponent(tool.toolId)}`, {
+    //             state: {
+    //                 fromStoreId: storeIdVal,
+    //                 breadcrumbs: detailsBreadcrumbs
+    //             }
+    //         });
+    //     }
+    // };
 
     const isAvailable = tool?.status === 'Available' || tool?.status === 'Usable';
     const isMoving = tool?.status === 'Moving' || tool?.status === 'In Use';
@@ -137,10 +168,8 @@ export function QuickToolViewPage() {
         if (isNaN(date.getTime()) && supplyDateStr.includes('/')) {
             const parts = supplyDateStr.split('/');
             if (parts.length === 3) {
-                // Try DD/MM/YYYY
                 date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
                 if (isNaN(date.getTime())) {
-                    // Try MM/DD/YYYY
                     date = new Date(`${parts[2]}-${parts[0]}-${parts[1]}`);
                 }
             }
@@ -156,11 +185,26 @@ export function QuickToolViewPage() {
         return date.toLocaleDateString();
     };
 
+    // Helper to format spec values cleanly
+    const formatSpecValue = (val: any) => {
+        if (!val || val === '-') return '-';
+        let str = String(val).replace(/^(capacity|swl|safe working load):\s*/i, '').trim();
+        if (/^(\d\s+)+\d$/.test(str)) {
+            str = str.replace(/\s+/g, '');
+        } else {
+            str = str.replace(/\s+/g, ' ');
+        }
+        return str;
+    };
+
     // Extracted Field Values
-    const toolCodeVal = getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || tool?.toolId || '-';
+    const toolIdVal = tool?.toolId || getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || '-';
     const makeYearVal = getFieldValue('makeYear', ['make_year', 'Make Year', 'year']) || '-';
     const capacityVal = getFieldValue('capacity') || '-';
     const safeWorkingLoadVal = getFieldValue('safeWorkingLoad') || '-';
+    const toolVariantVal = getFieldValue('toolVariant', ['tool_variant', 'variant', 'Tool Variant']) || '-';
+    const toolTypeVal = getFieldValue('toolType', ['tool_type', 'toolCategory', 'category', 'Tool Category']) || '-';
+    const metalTypeVal = getFieldValue('metalType', ['metal_type', 'material', 'Material']) || '-';
     
     const purchaserNameVal = getFieldValue('purchaserName') || '-';
     const supplierCodeVal = getFieldValue('supplierCode') || '-';
@@ -177,219 +221,253 @@ export function QuickToolViewPage() {
     const jobCodeVal = getFieldValue('jobCode') || '-';
     const jobDescriptionVal = getFieldValue('jobDescription', ['job_description']) || '-';
 
+    const currentSiteVal = tool?.currentSite?.name || tool?.currentSite?.storeName || (typeof tool?.currentSite === 'string' ? tool?.currentSite : getFieldValue('currentSite', ['store', 'storeName']));
+    const projectVal = tool?.project?.name || tool?.project?.projectName || (typeof tool?.project === 'string' ? tool?.project : getFieldValue('project', ['projectName', 'site']));
+    const subcontractorVal = getFieldValue('subcontractorName', ['subcontractor_name', 'subcontractor', 'subContractor']);
+
     const lastInspectionDateVal = tool?.lastInspectionDate
         ? new Date(tool.lastInspectionDate).toLocaleDateString()
         : '-';
 
     const modalContent = (
         <div 
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-200"
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in-0 duration-200"
             onClick={handleClose}
         >
-            {/* Modal Card Container */}
+            {/* Modal Card Container - Non-Scrollable */}
             <div 
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-md bg-background border border-border/80 shadow-2xl rounded-3xl p-6 relative animate-in zoom-in-95 duration-200 overflow-hidden text-left space-y-4"
+                className="w-full max-w-md bg-background border border-border/80 shadow-2xl rounded-3xl p-5 relative animate-in zoom-in-95 duration-200 overflow-hidden text-left space-y-3"
             >
                 {/* Close Button */}
                 <button
                     type="button"
                     onClick={handleClose}
-                    className="absolute right-4 top-4 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer z-10"
+                    className="absolute right-4 top-4 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer z-10"
                 >
                     <X className="size-4" />
                 </button>
 
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-12 gap-3">
-                        <Loader2 className="size-8 animate-spin text-primary" />
-                        <p className="text-xs text-muted-foreground font-semibold">Loading Quick Tool Module...</p>
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                        <Loader2 className="size-6 animate-spin text-primary" />
+                        <p className="text-xs text-muted-foreground font-semibold">Loading Tool Information...</p>
                     </div>
                 ) : !tool ? (
-                    <div className="flex flex-col items-center justify-center py-8 gap-3">
+                    <div className="flex flex-col items-center justify-center py-8 gap-2">
                         <p className="text-muted-foreground text-sm font-semibold">Tool information not found</p>
                         <Button variant="outline" size="sm" onClick={handleClose} className="rounded-xl cursor-pointer">
                             Close
                         </Button>
                     </div>
                 ) : (
-                    <>
-                        {/* Header: Title, Tag, Subtitle */}
-                        <div className="flex items-start justify-between gap-3 pr-6">
-                            <div className="space-y-1.5 min-w-0">
-                                {isFieldVisible('description') && (
-                                    <h2 className="text-lg font-black tracking-tight text-foreground leading-snug break-words">
-                                        {tool.description}
-                                    </h2>
+                    <div className="space-y-3">
+                        {/* Header: Title & Badges */}
+                        <div className="space-y-1.5 pr-6">
+                            {isFieldVisible('description') && (
+                                <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground leading-snug break-words">
+                                    {tool.description}
+                                </h2>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                {/* Tool Code Badge */}
+                                {isFieldVisible('toolCode') && toolIdVal !== '-' && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 text-primary border border-primary/20 font-mono text-[11px] font-bold">
+                                        <Tag className="size-3" />
+                                        <span>{toolIdVal}</span>
+                                    </span>
                                 )}
 
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {isFieldVisible('toolCode') && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[11px] font-bold border border-blue-200 dark:border-blue-800">
-                                            {toolCodeVal}
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Specs Subtitle Line */}
-                                {(isFieldVisible('makeYear') || isFieldVisible('capacity') || isFieldVisible('safeWorkingLoad')) && (() => {
-                                    const specs = [];
-                                    if (isFieldVisible('makeYear') && makeYearVal && makeYearVal !== '-') {
-                                        specs.push(`Make/Year: ${makeYearVal}`);
-                                    }
-                                    if (isFieldVisible('capacity') && capacityVal && capacityVal !== '-') {
-                                        const capStr = String(capacityVal).toLowerCase().includes('capacity') || String(capacityVal).toLowerCase().includes('tonne')
-                                            ? capacityVal
-                                            : `Capacity: ${capacityVal}`;
-                                        specs.push(capStr);
-                                    }
-                                    if (isFieldVisible('safeWorkingLoad') && safeWorkingLoadVal && safeWorkingLoadVal !== '-') {
-                                        const swlStr = String(safeWorkingLoadVal).toLowerCase().includes('swl') || String(safeWorkingLoadVal).toLowerCase().includes('load')
-                                            ? safeWorkingLoadVal
-                                            : `SWL: ${safeWorkingLoadVal}`;
-                                        specs.push(swlStr);
-                                    }
-                                    if (specs.length === 0) return null;
-                                    return (
-                                        <p className="text-xs text-muted-foreground font-medium">
-                                            {specs.join(' • ')}
-                                        </p>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="border-t border-border/60" />
-
-                        {/* Section 1: Supplier & Date of Receipt (2 Columns) */}
-                        <div className="grid grid-cols-2 gap-4 text-xs">
-                            {/* Supplier Box */}
-                            {(isFieldVisible('purchaserName') || isFieldVisible('supplierCode') || isFieldVisible('purchaserContact')) && (
-                                <div className="space-y-0.5">
-                                    <span className="text-[11px] font-medium text-muted-foreground block">
-                                        Supplier Details
-                                    </span>
-                                    {isFieldVisible('purchaserName') && purchaserNameVal !== '-' && (
-                                        <span className="font-bold text-foreground block truncate">
-                                            {purchaserNameVal}
-                                        </span>
-                                    )}
-                                    {isFieldVisible('supplierCode') && supplierCodeVal !== '-' && (
-                                        <span className="text-[11px] text-muted-foreground block">
-                                            Code: {supplierCodeVal}
-                                        </span>
-                                    )}
-                                    {isFieldVisible('purchaserContact') && purchaserContactVal !== '-' && (
-                                        <span className="text-[11px] text-muted-foreground block">
-                                            Contact: {purchaserContactVal}
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Date of Receipt Box */}
-                            {(isFieldVisible('dateOfSupply') || isFieldVisible('validityPeriod')) && (
-                                <div className="space-y-0.5">
-                                    {isFieldVisible('dateOfSupply') && dateOfSupplyVal !== '-' && (
-                                        <>
-                                            <span className="text-[11px] font-medium text-muted-foreground block">
-                                                Date of Receipt
-                                            </span>
-                                            <span className="font-bold text-foreground block">
-                                                {dateOfSupplyVal}
-                                            </span>
-                                        </>
-                                    )}
-                                    {isFieldVisible('validityPeriod') && validityPeriodVal !== '-' && (
-                                        <div className={isFieldVisible('dateOfSupply') && dateOfSupplyVal !== '-' ? "pt-1" : ""}>
-                                            <span className="text-[11px] font-medium text-muted-foreground block">
-                                                Validation
-                                            </span>
-                                            <span className="font-bold text-foreground block">
-                                                {validityPeriodVal}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Section 2: Last Inspection & Valid Until (2 Columns) */}
-                        <div className="grid grid-cols-2 gap-4 text-xs pt-1">
-                            {/* Last Inspection / Status */}
-                            <div className="space-y-1">
-                                <span className="text-[11px] font-medium text-muted-foreground block">
-                                    Last Inspection
-                                </span>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="font-semibold text-foreground text-xs">{lastInspectionDateVal}</span>
-                                </div>
-                                <span className={`inline-flex items-center text-[11px] font-extrabold ${
+                                {/* Status Pill Badge */}
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold border ${
                                     isAvailable 
-                                        ? 'text-emerald-600 dark:text-emerald-400' 
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' 
                                         : isMoving 
-                                        ? 'text-amber-600 dark:text-amber-400'
-                                        : 'text-rose-600 dark:text-rose-400'
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+                                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
                                 }`}>
-                                    {tool.status || 'Usable'}
+                                    <span className={`size-1.5 rounded-full ${
+                                        isAvailable ? 'bg-emerald-500 animate-pulse' : isMoving ? 'bg-amber-500' : 'bg-rose-500'
+                                    }`} />
+                                    <span>{tool.status || 'Usable'}</span>
                                 </span>
                             </div>
-
-                            {/* Valid Until */}
-                            {isFieldVisible('validityPeriod') && (
-                                <div className="space-y-0.5">
-                                    <span className="text-[11px] font-medium text-muted-foreground block">
-                                        Valid Until
-                                    </span>
-                                    <span className="font-bold text-foreground block">
-                                        {validUntilVal}
-                                    </span>
-                                </div>
-                            )}
                         </div>
+
+                        {/* Specs Section: Compact 3-Column Grid */}
+                        {(isFieldVisible('makeYear') || isFieldVisible('capacity') || isFieldVisible('safeWorkingLoad') || isFieldVisible('toolVariant') || isFieldVisible('toolType') || isFieldVisible('metalType')) && (
+                            <div className="bg-muted/40 dark:bg-muted/20 border border-border/50 rounded-2xl p-2.5 grid grid-cols-3 gap-2 text-[11px]">
+                                {isFieldVisible('makeYear') && makeYearVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Make / Year</span>
+                                        <span className="font-bold text-foreground block truncate">{makeYearVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('capacity') && capacityVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Capacity</span>
+                                        <span className="font-bold text-foreground block truncate">{formatSpecValue(capacityVal)}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('safeWorkingLoad') && safeWorkingLoadVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">SWL</span>
+                                        <span className="font-bold text-foreground block truncate">{formatSpecValue(safeWorkingLoadVal)}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('toolVariant') && toolVariantVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Variant</span>
+                                        <span className="font-bold text-foreground block truncate">{toolVariantVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('toolType') && toolTypeVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Category</span>
+                                        <span className="font-bold text-foreground block truncate">{toolTypeVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('metalType') && metalTypeVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Material</span>
+                                        <span className="font-bold text-foreground block truncate">{metalTypeVal}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Supplier & Dates (Compact 2-Column) */}
+                        {(isFieldVisible('purchaserName') || isFieldVisible('supplierCode') || isFieldVisible('purchaserContact') || isFieldVisible('dateOfSupply') || isFieldVisible('validityPeriod')) && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+                                {isFieldVisible('purchaserName') && purchaserNameVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Supplier Name</span>
+                                        <span className="font-bold text-foreground block truncate">{purchaserNameVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('dateOfSupply') && dateOfSupplyVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Date of Receipt</span>
+                                        <span className="font-bold text-foreground block truncate">{dateOfSupplyVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('supplierCode') && supplierCodeVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Supplier Code</span>
+                                        <span className="font-bold text-foreground block truncate">{supplierCodeVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('validityPeriod') && validityPeriodVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Validation Period</span>
+                                        <span className="font-bold text-foreground block truncate">{validityPeriodVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('purchaserContact') && purchaserContactVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Supplier Contact</span>
+                                        <span className="font-bold text-foreground block truncate">{purchaserContactVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('validityPeriod') && validUntilVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Valid Until</span>
+                                        <span className="font-bold text-foreground block truncate">{validUntilVal}</span>
+                                    </div>
+                                )}
+                                <div>
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Last Inspection</span>
+                                    <span className="font-bold text-foreground block truncate">{lastInspectionDateVal}</span>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Divider */}
-                        <div className="border-t border-border/60" />
+                        {(isFieldVisible('jobCode') || isFieldVisible('jobDescription') || isFieldVisible('currentSite') || isFieldVisible('project') || isFieldVisible('subcontractorName')) && (
+                            <div className="border-t border-border/50" />
+                        )}
 
-                        {/* Section 3: Job Code & Description (2 Columns) */}
-                        <div className="grid grid-cols-2 gap-4 text-xs">
-                            {isFieldVisible('jobCode') && (
-                                <div className="space-y-0.5">
-                                    <span className="text-[11px] font-medium text-muted-foreground block">
-                                        Job Code
-                                    </span>
-                                    <span className="font-bold text-foreground block truncate">
-                                        {jobCodeVal}
-                                    </span>
-                                </div>
-                            )}
+                        {/* Job & Allocation Details (Compact 2-Column) */}
+                        {(isFieldVisible('jobCode') || isFieldVisible('jobDescription') || isFieldVisible('currentSite') || isFieldVisible('project') || isFieldVisible('subcontractorName')) && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+                                {isFieldVisible('jobCode') && jobCodeVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Job Code</span>
+                                        <span className="font-bold text-foreground block truncate">{jobCodeVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('jobDescription') && jobDescriptionVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Job Description</span>
+                                        <span className="font-bold text-foreground block truncate" title={jobDescriptionVal}>{jobDescriptionVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('currentSite') && currentSiteVal && currentSiteVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Assigned Store</span>
+                                        <span className="font-bold text-foreground block truncate">{currentSiteVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('project') && projectVal && projectVal !== '-' && (
+                                    <div>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Assigned Project</span>
+                                        <span className="font-bold text-foreground block truncate">{projectVal}</span>
+                                    </div>
+                                )}
+                                {isFieldVisible('subcontractorName') && subcontractorVal && subcontractorVal !== '-' && (
+                                    <div className="col-span-2">
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">Subcontractor</span>
+                                        <span className="font-bold text-foreground block truncate">{subcontractorVal}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                            {isFieldVisible('jobDescription') && (
-                                <div className="space-y-0.5">
-                                    <span className="text-[11px] font-medium text-muted-foreground block">
-                                        Job Description
-                                    </span>
-                                    <span className="font-bold text-foreground block truncate" title={jobDescriptionVal}>
-                                        {jobDescriptionVal}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Section 4: Full Details Action Link / Button */}
-                        <div className="pt-2">
+                        {/* Action Buttons */}
+                        <div className="pt-2 flex items-center gap-2">
                             <Button
-                                onClick={handleGoToFullDetails}
-                                className="w-full rounded-2xl h-11 font-bold gap-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md cursor-pointer transition-all hover:scale-[1.01]"
+                                variant="outline"
+                                size="sm"
+                                className="w-full rounded-xl h-9 font-bold gap-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 cursor-pointer"
+                                onClick={() => setShowDeleteConfirm(true)}
                             >
-                                <span>View Full Details & Inventory Profile</span>
-                                <ExternalLink className="size-4" />
+                                <Trash2 className="size-3.5" />
+                                <span>Delete Tool</span>
                             </Button>
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
+
+            <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !deleting && setShowDeleteConfirm(open)}>
+                <AlertDialogContent className="rounded-2xl max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-rose-600">
+                            <Trash2 className="size-6 text-rose-500" />
+                            <span>Confirm Tool Deletion</span>
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
+                            Are you sure you want to delete tool <strong className="font-mono text-foreground">{toolIdVal}</strong>? It will be moved to the Trash section and can be restored later.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-4 border-t mt-4">
+                        <AlertDialogCancel disabled={deleting} className="rounded-xl">
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={deleting}
+                            onClick={confirmDelete}
+                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                        >
+                            {deleting ? (
+                                <Loader2 className="size-4 animate-spin mr-1.5" />
+                            ) : null}
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 
@@ -406,3 +484,4 @@ export function QuickToolViewPage() {
         </div>
     );
 }
+

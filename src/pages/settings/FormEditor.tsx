@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useFormBuilderStore } from "@/store/useFormBuilderStore"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,9 +7,7 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
-    SelectSeparator
-} from "@/components/ui/select"
+    SelectValue} from "@/components/ui/select"
 import { 
     ArrowLeftIcon, 
     ArrowUpIcon, 
@@ -94,20 +92,29 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
 
     // Helper to add dropdown option
     const addOption = (fieldId: string, currentOptions: any[] = []) => {
-        const optNum = currentOptions.length + 1
+        const opts = currentOptions || []
+        const optNum = opts.length + 1
         const newOpt = { label: `Option ${optNum}`, value: `option_${optNum}` }
-        updateField(fieldId, { options: [...currentOptions, newOpt] })
+        updateField(fieldId, { options: [...opts, newOpt] })
     }
 
-    const removeOption = (fieldId: string, currentOptions: any[], idx: number) => {
-        const next = [...currentOptions]
+    const removeOption = (fieldId: string, currentOptions: any[] = [], idx: number) => {
+        const next = [...(currentOptions || [])]
         next.splice(idx, 1)
         updateField(fieldId, { options: next })
     }
 
-    const updateOptionLabel = (fieldId: string, currentOptions: any[], idx: number, newLabel: string) => {
-        const next = [...currentOptions]
-        next[idx] = { ...next[idx], label: newLabel, value: newLabel.toLowerCase().replace(/\s+/g, '_') }
+    const updateOptionLabel = (fieldId: string, currentOptions: any[] = [], idx: number, newLabel: string) => {
+        const opts = currentOptions || []
+        const next = opts.map((opt, i) => {
+            if (i !== idx) return opt
+            const optObj = typeof opt === 'string' ? { label: opt, value: opt.toLowerCase().replace(/\s+/g, '_') } : { ...opt }
+            return {
+                ...optObj,
+                label: newLabel,
+                value: newLabel.trim() ? newLabel.toLowerCase().replace(/[^a-z0-9_]/gi, '_') : `option_${idx + 1}`
+            }
+        })
         updateField(fieldId, { options: next })
     }
 
@@ -385,26 +392,29 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                 </p>
                                             ) : (
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                                                    {field.options.map((opt: any, idx: number) => (
-                                                        <div key={idx} className="flex items-center gap-2 bg-background border border-border/60 rounded-xl p-1.5 px-3">
-                                                            <span className="text-xs font-mono font-bold text-muted-foreground">#{idx + 1}</span>
-                                                            <Input 
-                                                                value={opt.label} 
-                                                                onChange={(e) => updateOptionLabel(field.id, field.options, idx, e.target.value)} 
-                                                                className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 font-medium"
-                                                                placeholder="Option Label"
-                                                            />
-                                                            <Button 
-                                                                type="button"
-                                                                variant="ghost" 
-                                                                size="icon" 
-                                                                className="h-6 w-6 text-muted-foreground hover:text-destructive rounded-lg cursor-pointer shrink-0" 
-                                                                onClick={() => removeOption(field.id, field.options, idx)}
-                                                            >
-                                                                <XIcon className="size-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
+                                                    {field.options.map((opt: any, idx: number) => {
+                                                        const labelVal = typeof opt === 'string' ? opt : (opt?.label ?? '')
+                                                        return (
+                                                            <div key={idx} className="flex items-center gap-2 bg-background border border-border/60 rounded-xl p-1.5 px-3">
+                                                                <span className="text-xs font-mono font-bold text-muted-foreground">#{idx + 1}</span>
+                                                                <Input 
+                                                                    value={labelVal} 
+                                                                    onChange={(e) => updateOptionLabel(field.id, field.options || [], idx, e.target.value)} 
+                                                                    className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 font-medium"
+                                                                    placeholder="Option Label"
+                                                                />
+                                                                <Button 
+                                                                    type="button"
+                                                                    variant="ghost" 
+                                                                    size="icon" 
+                                                                    className="h-6 w-6 text-muted-foreground hover:text-destructive rounded-lg cursor-pointer shrink-0" 
+                                                                    onClick={() => removeOption(field.id, field.options || [], idx)}
+                                                                >
+                                                                    <XIcon className="size-3.5" />
+                                                                </Button>
+                                                            </div>
+                                                        )
+                                                    })}
                                                 </div>
                                             )}
                                         </div>

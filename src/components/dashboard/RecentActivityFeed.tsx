@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { History, User, Clock, CheckCircle2, ArrowUpRight, ArrowDownLeft, ShieldCheck, Wrench, Trash2 } from "lucide-react";
+import { History, User, Clock, ArrowUpRight, ArrowDownLeft, ShieldCheck, Wrench, Trash2 } from "lucide-react";
 import type { ActivityItem } from "@/services/dashboard.service";
 
 interface Props {

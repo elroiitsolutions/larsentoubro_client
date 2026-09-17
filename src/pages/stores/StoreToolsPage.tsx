@@ -23,7 +23,17 @@ import {
     SheetFooter
 } from "@/components/ui/sheet"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3 } from "lucide-react"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
@@ -33,7 +43,7 @@ import formService from "@/services/form.service"
 import { ToolFormModal } from "./ToolFormModal"
 import { VendorSelectionModal } from "./VendorSelectionModal"
 import { BulkEditToolsModal } from "./BulkEditToolsModal"
-import { QuickToolViewPage } from "./QuickToolViewPage"
+import { ToolTransferModal } from "./ToolTransferModal"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -46,8 +56,6 @@ const statusColors: Record<string, string> = {
     "Damaged": "bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400 ring-1 ring-rose-500/30 shadow-sm",
     "Expired": "bg-slate-500/15 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400 ring-1 ring-slate-500/30 shadow-sm",
 }
-
-const defaultStatuses = ["Available", "In Use", "Moving", "Missing", "Maintenance", "Damaged", "Expired"];
 
 const TOOL_COLUMNS = [
     { key: "description", label: "Description" },
@@ -88,14 +96,48 @@ const renderFieldValue = (tool: any, key: string) => {
     if (typeof val === 'object') {
         val = val.name || val.location || val.projectCode || JSON.stringify(val);
     } else if (key === 'dateOfSupply' && val) {
-        let parsedDate = new Date(val);
-        if (isNaN(parsedDate.getTime()) && typeof val === 'string' && val.includes('/')) {
-            const parts = val.split('/');
-            if (parts.length === 3) {
-                parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        let str = String(val).trim();
+        // Handle raw Excel serial numbers like "46165"
+        if (!isNaN(Number(str)) && Number(str) > 30000 && Number(str) < 100000 && !str.includes('/') && !str.includes('-')) {
+            const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+            const dateObj = new Date(excelEpoch.getTime() + Number(str) * 86400000);
+            if (!isNaN(dateObj.getTime())) {
+                const mm = dateObj.getUTCMonth() + 1;
+                const dd = dateObj.getUTCDate();
+                const yyyy = dateObj.getUTCFullYear();
+                str = `${mm}/${dd}/${yyyy}`;
             }
         }
-        val = isNaN(parsedDate.getTime()) ? val : parsedDate.toLocaleDateString();
+        
+        // Handle invalid parsed strings like "1/1/46165" where year is Excel serial number 46165
+        if (typeof str === 'string' && str.includes('/')) {
+            const parts = str.split('/');
+            if (parts.length === 3) {
+                const yearNum = Number(parts[2]);
+                if (!isNaN(yearNum) && yearNum > 30000 && yearNum < 100000) {
+                    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+                    const dateObj = new Date(excelEpoch.getTime() + yearNum * 86400000);
+                    if (!isNaN(dateObj.getTime())) {
+                        const mm = dateObj.getUTCMonth() + 1;
+                        const dd = dateObj.getUTCDate();
+                        const yyyy = dateObj.getUTCFullYear();
+                        str = `${mm}/${dd}/${yyyy}`;
+                    }
+                }
+            }
+        }
+
+        let parsedDate = new Date(str);
+        if (isNaN(parsedDate.getTime()) && typeof str === 'string' && str.includes('/')) {
+            const parts = str.split('/');
+            if (parts.length === 3) {
+                const y = parseInt(parts[2], 10);
+                if (y < 3000) {
+                    parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                }
+            }
+        }
+        val = (isNaN(parsedDate.getTime()) || parsedDate.getFullYear() > 3000) ? str : parsedDate.toLocaleDateString();
     }
     return String(val);
 };
@@ -118,7 +160,86 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [selectedToolsMap, setSelectedToolsMap] = useState<Record<string, any>>({});
     const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
     const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isSelectingAll, setIsSelectingAll] = useState(false);
+
+    // Delete Modal State
+    // Delete & Print Batch Modal State
+    const [deleteDialog, setDeleteDialog] = useState<{
+        isOpen: boolean;
+        isBulk: boolean;
+        toolId?: string;
+        toolCode?: string;
+        isPrinted?: boolean;
+    }>({
+        isOpen: false,
+        isBulk: false
+    });
+    const [deleting, setDeleting] = useState(false);
+    const [markingPrinted, setMarkingPrinted] = useState(false);
+
+    const handleSingleDelete = (tool: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDeleteDialog({
+            isOpen: true,
+            isBulk: false,
+            toolId: tool._id,
+            toolCode: tool.toolId || tool.description || 'this tool',
+            isPrinted: tool.isPrinted
+        });
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedToolIds.size === 0) return;
+        setDeleteDialog({
+            isOpen: true,
+            isBulk: true
+        });
+    };
+
+    const handleMarkPrinted = async () => {
+        if (selectedToolIds.size === 0) return;
+        setMarkingPrinted(true);
+        try {
+            const res = await toolService.markToolsAsPrinted(Array.from(selectedToolIds));
+            if (res.success) {
+                toast.success(res.message || `Marked ${selectedToolIds.size} tools as Printed`);
+                handleClearSelection();
+                fetchTools();
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || "Failed to mark tools as printed");
+        } finally {
+            setMarkingPrinted(false);
+        }
+    };
+
+    const confirmDelete = async () => {
+        setDeleting(true);
+        try {
+            if (deleteDialog.isBulk) {
+                const res = await toolService.bulkDeleteTools(Array.from(selectedToolIds), storeId);
+                if (res.success) {
+                    toast.success(res.message || `Deleted ${selectedToolIds.size} tools`);
+                    handleClearSelection();
+                    fetchTools();
+                }
+            } else if (deleteDialog.toolId) {
+                const res = await toolService.deleteTool(deleteDialog.toolId);
+                if (res.success) {
+                    toast.success(res.message || "Tool deleted successfully");
+                    fetchTools();
+                }
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || "Failed to delete tool(s)");
+        } finally {
+            setDeleting(false);
+            setDeleteDialog(prev => ({ ...prev, isOpen: false }));
+        }
+    };
 
     // Pagination and Filter States
     const [page, setPage] = useState(1);
@@ -505,6 +626,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const isStoreRestricted = Boolean(
         user &&
         user.role !== "Admin" &&
+        user.role !== "Vendor" &&
         storeId &&
         user.stores &&
         user.stores.length > 0 &&
@@ -517,6 +639,21 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
     return (
         <div className="h-full flex flex-col overflow-hidden gap-4 mx-auto w-full animate-in fade-in duration-500">
+            {/* Vendor Scope Banner */}
+            {user?.role === "Vendor" && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-300 shadow-xs">
+                    <div className="flex items-center gap-2">
+                        <Truck className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>
+                            <strong>Vendor Delivery Scope:</strong> Displaying tools explicitly assigned to <strong>{user.username || "your vendor account"}</strong> via active Delivery Challans (DC). Unassigned tools are hidden.
+                        </span>
+                    </div>
+                    <span className="font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                        {total} Assigned Tool(s)
+                    </span>
+                </div>
+            )}
+
             {/* Standard Application Layout Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 shrink-0">
                 <div>
@@ -567,6 +704,26 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
+
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-rose-600 dark:text-rose-400 hover:text-rose-700"
+                        onClick={() => navigate('/tools/trash')}
+                    >
+                        <Trash2 className="size-4 text-rose-500" />
+                        Trash / Deleted
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-amber-600 dark:text-amber-400 hover:text-amber-700"
+                        onClick={() => navigate('/tools/scrap')}
+                    >
+                        <Archive className="size-4 text-amber-500" />
+                        Scrap
+                    </Button>
 
                     <Button
                         variant="outline"
@@ -776,6 +933,10 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('status')}>
                                             <div className="flex items-center">Status {renderSortIcon('status')}</div>
                                         </th>
+                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('isPrinted')}>
+                                            <div className="flex items-center">Print Status {renderSortIcon('isPrinted')}</div>
+                                        </th>
+                                        <th className="px-6 py-4 text-center">Actions</th>
                                         {TOOL_COLUMNS.map((col) => (
                                             <th key={col.key} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(col.key)}>
                                                 <div className="flex items-center">{col.label} {renderSortIcon(col.key)}</div>
@@ -786,7 +947,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <tbody className="divide-y divide-border/40">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={19} className="px-6 py-20 text-center">
+                                            <td colSpan={20} className="px-6 py-20 text-center">
                                                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                                                     <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
                                                     <p className="text-sm font-medium animate-pulse">Loading inventory...</p>
@@ -795,18 +956,14 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         </tr>
                                     ) : tools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={19} className="px-6 py-24 text-center">
-                                                <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                                                    <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                                                        <SearchIcon className="size-8 text-muted-foreground/50" />
-                                                    </div>
-                                                    <h3 className="text-lg font-semibold text-foreground mb-1">No tools found</h3>
-                                                    <p className="text-sm text-muted-foreground text-balance">
-                                                        We couldn't find any tools matching your current filters. Try adjusting your search criteria.
-                                                    </p>
+                                            <td colSpan={20} className="px-6 py-20 text-center">
+                                                <div className="flex flex-col items-center justify-center text-muted-foreground max-w-sm mx-auto">
+                                                    <SlidersHorizontal className="size-8 text-muted-foreground/40 mb-3" />
+                                                    <p className="text-sm font-medium text-foreground">No tools found</p>
+                                                    <p className="text-xs text-muted-foreground mt-1 mb-4">Try adjusting your filters or search terms</p>
                                                     <Button
-                                                        variant="ghost"
-                                                        className="mt-6 text-primary hover:text-primary/80"
+                                                        variant="outline"
+                                                        size="sm"
                                                         onClick={() => { setSearch(""); setCategory("All"); setStatus("All"); }}
                                                     >
                                                         Clear all filters
@@ -855,6 +1012,29 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                     {t.status === "Available" && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />}
                                                     {t.status}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {t.isPrinted ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 ring-1 ring-emerald-500/30">
+                                                        <Printer className="size-3" />
+                                                        Printed
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400 ring-1 ring-slate-500/30">
+                                                        Not Printed
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg"
+                                                    onClick={(e) => handleSingleDelete(t, e)}
+                                                    title="Delete tool"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
                                             </td>
                                             {TOOL_COLUMNS.map((col) => (
                                                 <td key={col.key} className="px-6 py-4 text-foreground/80">
@@ -983,11 +1163,42 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-9 text-xs rounded-xl text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                onClick={handleMarkPrinted}
+                                disabled={markingPrinted}
+                            >
+                                {markingPrinted ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <Printer className="size-3.5 mr-1 text-emerald-600" />}
+                                Mark as Printed ({selectedToolIds.size})
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 text-xs rounded-xl text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                                onClick={() => setIsTransferModalOpen(true)}
+                            >
+                                <ArrowRightLeft className="size-3.5 mr-1" />
+                                Transfer ({selectedToolIds.size})
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 className="h-9 text-xs rounded-xl"
                                 onClick={() => setIsBulkEditModalOpen(true)}
                             >
                                 <Edit3 className="size-3.5 mr-1 text-primary" />
                                 Bulk Edit ({selectedToolIds.size})
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 text-xs rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                onClick={handleBulkDelete}
+                            >
+                                <Trash2 className="size-3.5 mr-1" />
+                                Delete Selected ({selectedToolIds.size})
                             </Button>
 
                             <Button
@@ -1042,6 +1253,53 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     fetchTools();
                 }}
             />
+
+            <ToolTransferModal
+                open={isTransferModalOpen}
+                onOpenChange={setIsTransferModalOpen}
+                sourceStoreId={storeId!}
+                selectedToolIds={Array.from(selectedToolIds)}
+                selectedTools={tools.filter(t => selectedToolIds.has(t._id))}
+                onSuccess={() => {
+                    handleClearSelection();
+                    fetchTools();
+                }}
+            />
+
+            <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => !deleting && setDeleteDialog(prev => ({ ...prev, isOpen: open }))}>
+                <AlertDialogContent className="rounded-2xl max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-rose-600">
+                            <Trash2 className="size-6 text-rose-500" />
+                            <span>Confirm Tool Deletion</span>
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
+                            {deleteDialog.isBulk ? (
+                                <>Are you sure you want to delete <strong>{selectedToolIds.size}</strong> selected tools? Unprinted tools will move to <strong>Trash</strong> (re-sequenced), while printed tools will move to <strong>Scrap</strong> (no re-sequencing).</>
+                            ) : deleteDialog.isPrinted ? (
+                                <>Are you sure you want to delete printed tool <strong className="font-mono text-foreground">{deleteDialog.toolCode}</strong>? Because this tool is marked as <strong>Printed</strong>, it will move to <strong>Scrap</strong> and active tool IDs will <strong>NOT</strong> be re-sequenced.</>
+                            ) : (
+                                <>Are you sure you want to delete tool <strong className="font-mono text-foreground">{deleteDialog.toolCode}</strong>? It will move to <strong>Trash</strong> and remaining active tool IDs will be re-sequenced.</>
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-4 border-t mt-4">
+                        <AlertDialogCancel disabled={deleting} className="rounded-xl">
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={deleting}
+                            onClick={confirmDelete}
+                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                        >
+                            {deleting ? (
+                                <Loader2 className="size-4 animate-spin mr-1.5" />
+                            ) : null}
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -11,20 +11,17 @@ import {
     RotateCcw,
     Download,
     Eye,
-    Printer,
     ArrowRight,
-    Truck,
     CheckCircle2,
     Clock,
-    XCircle,
     Loader2,
     Calendar,
     Building2,
     RefreshCw
 } from "lucide-react";
 import challanService, { type ChallanRecord } from "@/services/challan.service";
-import vendorService, { type VendorRecord } from "@/services/vendor.service";
-import userService, { type UserRecord } from "@/services/user.service";
+import vendorService from "@/services/vendor.service";
+import userService from "@/services/user.service";
 import {
     getChallanStatusBadgeClass,
     getChallanTypeBadgeClass

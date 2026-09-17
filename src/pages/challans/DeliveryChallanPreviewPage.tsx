@@ -36,9 +36,8 @@ export function DeliveryChallanPreviewPage() {
 
     // Dates & Remarks
     const [challanDate, setChallanDate] = useState(state?.challanDate || new Date().toISOString().split("T")[0]);
-    const [deliveryDate, setDeliveryDate] = useState(state?.deliveryDate || new Date().toISOString().split("T")[0]);
+
     const [remarks, setRemarks] = useState(state?.remarks || "");
-    const [notes, setNotes] = useState(state?.notes || "");
 
     // Consignee / Subcontractor & Location Details (Editable)
     const vendorCode = initialVendor.vendorCode || "V-001";
@@ -46,7 +45,6 @@ export function DeliveryChallanPreviewPage() {
     const [consigneeAddress, setConsigneeAddress] = useState(initialVendor.address || "Powai Campus, Saki Vihar Road, Mumbai");
     const [siteCode, setSiteCode] = useState(state?.siteCode || "LT003");
     const [locationChainage, setLocationChainage] = useState("Loc: 59/3 to 60/0");
-    const [workFrontLocation, setWorkFrontLocation] = useState("Tower Line Workfront");
     const [consigneeGstNo, setConsigneeGstNo] = useState(initialVendor.gstNumber || "27AAACL0140P1Z0");
 
     // Accounting & TRN Fields (Editable)
@@ -117,7 +115,6 @@ export function DeliveryChallanPreviewPage() {
         siteCode,
         vendorCode,
         locationChainage,
-        workFrontLocation,
         vendorId: initialVendor._id,
         vendor: {
             ...initialVendor,
@@ -128,7 +125,6 @@ export function DeliveryChallanPreviewPage() {
         },
         storeId,
         challanDate,
-        deliveryDate,
         trnCode,
         sendingCentreCode,
         mrNo,
@@ -147,7 +143,6 @@ export function DeliveryChallanPreviewPage() {
         receiptDate,
         docReferenceCode,
         remarks,
-        notes,
         items
     });
 

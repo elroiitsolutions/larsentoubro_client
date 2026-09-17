@@ -8,9 +8,7 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
-    SelectSeparator
-} from "@/components/ui/select"
+    SelectValue} from "@/components/ui/select"
 import projectService from "@/services/project.service";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
@@ -19,12 +17,7 @@ import {
     PlusIcon, 
     Loader2, 
     WrenchIcon, 
-    Sparkles, 
-    Layers,
-    ChevronDown, 
-    InfoIcon,
-    ArrowRightIcon
-} from "lucide-react";
+    InfoIcon} from "lucide-react";
 
 interface ToolFormModalProps {
     storeId: string;

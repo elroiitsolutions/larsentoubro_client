@@ -10,10 +10,8 @@ import {
     ChevronDown,
     Filter,
     ShieldAlert,
-    CheckCircle,
-    ArrowRight
-} from "lucide-react";
-import type { DivisionNode, ProjectNode, StoreNode } from "@/services/dashboard.service";
+    CheckCircle} from "lucide-react";
+import type { DivisionNode } from "@/services/dashboard.service";
 
 interface Props {
     hierarchyData: DivisionNode[];

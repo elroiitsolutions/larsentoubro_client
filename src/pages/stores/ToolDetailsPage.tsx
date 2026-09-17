@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
 import { toast } from "sonner";
@@ -23,7 +23,18 @@ import {
     Tag,
     Edit,
     ArrowLeft,
+    Trash2,
 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { ToolFormModal } from "./ToolFormModal";
 import { Button } from "@/components/ui/button";
@@ -32,13 +43,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function ToolDetailsPage() {
     const { storeId: paramStoreId, toolId } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
 
     const [tool, setTool] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [viewSchema, setViewSchema] = useState<any>(null);
     const [copiedId, setCopiedId] = useState(false);
     const [copiedQr, setCopiedQr] = useState(false);
+
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    const confirmDelete = async () => {
+        if (!tool?._id) return;
+        setDeleting(true);
+        try {
+            const res = await toolService.deleteTool(tool._id);
+            if (res.success) {
+                toast.success(res.message || "Tool soft-deleted successfully");
+                navigate(-1);
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || "Failed to delete tool");
+        } finally {
+            setDeleting(false);
+            setShowDeleteConfirm(false);
+        }
+    };
 
     useEffect(() => {
         const fetchToolData = async () => {
@@ -251,6 +282,15 @@ export function ToolDetailsPage() {
                             </Button>
                         }
                     />
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium cursor-pointer"
+                        onClick={() => setShowDeleteConfirm(true)}
+                    >
+                        <Trash2 className="size-3.5 text-rose-500" />
+                        Delete Tool
+                    </Button>
                     {tool.qrLink && (
                         <Button
                             variant="outline"
@@ -445,6 +485,35 @@ export function ToolDetailsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !deleting && setShowDeleteConfirm(open)}>
+                <AlertDialogContent className="rounded-2xl max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-rose-600">
+                            <Trash2 className="size-6 text-rose-500" />
+                            <span>Confirm Tool Deletion</span>
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
+                            Are you sure you want to delete tool <strong className="font-mono text-foreground">{tool.toolId}</strong> ({tool.description})? It will be moved to the Trash section and can be restored later.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-4 border-t mt-4">
+                        <AlertDialogCancel disabled={deleting} className="rounded-xl">
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={deleting}
+                            onClick={confirmDelete}
+                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                        >
+                            {deleting ? (
+                                <Loader2 className="size-4 animate-spin mr-1.5" />
+                            ) : null}
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

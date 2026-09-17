@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Truck, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Clock, ShieldCheck } from "lucide-react";
+import { Truck, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Clock } from "lucide-react";
 import type { ToolMovementData } from "@/services/dashboard.service";
 
 interface Props {

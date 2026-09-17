@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,15 +9,13 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
-    SelectSeparator
+    SelectValue
 } from "@/components/ui/select"
 import { 
     Building2, 
     User, 
     Phone, 
     Mail, 
-    CheckCircle2, 
     PlusCircle, 
     Calendar, 
     ArrowRight, 
@@ -26,7 +24,7 @@ import {
     RefreshCw, 
     Loader2
 } from "lucide-react";
-import vendorService, { type VendorRecord } from "@/services/vendor.service";
+import profileService, { type ProfileRecord, type ProfileType } from "@/services/profile.service";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -39,10 +37,11 @@ interface VendorSelectionModalProps {
 
 export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeId }: VendorSelectionModalProps) {
     const navigate = useNavigate();
-    const [vendors, setVendors] = useState<VendorRecord[]>([]);
+    const [recipientType, setRecipientType] = useState<"Subcontractor" | "ScrapDealer">("Subcontractor");
+    const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
-    const [selectedVendorDetails, setSelectedVendorDetails] = useState<VendorRecord | null>(null);
+    const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+    const [selectedProfileDetails, setSelectedProfileDetails] = useState<ProfileRecord | null>(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
 
     // Form inputs for Challan Date, Delivery Date, Remarks, Notes
@@ -51,11 +50,11 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
     const [remarks, setRemarks] = useState("");
     const [notes, setNotes] = useState("");
 
-    // Optional Quick Add Vendor state
-    const [isCreatingVendor, setIsCreatingVendor] = useState(false);
-    const [newVendor, setNewVendor] = useState({
+    // Quick Add Profile state
+    const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+    const [newProfile, setNewProfile] = useState({
         name: "",
-        vendorCode: "",
+        code: "",
         address: "",
         contactPerson: "",
         contactPhone: "",
@@ -63,43 +62,41 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
     });
     const [creatingError, setCreatingError] = useState("");
 
-    const fetchVendors = async () => {
+    const fetchProfiles = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await vendorService.getVendors({ limit: 1000 });
+            const res = await profileService.getProfiles({ profileType: recipientType, limit: 1000 });
             const list = res.data || [];
-            setVendors(list);
-            if (!selectedVendorId && list.length > 0) {
-                handleVendorChange(list[0]._id, list);
-            } else if (selectedVendorId) {
-                const found = list.find(v => v._id === selectedVendorId);
-                if (found) {
-                    setSelectedVendorDetails(found);
-                }
+            setProfiles(list);
+            if (list.length > 0) {
+                handleProfileChange(list[0]._id, list);
+            } else {
+                setSelectedProfileId(null);
+                setSelectedProfileDetails(null);
             }
         } catch (err) {
-            console.error("Error fetching vendors:", err);
-            toast.error("Failed to fetch vendor list from database");
+            console.error("Error fetching profiles:", err);
+            toast.error("Failed to fetch recipient profiles list from database");
         } finally {
             setLoading(false);
         }
-    };
+    }, [recipientType]);
 
-    const handleVendorChange = async (id: string, vendorList?: VendorRecord[]) => {
-        setSelectedVendorId(id);
-        const sourceList = vendorList || vendors;
-        const found = sourceList.find(v => v._id === id);
+    const handleProfileChange = async (id: string, profileList?: ProfileRecord[]) => {
+        setSelectedProfileId(id);
+        const sourceList = profileList || profiles;
+        const found = sourceList.find(p => p._id === id);
         if (found) {
-            setSelectedVendorDetails(found);
+            setSelectedProfileDetails(found);
         }
         try {
             setDetailsLoading(true);
-            const res = await vendorService.getVendorById(id);
+            const res = await profileService.getProfileById(id);
             if (res.data) {
-                setSelectedVendorDetails(res.data);
+                setSelectedProfileDetails(res.data);
             }
         } catch (err) {
-            console.error("Error fetching vendor details:", err);
+            console.error("Error fetching profile details:", err);
         } finally {
             setDetailsLoading(false);
         }
@@ -107,44 +104,58 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
 
     useEffect(() => {
         if (open) {
-            fetchVendors();
+            fetchProfiles();
         }
-    }, [open]);
+    }, [open, fetchProfiles]);
 
-    const handleQuickAddVendor = async (e: React.FormEvent) => {
+    const handleQuickAddProfile = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newVendor.name || !newVendor.vendorCode) {
-            setCreatingError("Vendor Name and Vendor Code are required");
+        if (!newProfile.name) {
+            setCreatingError("Name is required");
             return;
         }
         try {
             setCreatingError("");
-            const res = await vendorService.createVendor(newVendor);
-            const updatedList = [res.data, ...vendors];
-            setVendors(updatedList);
-            handleVendorChange(res.data._id, updatedList);
-            setIsCreatingVendor(false);
-            setNewVendor({ name: "", vendorCode: "", address: "", contactPerson: "", contactPhone: "", gstNumber: "" });
-            toast.success("Vendor created successfully and selected");
+            const res = await profileService.createProfile({
+                ...newProfile,
+                profileType: recipientType
+            });
+            const updatedList = [res.data, ...profiles];
+            setProfiles(updatedList);
+            handleProfileChange(res.data._id, updatedList);
+            setIsCreatingProfile(false);
+            setNewProfile({ name: "", code: "", address: "", contactPerson: "", contactPhone: "", gstNumber: "" });
+            toast.success(`${recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"} profile created and selected`);
         } catch (err: any) {
-            setCreatingError(err.message || "Failed to create vendor");
+            setCreatingError(err.message || "Failed to create profile");
         }
     };
 
     const handleProceedToPreview = () => {
-        if (!selectedVendorDetails) {
-            toast.error("Please select a destination vendor first");
+        if (!selectedProfileDetails) {
+            toast.error("Please select a destination recipient profile first");
             return;
         }
         onOpenChange(false);
+        const mappedVendorObj = {
+            _id: selectedProfileDetails._id,
+            name: selectedProfileDetails.name,
+            vendorCode: selectedProfileDetails.code,
+            code: selectedProfileDetails.code,
+            address: selectedProfileDetails.address || "",
+            gstNumber: selectedProfileDetails.gstNumber || "",
+            contactPerson: selectedProfileDetails.contactPerson || "",
+            contactPhone: selectedProfileDetails.contactPhone || ""
+        };
+
         navigate("/challans/delivery/preview", {
             state: {
                 selectedTools,
-                vendor: selectedVendorDetails,
+                vendor: mappedVendorObj,
                 storeId,
                 challanDate,
                 deliveryDate,
-                remarks,
+                remarks: remarks || `Dispatched to ${recipientType === "ScrapDealer" ? "Scrap Dealer" : "Subcontractor"} ${selectedProfileDetails.name}`,
                 notes
             }
         });
@@ -158,49 +169,77 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                         <div>
                             <DialogTitle className="text-xl font-bold flex items-center gap-2">
                                 <Building2 className="size-5 text-primary" />
-                                Create Delivery Challan - Select Vendor
+                                Create Delivery Challan - Select Recipient
                             </DialogTitle>
                             <DialogDescription className="text-sm text-muted-foreground mt-1">
-                                Choose the destination vendor and specify dispatch details for <span className="font-semibold text-foreground">{selectedTools.length} selected tool(s)</span>.
+                                Choose the destination Subcontractor or Scrap Dealer for <span className="font-semibold text-foreground">{selectedTools.length} selected tool(s)</span>.
                             </DialogDescription>
                         </div>
                         <Button
                             variant="outline"
                             size="sm"
                             className="text-xs flex items-center gap-1.5 border-primary/20 hover:border-primary/50"
-                            onClick={() => setIsCreatingVendor(!isCreatingVendor)}
+                            onClick={() => setIsCreatingProfile(!isCreatingProfile)}
                         >
                             <PlusCircle className="size-3.5 text-primary" />
-                            {isCreatingVendor ? "Cancel New Vendor" : "Add Vendor"}
+                            {isCreatingProfile ? "Cancel New Profile" : `Add ${recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"}`}
                         </Button>
                     </div>
                 </DialogHeader>
 
-                {isCreatingVendor && (
-                    <form onSubmit={handleQuickAddVendor} className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 my-2">
+                {/* Recipient Type Switcher (Subcontractor vs Scrap Dealer) */}
+                <div className="flex items-center gap-2 bg-muted p-1 rounded-xl my-2">
+                    <button
+                        type="button"
+                        onClick={() => setRecipientType("Subcontractor")}
+                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            recipientType === "Subcontractor"
+                                ? "bg-background text-foreground shadow-xs"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        <Building2 className="size-3.5 text-blue-500" />
+                        <span>Subcontractor (Vendor)</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setRecipientType("ScrapDealer")}
+                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            recipientType === "ScrapDealer"
+                                ? "bg-background text-foreground shadow-xs"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        <Building2 className="size-3.5 text-amber-500" />
+                        <span>Scrap Dealer</span>
+                    </button>
+                </div>
+
+                {isCreatingProfile && (
+                    <form onSubmit={handleQuickAddProfile} className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 my-2">
                         <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                            <PlusCircle className="size-4 text-primary" /> Quick Add New Vendor
+                            <PlusCircle className="size-4 text-primary" /> Quick Add New {recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"}
                         </h4>
                         {creatingError && <p className="text-xs text-rose-500 font-medium">{creatingError}</p>}
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <Label className="text-xs">Vendor Name *</Label>
+                                <Label className="text-xs">Firm / Name *</Label>
                                 <Input
                                     size={1}
                                     className="h-8 text-xs mt-1"
-                                    placeholder="e.g. L&T Heavy Engineering"
-                                    value={newVendor.name}
-                                    onChange={e => setNewVendor({ ...newVendor, name: e.target.value })}
+                                    placeholder="e.g. L&T Subcontractor / Metal Scrap"
+                                    value={newProfile.name}
+                                    onChange={e => setNewProfile({ ...newProfile, name: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">Vendor Code *</Label>
+                                <Label className="text-xs">Profile Code</Label>
                                 <Input
                                     size={1}
                                     className="h-8 text-xs mt-1 font-mono uppercase"
-                                    placeholder="e.g. V-LNT01"
-                                    value={newVendor.vendorCode}
-                                    onChange={e => setNewVendor({ ...newVendor, vendorCode: e.target.value })}
+                                    placeholder={recipientType === "Subcontractor" ? "e.g. SUB-0001" : "e.g. SCR-0001"}
+                                    value={newProfile.code}
+                                    onChange={e => setNewProfile({ ...newProfile, code: e.target.value })}
                                 />
                             </div>
                             <div>
@@ -209,8 +248,8 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                                     size={1}
                                     className="h-8 text-xs mt-1 font-mono"
                                     placeholder="27AAACL0140P1Z0"
-                                    value={newVendor.gstNumber}
-                                    onChange={e => setNewVendor({ ...newVendor, gstNumber: e.target.value })}
+                                    value={newProfile.gstNumber}
+                                    onChange={e => setNewProfile({ ...newProfile, gstNumber: e.target.value })}
                                 />
                             </div>
                             <div>
@@ -219,8 +258,8 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                                     size={1}
                                     className="h-8 text-xs mt-1"
                                     placeholder="e.g. Rajesh Kumar"
-                                    value={newVendor.contactPerson}
-                                    onChange={e => setNewVendor({ ...newVendor, contactPerson: e.target.value })}
+                                    value={newProfile.contactPerson}
+                                    onChange={e => setNewProfile({ ...newProfile, contactPerson: e.target.value })}
                                 />
                             </div>
                             <div className="col-span-2">
@@ -229,77 +268,77 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                                     size={1}
                                     className="h-8 text-xs mt-1"
                                     placeholder="Site / Office Address"
-                                    value={newVendor.address}
-                                    onChange={e => setNewVendor({ ...newVendor, address: e.target.value })}
+                                    value={newProfile.address}
+                                    onChange={e => setNewProfile({ ...newProfile, address: e.target.value })}
                                 />
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 pt-1">
-                            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setIsCreatingVendor(false)}>Cancel</Button>
-                            <Button type="submit" size="sm" className="h-7 text-xs">Save Vendor</Button>
+                            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setIsCreatingProfile(false)}>Cancel</Button>
+                            <Button type="submit" size="sm" className="h-7 text-xs">Save Profile</Button>
                         </div>
                     </form>
                 )}
 
-                {/* Vendor Dropdown Selection Section */}
+                {/* Profile Dropdown Selection */}
                 <div className="space-y-3 my-2">
                     <div className="flex items-center justify-between">
                         <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                             <Building2 className="size-3.5 text-primary" />
-                            Select Destination Vendor (Dynamic from Database) *
+                            Select Destination {recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"} *
                         </Label>
                         <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             className="h-6 text-xs px-2 text-muted-foreground hover:text-foreground"
-                            onClick={() => fetchVendors()}
+                            onClick={() => fetchProfiles()}
                         >
                             <RefreshCw className="size-3 mr-1" />
-                            Refresh Vendors
+                            Refresh List
                         </Button>
                     </div>
 
                     {loading ? (
                         <div className="h-10 rounded-xl border border-dashed flex items-center justify-center text-xs text-muted-foreground gap-2 bg-muted/20">
                             <Loader2 className="size-4 animate-spin text-primary" />
-                            Fetching vendor list from database...
+                            Fetching {recipientType} profiles from database...
                         </div>
                     ) : (
-                        <Select value={selectedVendorId || ""} onValueChange={(val) => handleVendorChange(val)}>
-                            <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all shadow-xs cursor-pointer">
-                                <SelectValue placeholder={`-- Select a Vendor from Database (${vendors.length} Available) --`} />
+                        <Select value={selectedProfileId || ""} onValueChange={(val: any) => handleProfileChange(val)}>
+                            <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring transition-all shadow-xs cursor-pointer">
+                                <SelectValue placeholder={`-- Select ${recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"} (${profiles.length} Available) --`} />
                             </SelectTrigger>
                             <SelectContent>
-                                {vendors.map(v => (
-                                    <SelectItem key={v._id} value={v._id}>
-                                        {v.name} ({v.vendorCode}){v.gstNumber ? ` - GST: ${v.gstNumber}` : ""}
+                                {profiles.map(p => (
+                                    <SelectItem key={p._id} value={p._id}>
+                                        {p.name} ({p.code}){p.gstNumber ? ` - GST: ${p.gstNumber}` : ""}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     )}
 
-                    {/* Automatic Vendor Details Display */}
-                    {selectedVendorDetails ? (
+                    {/* Recipient Details Display */}
+                    {selectedProfileDetails ? (
                         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3 transition-all animate-in fade-in-50 duration-200">
                             <div className="flex items-start justify-between border-b border-primary/15 pb-2.5">
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <h4 className="font-bold text-base text-foreground flex items-center gap-1.5">
-                                            {selectedVendorDetails.name}
+                                            {selectedProfileDetails.name}
                                         </h4>
                                         <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-primary/20 text-primary font-bold">
-                                            {selectedVendorDetails.vendorCode}
+                                            {selectedProfileDetails.code}
                                         </span>
                                         <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold">
-                                            {selectedVendorDetails.status || "Active"}
+                                            {selectedProfileDetails.status || "Active"}
                                         </span>
                                     </div>
-                                    {selectedVendorDetails.gstNumber && (
+                                    {selectedProfileDetails.gstNumber && (
                                         <p className="text-xs font-mono text-muted-foreground mt-1 flex items-center gap-1">
                                             <Hash className="size-3 text-primary" />
-                                            GST: <strong className="text-foreground">{selectedVendorDetails.gstNumber}</strong>
+                                            GST: <strong className="text-foreground">{selectedProfileDetails.gstNumber}</strong>
                                         </p>
                                     )}
                                 </div>
@@ -314,43 +353,27 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                             <div className="grid grid-cols-2 gap-3 text-xs">
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                     <User className="size-3.5 text-primary shrink-0" />
-                                    <span>Contact: <strong className="text-foreground">{selectedVendorDetails.contactPerson || "Not Specified"}</strong></span>
+                                    <span>Contact: <strong className="text-foreground">{selectedProfileDetails.contactPerson || "Not Specified"}</strong></span>
                                 </div>
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                     <Phone className="size-3.5 text-primary shrink-0" />
-                                    <span>Phone: <strong className="text-foreground font-mono">{selectedVendorDetails.contactPhone || "N/A"}</strong></span>
+                                    <span>Phone: <strong className="text-foreground font-mono">{selectedProfileDetails.contactPhone || "N/A"}</strong></span>
                                 </div>
-                                {selectedVendorDetails.contactEmail && (
+                                {selectedProfileDetails.contactEmail && (
                                     <div className="flex items-center gap-2 text-muted-foreground col-span-2">
                                         <Mail className="size-3.5 text-primary shrink-0" />
-                                        <span>Email: <strong className="text-foreground">{selectedVendorDetails.contactEmail}</strong></span>
+                                        <span>Email: <strong className="text-foreground">{selectedProfileDetails.contactEmail}</strong></span>
                                     </div>
                                 )}
                                 <div className="flex items-start gap-2 text-muted-foreground col-span-2">
                                     <MapPin className="size-3.5 text-primary shrink-0 mt-0.5" />
-                                    <span>Address: <strong className="text-foreground">{selectedVendorDetails.address || "No address on file"}</strong></span>
+                                    <span>Address: <strong className="text-foreground">{selectedProfileDetails.address || "No address on file"}</strong></span>
                                 </div>
                             </div>
-
-                            {selectedVendorDetails.metrics && (
-                                <div className="pt-2 border-t border-primary/15 flex items-center gap-4 text-xs">
-                                    <span className="text-muted-foreground">
-                                        Delivery Challans: <strong className="text-foreground">{selectedVendorDetails.metrics.dcCount || 0}</strong>
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        Return Challans: <strong className="text-foreground">{selectedVendorDetails.metrics.rcCount || 0}</strong>
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        Pending Tools: <strong className="text-primary">{
-                                            (selectedVendorDetails.metrics.dcCount || 0) - (selectedVendorDetails.metrics.returnedCount || 0)
-                                        }</strong>
-                                    </span>
-                                </div>
-                            )}
                         </div>
                     ) : !loading && (
                         <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
-                            Please select a vendor from the dropdown above to view details automatically.
+                            Please select a recipient profile from the dropdown above to view details.
                         </div>
                     )}
                 </div>
@@ -383,7 +406,7 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                     <div className="col-span-2">
                         <Label className="text-xs mb-1.5 block">Remarks / Dispatch Instructions</Label>
                         <Textarea
-                            placeholder="e.g. Urgent dispatch for stringing erection work at Section-B"
+                            placeholder="e.g. Dispatch for site work or scrap disposal"
                             className="text-xs min-h-[55px]"
                             value={remarks}
                             onChange={e => setRemarks(e.target.value)}
@@ -414,7 +437,7 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                             Cancel
                         </Button>
                         <Button
-                            disabled={!selectedVendorDetails || selectedTools.length === 0}
+                            disabled={!selectedProfileDetails || selectedTools.length === 0}
                             onClick={handleProceedToPreview}
                             className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 shadow-md h-9 px-4"
                         >
@@ -428,4 +451,4 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
     );
 }
 
-// VendorSelectionModal component updated - challan creation supports User table vendors
+export default VendorSelectionModal;

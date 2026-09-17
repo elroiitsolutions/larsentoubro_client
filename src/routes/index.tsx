@@ -7,6 +7,7 @@ import { DashboardPage } from "@/pages/dashboard/DashboardPage"
 import { ProjectsPage } from "@/pages/projects/ProjectsPage"
 import { StoresPage } from "@/pages/stores/StoresPage"
 import { UsersPage } from "@/pages/users/UsersPage"
+import { ProfileManagementPage } from "@/pages/profiles/ProfileManagementPage"
 import { UserAccessPage } from "@/pages/users/UserAccessPage"
 import { StoreToolsPage } from "@/pages/stores/StoreToolsPage"
 import { ImportToolsPage } from "@/pages/stores/ImportToolsPage"
@@ -23,6 +24,8 @@ import { ToolsReportPage } from "@/pages/reports/ToolsReportPage"
 
 import { AdminApprovalDashboard } from "@/pages/admin/AdminApprovalDashboard"
 import { ToolViewConfigPage } from "@/pages/settings/ToolViewConfigPage"
+import { TrashPage } from "@/pages/stores/TrashPage"
+import { ScrapPage } from "@/pages/stores/ScrapPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 
 function ProtectedRoute() {
@@ -95,6 +98,10 @@ function AppRoutes() {
                         <Route path="/stores" element={<StoresPage />} />
                         <Route path="/stores/:storeId/tools" element={<StoreToolsPage />} />
                         <Route path="/stores/:storeId/tools/import" element={<ImportToolsPage />} />
+                        <Route path="/tools/trash" element={<TrashPage />} />
+                        <Route path="/trash" element={<TrashPage />} />
+                        <Route path="/tools/scrap" element={<ScrapPage />} />
+                        <Route path="/scrap" element={<ScrapPage />} />
                         <Route path="/vt/:toolId" element={<QuickToolViewPage />} />
                         <Route path="/tooldetails/:toolId" element={<ToolDetailsPage />} />
                         <Route path="/challans/delivery/preview" element={<DeliveryChallanPreviewPage />} />
@@ -110,6 +117,11 @@ function AppRoutes() {
 
                         <Route path="/users" element={<UsersPage />} />
                         <Route path="/users/:id/access" element={<UserAccessPage />} />
+                        <Route path="/profiles" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
+                        <Route path="/vendors" element={<ProfileManagementPage />} />
                         <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/settings/forms" element={<SettingsFormManagementPage />} />

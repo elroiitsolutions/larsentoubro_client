@@ -40,7 +40,6 @@ export function BulkEditToolsModal({
     onOpenChange,
     storeId,
     selectedToolIds = [],
-    filterCriteria,
     totalCount,
     onSuccess
 }: BulkEditToolsModalProps) {

@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import challanService, { type ChallanRecord } from "@/services/challan.service";
 import { generateReturnChallanPDF } from "@/utils/pdf/challanPdfGenerator";
-import { calculateChallanSummary } from "@/utils/challan/challanCalculations";
 import { toast } from "sonner";
 
 export function ReturnChallanPreviewPage() {
@@ -99,7 +98,6 @@ export function ReturnChallanPreviewPage() {
 
     const returnedItems = items.filter(i => i.returnStatus === "Returned");
     const missingItems = items.filter(i => i.returnStatus === "Missing");
-    const summary = calculateChallanSummary(items);
 
     const handleStatusToggle = (idx: number, status: "Returned" | "Missing") => {
         const next = [...items];

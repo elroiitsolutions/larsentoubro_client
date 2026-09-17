@@ -12,6 +12,7 @@ export interface StoreRecord {
     underMaintenanceToolsCount: number;
     status: string;
     projectId?: string;
+    project?: any;
 }
 
 export interface StoresResponse {

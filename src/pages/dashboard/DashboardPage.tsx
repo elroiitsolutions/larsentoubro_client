@@ -4,11 +4,7 @@ import NoAccessPage from "../NoAccessPage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
-    Building2,
-    RefreshCw,
-    SlidersHorizontal,
-    FileText
-} from "lucide-react";
+    SlidersHorizontal} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import dashboardService from "@/services/dashboard.service";
@@ -26,7 +22,6 @@ import ToolLifeExtensionModal from "@/components/dashboard/ToolLifeExtensionModa
 export function DashboardPage() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
 
     // Executive Dashboard State
     const [dashboardData, setDashboardData] = useState<ExecutiveDashboardData | null>(null);
@@ -64,7 +59,6 @@ export function DashboardPage() {
             toast.error("Could not load dashboard metrics");
         } finally {
             setLoading(false);
-            setRefreshing(false);
         }
     }, []);
 
@@ -99,11 +93,6 @@ export function DashboardPage() {
         } else {
             toast.info(`${alert.title}: ${alert.message}`);
         }
-    };
-
-    const handleExportPDF = () => {
-        toast.info("Preparing PDF Print View for Executive Dashboard...");
-        window.print();
     };
 
     if (isRestricted) {

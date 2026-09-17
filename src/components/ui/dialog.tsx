@@ -8,7 +8,7 @@ interface DialogProps {
   className?: string
 }
 
-const DialogContext = React.createContext<{ onOpenChange: (open: boolean) => void }>({
+export const DialogContext = React.createContext<{ onOpenChange: (open: boolean) => void }>({
   onOpenChange: () => {},
 })
 

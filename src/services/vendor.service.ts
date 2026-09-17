@@ -6,10 +6,16 @@ export interface VendorRecord {
     vendorCode: string;
     address?: string;
     contactPerson?: string;
+    contactDesignation?: string;
     contactPhone?: string;
+    alternatePhone?: string;
     contactEmail?: string;
     gstNumber?: string;
     status: 'Active' | 'Inactive';
+    projects?: any[];
+    stores?: any[];
+    allowedPages?: string[];
+    password?: string;
     metrics?: {
         dcCount: number;
         rcCount: number;

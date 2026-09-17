@@ -8,9 +8,7 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
-    SelectSeparator
-} from "@/components/ui/select"
+    SelectValue} from "@/components/ui/select"
 
 export function DynamicField({ field }: { field: FormField }) {
   const { control, formState: { errors } } = useFormContext();

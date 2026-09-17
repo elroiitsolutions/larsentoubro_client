@@ -108,7 +108,7 @@ export const DashboardFilterBar: React.FC<Props> = ({
                     </Label>
                     <Select
                         value={filters.division || "All"}
-                        onValueChange={(val) => {
+                        onValueChange={(val: any) => {
                             onChangeFilter("division", val);
                             onChangeFilter("project", "All");
                             onChangeFilter("store", "All");
@@ -136,7 +136,7 @@ export const DashboardFilterBar: React.FC<Props> = ({
                     </Label>
                     <Select
                         value={filters.project || "All"}
-                        onValueChange={(val) => {
+                        onValueChange={(val: any) => {
                             onChangeFilter("project", val);
                             onChangeFilter("store", "All");
                             onChangeFilter("hub", "All");
@@ -163,7 +163,7 @@ export const DashboardFilterBar: React.FC<Props> = ({
                     </Label>
                     <Select
                         value={filters.store || "All"}
-                        onValueChange={(val) => onChangeFilter("store", val)}
+                        onValueChange={(val: any) => onChangeFilter("store", val)}
                     >
                         <SelectTrigger className="h-8 text-xs rounded-xl bg-background/80">
                             <SelectValue placeholder="All Stores" />
@@ -188,7 +188,7 @@ export const DashboardFilterBar: React.FC<Props> = ({
                     </Label>
                     <Select
                         value={filters.hub || "All"}
-                        onValueChange={(val) => onChangeFilter("hub", val)}
+                        onValueChange={(val: any) => onChangeFilter("hub", val)}
                     >
                         <SelectTrigger className="h-8 text-xs rounded-xl bg-background/80">
                             <SelectValue placeholder="All HUBs" />
@@ -213,7 +213,7 @@ export const DashboardFilterBar: React.FC<Props> = ({
                     </Label>
                     <Select
                         value={filters.category || "All"}
-                        onValueChange={(val) => onChangeFilter("category", val)}
+                        onValueChange={(val: any) => onChangeFilter("category", val)}
                     >
                         <SelectTrigger className="h-8 text-xs rounded-xl bg-background/80">
                             <SelectValue placeholder="All Categories" />
@@ -236,7 +236,7 @@ export const DashboardFilterBar: React.FC<Props> = ({
                     </Label>
                     <Select
                         value={filters.status || "All"}
-                        onValueChange={(val) => onChangeFilter("status", val)}
+                        onValueChange={(val: any) => onChangeFilter("status", val)}
                     >
                         <SelectTrigger className="h-8 text-xs rounded-xl bg-background/80">
                             <SelectValue placeholder="All Statuses" />

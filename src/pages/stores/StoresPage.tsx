@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon, EditIcon, TrashIcon, Loader2, CheckCircle2Icon, ShieldAlertIcon } from "lucide-react"
+import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon, EditIcon, TrashIcon, Loader2, ShieldAlertIcon } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useParams, useNavigate, Navigate } from "react-router-dom"
 import { DynamicFormSheet } from "@/components/DynamicFormSheet"
@@ -54,7 +54,7 @@ export function StoresPage() {
     });
 
     const assignedProjectIds = (user?.projects || []).map((p: any) => typeof p === 'object' ? p._id : p);
-    const isProjectRestricted = Boolean(user && user.role !== "Admin" && projectId && !assignedProjectIds.includes(projectId));
+    const isProjectRestricted = Boolean(user && user.role !== "Admin" && user.role !== "Vendor" && projectId && !assignedProjectIds.includes(projectId));
 
     const fetchStores = async () => {
         if (isProjectRestricted) {
@@ -304,7 +304,9 @@ export function StoresPage() {
             <ConfirmDialog
                 isOpen={!!deletingStore}
                 onClose={() => setDeletingStore(null)}
-                onConfirm={() => deletingStore && handleDeleteStore(deletingStore.id)}
+                onConfirm={async () => {
+                    if (deletingStore) await handleDeleteStore(deletingStore.id);
+                }}
                 title="Delete Store"
                 description={`Are you sure you want to delete "${deletingStore?.name || "this store"}"? This action cannot be undone.`}
                 confirmText="Delete Store"

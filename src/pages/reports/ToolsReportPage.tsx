@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +27,6 @@ import vendorService, { type VendorRecord } from "@/services/vendor.service";
 import { toast } from "sonner";
 
 export function ToolsReportPage() {
-    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [exporting, setExporting] = useState<"excel" | "csv" | null>(null);
 

@@ -40,7 +40,7 @@ export function LoginForm({
     setLoading(true)
 
     try {
-      const data = await authService.login({ email, password })
+      const data : any = await authService.login({ email, password })
 
       if (data.requestId || data.data?.requestId || data.message?.includes("Waiting for administrator")) {
         const reqId = data.requestId || data.data?.requestId

@@ -72,6 +72,7 @@ export function ProjectsPage() {
     const isRestricted = Boolean(
         user &&
         user.role !== "Admin" &&
+        user.role !== "Vendor" &&
         (!user.allowedPages || !user.allowedPages.includes("/projects"))
     );
 

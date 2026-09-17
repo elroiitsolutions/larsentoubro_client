@@ -33,6 +33,16 @@ export interface ToolRecord {
     category?: string;
     serialNumber?: string;
     condition?: string;
+    isDeleted?: boolean;
+    deletedAt?: string;
+    deletedBy?: any;
+    isPrinted?: boolean;
+    printedAt?: string;
+    printedBy?: any;
+    isScrapped?: boolean;
+    scrappedAt?: string;
+    scrappedBy?: any;
+    scrapReason?: string;
 }
 
 export interface ToolListResponse {
@@ -127,6 +137,89 @@ export const toolService = {
     getToolById: async (toolId: string): Promise<ToolDetailResponse> => {
         const url = `/api/tools/${encodeURIComponent(toolId)}`;
         const response = await api.get<ToolDetailResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Soft deletes an existing tool by ID.
+     */
+    deleteTool: async (toolId: string): Promise<ToolMutationResponse> => {
+        const url = `/api/tools/${encodeURIComponent(toolId)}`;
+        const response = await api.delete<ToolMutationResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Soft deletes multiple tools by ID list.
+     */
+    bulkDeleteTools: async (toolIds: string[], storeId?: string): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = storeId ? `/api/stores/${storeId}/tools/bulk-delete` : `/api/tools/bulk-delete`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
+     * Marks selected tools as Printed.
+     */
+    markToolsAsPrinted: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/tools/mark-printed`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
+     * Retrieves scrapped printed tools from Scrap section.
+     */
+    getScrappedTools: async (queryParams?: Record<string, string>): Promise<ToolListResponse> => {
+        const query = new URLSearchParams(queryParams || {});
+        const url = `/api/tools/scrap?${query.toString()}`;
+        const response = await api.get<ToolListResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Retrieves soft-deleted tools from Trash.
+     */
+    getDeletedTools: async (queryParams?: Record<string, string>): Promise<ToolListResponse> => {
+        const query = new URLSearchParams(queryParams || {});
+        const url = `/api/tools/trash?${query.toString()}`;
+        const response = await api.get<ToolListResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Restores a soft-deleted tool by ID.
+     */
+    restoreTool: async (toolId: string): Promise<ToolMutationResponse> => {
+        const url = `/api/tools/${encodeURIComponent(toolId)}/restore`;
+        const response = await api.post<ToolMutationResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Restores multiple soft-deleted tools.
+     */
+    bulkRestoreTools: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/tools/bulk-restore`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
+     * Permanently deletes a tool by ID (Admin only).
+     */
+    permanentDeleteTool: async (toolId: string): Promise<ToolMutationResponse> => {
+        const url = `/api/tools/${encodeURIComponent(toolId)}/permanent`;
+        const response = await api.delete<ToolMutationResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Permanently deletes multiple tools (Admin only).
+     */
+    bulkPermanentDeleteTools: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/tools/bulk-permanent-delete`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
         return response.data;
     },
 
@@ -235,6 +328,17 @@ export const toolService = {
         }
     ): Promise<{ success: boolean; message?: string; data?: any }> => {
         const url = storeId ? `/api/stores/${storeId}/tools/bulk-edit` : `/api/tools/bulk-edit`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, payload);
+        return response.data;
+    },
+
+    transferTools: async (payload: {
+        sourceStoreId: string;
+        destinationStoreId: string;
+        toolIds: string[];
+        remarks?: string;
+    }): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/stores/${payload.sourceStoreId}/tools/transfer`;
         const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, payload);
         return response.data;
     },

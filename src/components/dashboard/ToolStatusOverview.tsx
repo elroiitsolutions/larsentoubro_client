@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { PieChart, BarChart3, Activity } from "lucide-react";
+import { PieChart, Activity } from "lucide-react";
 import type { StatusDistributionItem } from "@/services/dashboard.service";
 
 interface Props {

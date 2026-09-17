@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react"
-import { ShieldCheck, Clock, XCircle, ArrowLeft, RefreshCw } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ShieldCheck, Clock, XCircle, ArrowLeft } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import api from "@/lib/axios"

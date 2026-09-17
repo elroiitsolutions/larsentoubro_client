@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-    ArrowLeftIcon,
     SaveIcon,
     Wrench,
     Sliders
@@ -11,7 +10,7 @@ import { toast } from "sonner"
 import formService from "@/services/form.service"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useLocation } from "react-router-dom"
 
 function ToggleSwitch({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (val: boolean) => void }) {
     return (
@@ -35,7 +34,6 @@ function ToggleSwitch({ checked, onCheckedChange }: { checked: boolean; onChecke
 
 export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'details' }) {
     const { user } = useAuth()
-    const navigate = useNavigate()
     const location = useLocation()
 
     // Determine mode from prop or URL
@@ -51,7 +49,6 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [fields, setFields] = useState<any[]>([])
-    const [activeTab, setActiveTab] = useState<string>("all")
 
     const isRestricted = Boolean(
         user &&
@@ -168,9 +165,7 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
         }
     }
 
-    const filteredFields = activeTab === "all" 
-        ? fields 
-        : fields.filter(f => f.category === activeTab)
+    const filteredFields = fields
 
     return (
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full py-4 px-2 sm:px-6">

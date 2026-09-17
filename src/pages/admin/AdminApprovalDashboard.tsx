@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react"
-import { ShieldCheck, Check, X, Bell, Activity, Clock, UserCheck, RefreshCw } from "lucide-react"
+import { useEffect, useState, useCallback } from "react"
+import { ShieldCheck, Check, X, Bell, Activity, Clock, RefreshCw, UserCheck } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"

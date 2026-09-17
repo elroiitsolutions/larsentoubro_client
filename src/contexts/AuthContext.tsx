@@ -8,6 +8,7 @@ export interface User {
     user_id: string
     email: string
     id: string
+    isVendor?: boolean
     allowedPages?: string[]
     projects?: any[]
     stores?: any[]
@@ -37,13 +38,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await userService.getCurrentUser()
             if (res.success && res.data) {
                 const u = res.data
+                const isVendorRole = u.role === 'Vendor' || Boolean(u.isVendor)
                 setUser({
                     username: u.name,
-                    role: u.role,
-                    user_id: u.user_id,
+                    role: u.role || 'User',
+                    user_id: u.user_id || u.vendorCode || u._id,
                     email: u.email,
                     id: u._id,
-                    allowedPages: u.allowedPages || ["/dashboard", "/projects", "/stores"],
+                    isVendor: isVendorRole,
+                    allowedPages: u.allowedPages || (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]),
                     projects: u.projects || [],
                     stores: u.stores || []
                 })
@@ -54,21 +57,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     React.useEffect(() => {
-        const storedToken = getCookie("token")
+        const storedToken = getCookie("token") || localStorage.getItem("token")
         const username = getCookie("username")
         const role = getCookie("role")
         const userId = getCookie("user_id")
         const email = getCookie("email")
         const id = getCookie("id")
 
-        if (storedToken && username && role && userId && email && id) {
+        if (storedToken && username && role && email && id) {
+            const isVendorRole = role === 'Vendor'
             setUser({
                 username,
                 role,
-                user_id: userId,
+                user_id: userId || id,
                 email,
                 id,
-                allowedPages: ["/dashboard", "/projects", "/stores"],
+                isVendor: isVendorRole,
+                allowedPages: isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"],
                 projects: [],
                 stores: []
             })
@@ -83,21 +88,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         jwtToken: string,
         userData: any
     ) => {
+        const isVendorRole = userData.role === 'Vendor' || Boolean(userData.isVendor)
+        const userIdVal = userData.user_id || userData.vendorCode || userData._id || userData.id
+
         setCookie("token", jwtToken, 7)
         localStorage.setItem("token", jwtToken)
         setCookie("username", userData.name || userData.username, 7)
-        setCookie("role", userData.role, 7)
-        setCookie("user_id", userData.user_id, 7)
+        setCookie("role", userData.role || 'User', 7)
+        setCookie("user_id", userIdVal, 7)
         setCookie("email", userData.email, 7)
         setCookie("id", userData._id || userData.id, 7)
 
         setUser({
             username: userData.name || userData.username,
-            role: userData.role,
-            user_id: userData.user_id,
+            role: userData.role || 'User',
+            user_id: userIdVal,
             email: userData.email,
             id: userData._id || userData.id,
-            allowedPages: userData.allowedPages || ["/dashboard", "/projects", "/stores"],
+            isVendor: isVendorRole,
+            allowedPages: userData.allowedPages || (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]),
             projects: userData.projects || [],
             stores: userData.stores || []
         })
