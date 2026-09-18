@@ -1,3 +1,5 @@
+import { LNT_LOGO_BASE64 } from "@/assets/logoBase64";
+
 declare global {
     interface Window {
         jspdf: any;
@@ -77,13 +79,17 @@ export interface ChallanPdfOptions {
 const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // L&T Logo Box
-    doc.setFillColor(14, 76, 146); // L&T Navy Blue
-    doc.roundedRect(14, 10, 35, 10, 1.5, 1.5, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('L&T Construction', 18, 16.5);
+    // L&T Logo
+    try {
+        doc.addImage(LNT_LOGO_BASE64, 'PNG', 14, 7, 16, 16);
+    } catch (e) {
+        doc.setFillColor(14, 76, 146); // L&T Navy Blue
+        doc.roundedRect(14, 10, 35, 10, 1.5, 1.5, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('L&T Construction', 18, 16.5);
+    }
 
     // Main Company Title
     doc.setTextColor(0, 0, 0);

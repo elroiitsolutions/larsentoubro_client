@@ -33,7 +33,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft } from "lucide-react"
+import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, Check } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
@@ -75,6 +75,8 @@ const TOOL_COLUMNS = [
     { key: "validation", label: "Validation" },
     { key: "toolCode", label: "Item Code" }
 ];
+
+const PAGE_SIZE_OPTIONS = [15, 30, 50, 70, 100];
 
 const renderFieldValue = (tool: any, key: string) => {
     let val: any = undefined;
@@ -243,7 +245,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
     // Pagination and Filter States
     const [page, setPage] = useState(1);
-    const [limit] = useState(10);
+    const [limit, setLimit] = useState(15);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
@@ -887,6 +889,50 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     </SheetFooter>
                                 </SheetContent>
                             </Sheet>
+
+                            {/* Rows per page dropdown right after Advanced Filter */}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-xs text-muted-foreground font-medium whitespace-nowrap hidden sm:inline">
+                                    Rows per page
+                                </span>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        render={
+                                            <button
+                                                type="button"
+                                                className="h-10 px-3 rounded-xl border border-border/80 bg-background/50 hover:bg-background text-foreground text-xs font-bold flex items-center justify-between gap-1.5 transition-all cursor-pointer shadow-sm focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
+                                                title="Rows per page"
+                                            />
+                                        }
+                                    >
+                                        <span className="sm:hidden text-muted-foreground font-normal text-xs mr-0.5">Rows:</span>
+                                        <span>{limit}</span>
+                                        <ChevronDown className="size-3.5 text-muted-foreground stroke-[2.2]" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-28 min-w-[7rem] p-1 rounded-xl shadow-lg border border-border bg-popover z-50">
+                                        {PAGE_SIZE_OPTIONS.map((size) => {
+                                            const isSelected = limit === size;
+                                            return (
+                                                <DropdownMenuItem
+                                                    key={size}
+                                                    onClick={() => {
+                                                        setLimit(size);
+                                                        setPage(1);
+                                                    }}
+                                                    className={`flex items-center justify-between px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                                                        isSelected
+                                                            ? "bg-muted/80 text-foreground font-bold"
+                                                            : "text-foreground/80 hover:bg-muted hover:text-foreground"
+                                                    }`}
+                                                >
+                                                    <span>{size}</span>
+                                                    {isSelected && <Check className="size-3.5 text-foreground/80 stroke-[2.5]" />}
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
 
                             {activeFilterCount > 0 && (
                                 <Button

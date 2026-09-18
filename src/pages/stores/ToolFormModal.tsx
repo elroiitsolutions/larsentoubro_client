@@ -142,7 +142,13 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
                     <div className="relative">
                         <Select name={field.name} defaultValue={defaultValue?._id || defaultValue || ""}>
                             <SelectTrigger className="flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer font-medium">
-                                <SelectValue placeholder="Select Project Site..." />
+                                <SelectValue placeholder="Select Project Site...">
+                                    {(val: any) => {
+                                        if (!val) return null;
+                                        const proj = projects.find(p => p._id === val);
+                                        return proj ? proj.name : val;
+                                    }}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {projects.map((p) => (
@@ -163,7 +169,13 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
                     <div className="relative">
                         <Select name={field.name} defaultValue={defaultValue || ""}>
                             <SelectTrigger className="flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer font-medium">
-                                <SelectValue placeholder={`Select ${field.label}...`} />
+                                <SelectValue placeholder={`Select ${field.label}...`}>
+                                    {(val: any) => {
+                                        if (!val) return null;
+                                        const opt = field.options?.find((o: any) => o.value === val);
+                                        return opt ? opt.label : val;
+                                    }}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {field.options?.map((opt: any) => (

@@ -307,7 +307,15 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                     ) : (
                         <Select value={selectedProfileId || ""} onValueChange={(val: any) => handleProfileChange(val)}>
                             <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring transition-all shadow-xs cursor-pointer truncate">
-                                <SelectValue placeholder={`-- Select ${recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"} (${profiles.length} Available) --`} />
+                                <SelectValue placeholder={`-- Select ${recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"} (${profiles.length} Available) --`}>
+                                    {(val: any) => {
+                                        if (!val) return null;
+                                        const p = profiles.find(item => item._id === val) || (selectedProfileDetails?._id === val ? selectedProfileDetails : null);
+                                        return p 
+                                            ? `${p.name} (${p.code})${p.gstNumber ? ` - GST: ${p.gstNumber}` : ""}`
+                                            : val;
+                                    }}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {profiles.map(p => (

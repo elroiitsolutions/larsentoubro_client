@@ -24,6 +24,7 @@ import challanService from "@/services/challan.service";
 import { generateDeliveryChallanPDF, formatDateDDMMYYYY, formatDCNumber } from "@/utils/pdf/challanPdfGenerator";
 import { calculateChallanSummary } from "@/utils/challan/challanCalculations";
 import { toast } from "sonner";
+import logoUrl from "@/assets/logo.png";
 
 export function DeliveryChallanPreviewPage() {
     const location = useLocation();
@@ -289,12 +290,10 @@ export function DeliveryChallanPreviewPage() {
             <div className="w-full overflow-x-auto pb-4">
                 <div className="min-w-[760px] lg:min-w-0 bg-white text-black p-4 sm:p-8 rounded-2xl border-2 border-slate-900 shadow-xl font-sans max-w-5xl mx-auto w-full space-y-0 text-xs">
                 
-                {/* L&T Top Header (Static Title & Division) */}
+                {/* L&T Top Header (Static Title & Logo) */}
                 <div className="text-center space-y-1 pb-4">
                     <div className="flex items-center justify-start">
-                        <div className="bg-[#0e4c92] text-white px-3 py-1.5 rounded font-bold text-xs tracking-wider inline-block">
-                            {companyDivision}
-                        </div>
+                        <img src={logoUrl} alt="L&T Logo" className="h-12 w-12 sm:h-14 sm:w-14 object-contain" />
                     </div>
                     <h2 className="text-lg sm:text-xl font-black text-black uppercase tracking-tight text-center font-serif">
                         {companyName}
