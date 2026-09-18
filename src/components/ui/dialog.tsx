@@ -1,5 +1,6 @@
 import * as React from "react"
 import { X } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface DialogProps {
   open: boolean
@@ -41,7 +42,10 @@ export function DialogContent({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className={`relative z-50 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden border border-border/80 bg-background shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200 ${className}`}
+      className={cn(
+        "relative z-50 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden border border-border/80 bg-background shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200",
+        className
+      )}
     >
       {children}
       {!hideClose && (
@@ -59,17 +63,17 @@ export function DialogContent({
 }
 
 export function DialogHeader({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`flex flex-col space-y-1 text-left ${className}`}>{children}</div>
+  return <div className={cn("flex flex-col space-y-1 text-left", className)}>{children}</div>
 }
 
 export function DialogTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <h2 className={`text-lg font-bold leading-none tracking-tight text-foreground ${className}`}>{children}</h2>
+  return <h2 className={cn("text-lg font-bold leading-none tracking-tight text-foreground", className)}>{children}</h2>
 }
 
 export function DialogDescription({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <p className={`text-xs text-muted-foreground ${className}`}>{children}</p>
+  return <p className={cn("text-xs text-muted-foreground", className)}>{children}</p>
 }
 
 export function DialogFooter({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`flex items-center justify-end gap-2 ${className}`}>{children}</div>
+  return <div className={cn("flex items-center justify-end gap-2", className)}>{children}</div>
 }

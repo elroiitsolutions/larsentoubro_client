@@ -16,6 +16,7 @@ import {
 import challanService, { type ChallanRecord } from "@/services/challan.service";
 import { generateReturnChallanPDF } from "@/utils/pdf/challanPdfGenerator";
 import { toast } from "sonner";
+import logoUrl from "@/assets/logo.png";
 
 export function ReturnChallanPreviewPage() {
     const { dcId } = useParams<{ dcId: string }>();
@@ -23,7 +24,7 @@ export function ReturnChallanPreviewPage() {
     const navigate = useNavigate();
     const state = location.state as any;
 
-    const [dc, setDc] = useState<ChallanRecord | null>(state?.referenceDc || null);
+    const [dc, setDc] = useState<ChallanRecord | null>(state?.referenceDc ||  null);
     const [loading, setLoading] = useState(!dc);
 
     const [challanDate, setChallanDate] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -162,9 +163,10 @@ export function ReturnChallanPreviewPage() {
                         <ArrowLeft className="size-5" />
                     </Button>
                     <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
+                            <img src={logoUrl} alt="L&T Logo" className="size-8 object-contain shrink-0" />
                             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                                <RotateCcw className="size-6 text-primary" />
+                                <RotateCcw className="size-5 text-primary" />
                                 Review & Create Return Challan (RC)
                             </h1>
                             <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">

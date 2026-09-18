@@ -33,7 +33,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft } from "lucide-react"
+import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, Check } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
@@ -75,6 +75,8 @@ const TOOL_COLUMNS = [
     { key: "validation", label: "Validation" },
     { key: "toolCode", label: "Item Code" }
 ];
+
+const PAGE_SIZE_OPTIONS = [15, 30, 50, 70, 100];
 
 const renderFieldValue = (tool: any, key: string) => {
     let val: any = undefined;
@@ -243,7 +245,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
     // Pagination and Filter States
     const [page, setPage] = useState(1);
-    const [limit] = useState(10);
+    const [limit, setLimit] = useState(15);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
@@ -888,6 +890,50 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 </SheetContent>
                             </Sheet>
 
+                            {/* Rows per page dropdown right after Advanced Filter */}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-xs text-muted-foreground font-medium whitespace-nowrap hidden sm:inline">
+                                    Rows per page
+                                </span>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        render={
+                                            <button
+                                                type="button"
+                                                className="h-10 px-3 rounded-xl border border-border/80 bg-background/50 hover:bg-background text-foreground text-xs font-bold flex items-center justify-between gap-1.5 transition-all cursor-pointer shadow-sm focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
+                                                title="Rows per page"
+                                            />
+                                        }
+                                    >
+                                        <span className="sm:hidden text-muted-foreground font-normal text-xs mr-0.5">Rows:</span>
+                                        <span>{limit}</span>
+                                        <ChevronDown className="size-3.5 text-muted-foreground stroke-[2.2]" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-28 min-w-[7rem] p-1 rounded-xl shadow-lg border border-border bg-popover z-50">
+                                        {PAGE_SIZE_OPTIONS.map((size) => {
+                                            const isSelected = limit === size;
+                                            return (
+                                                <DropdownMenuItem
+                                                    key={size}
+                                                    onClick={() => {
+                                                        setLimit(size);
+                                                        setPage(1);
+                                                    }}
+                                                    className={`flex items-center justify-between px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                                                        isSelected
+                                                            ? "bg-muted/80 text-foreground font-bold"
+                                                            : "text-foreground/80 hover:bg-muted hover:text-foreground"
+                                                    }`}
+                                                >
+                                                    <span>{size}</span>
+                                                    {isSelected && <Check className="size-3.5 text-foreground/80 stroke-[2.5]" />}
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+
                             {activeFilterCount > 0 && (
                                 <Button
                                     variant="ghost"
@@ -1141,25 +1187,113 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
             {/* Floating Bulk Selection Banner */}
             {selectedToolIds.size > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300">
-                    <div className="flex items-center gap-4 bg-card/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-border shadow-2xl ring-1 ring-primary/20">
-                        <div className="flex items-center gap-2.5">
-                            <div className="size-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-sm">
-                                {selectedToolIds.size}
+                <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300 w-[calc(100%-1.25rem)] max-w-xl sm:w-auto sm:max-w-none">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-4 bg-card/95 backdrop-blur-md p-3 sm:px-5 sm:py-3 rounded-2xl border border-border shadow-2xl ring-1 ring-primary/20 w-full">
+                        {/* Header info row */}
+                        <div className="flex items-center justify-between sm:justify-start gap-2.5">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="size-7 sm:size-8 rounded-lg sm:rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-xs sm:text-sm shrink-0">
+                                    {selectedToolIds.size}
+                                </div>
+                                <div className="min-w-0">
+                                    <h4 className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                                        <span className="sm:hidden">{selectedToolIds.size} Tool{selectedToolIds.size > 1 ? 's' : ''} Selected</span>
+                                        <span className="hidden sm:inline">Selected Tools: {selectedToolIds.size}</span>
+                                    </h4>
+                                    <p className="hidden sm:block text-xs text-muted-foreground truncate">
+                                        {isAllFilteredSelected ? "All filtered tools selected" : "Custom inventory selection"}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-foreground">
-                                    Selected Tools: {selectedToolIds.size}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                    {isAllFilteredSelected ? "All filtered tools selected" : "Custom inventory selection"}
-                                </p>
+
+                            {/* Mobile-only Clear button in header */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="sm:hidden h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg shrink-0 gap-1"
+                                onClick={handleClearSelection}
+                            >
+                                <X className="size-3.5" />
+                                <span>Clear</span>
+                            </Button>
+                        </div>
+
+                        <div className="hidden sm:block h-6 w-px bg-border/60 shrink-0" />
+
+                        {/* Mobile Actions: Primary CTA + Grid of secondary actions */}
+                        <div className="flex flex-col gap-2 sm:hidden w-full">
+                            {/* Primary Mobile Action: Delivery Challan */}
+                            {Object.values(selectedToolsMap).some(t => t.status === "Moving") ? (
+                                <Button
+                                    size="sm"
+                                    disabled
+                                    className="w-full h-9 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-1.5 cursor-not-allowed opacity-80"
+                                >
+                                    <Truck className="size-3.5 opacity-50" />
+                                    <span>Already Moving</span>
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    className="w-full h-9 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center justify-center gap-1.5 font-semibold"
+                                    onClick={() => setIsVendorModalOpen(true)}
+                                >
+                                    <Truck className="size-3.5" />
+                                    <span>Create Delivery Challan</span>
+                                </Button>
+                            )}
+
+                            {/* 4 Secondary Action Buttons Grid on Mobile */}
+                            <div className="grid grid-cols-4 gap-1.5 w-full">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center justify-center gap-1"
+                                    onClick={handleMarkPrinted}
+                                    disabled={markingPrinted}
+                                    title="Mark as Printed"
+                                >
+                                    {markingPrinted ? <Loader2 className="size-3 animate-spin shrink-0" /> : <Printer className="size-3 text-emerald-600 shrink-0" />}
+                                    <span className="truncate">Print</span>
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 flex items-center justify-center gap-1"
+                                    onClick={() => setIsTransferModalOpen(true)}
+                                    title="Transfer Tools"
+                                >
+                                    <ArrowRightLeft className="size-3 shrink-0" />
+                                    <span className="truncate">Transfer</span>
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-1 text-[11px] font-medium rounded-xl flex items-center justify-center gap-1 border-border/80"
+                                    onClick={() => setIsBulkEditModalOpen(true)}
+                                    title="Bulk Edit"
+                                >
+                                    <Edit3 className="size-3 text-primary shrink-0" />
+                                    <span className="truncate">Edit</span>
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center gap-1"
+                                    onClick={handleBulkDelete}
+                                    title="Delete Selected"
+                                >
+                                    <Trash2 className="size-3 shrink-0" />
+                                    <span className="truncate">Delete</span>
+                                </Button>
                             </div>
                         </div>
 
-                        <div className="h-6 w-px bg-border/60" />
-
-                        <div className="flex items-center gap-2">
+                        {/* Desktop Actions Row (Unchanged from original layout) */}
+                        <div className="hidden sm:flex items-center gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -1227,7 +1361,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     onClick={() => setIsVendorModalOpen(true)}
                                 >
                                     <Truck className="size-3.5" />
-                                    <span>Create Delivery Challan</span>
+                                    <span>Sub Contractor</span>
                                 </Button>
                             )}
                         </div>
