@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 
 import { SidebarLayout } from "@/layouts/SidebarLayout"
@@ -7,16 +7,25 @@ import { DashboardPage } from "@/pages/dashboard/DashboardPage"
 import { ProjectsPage } from "@/pages/projects/ProjectsPage"
 import { StoresPage } from "@/pages/stores/StoresPage"
 import { UsersPage } from "@/pages/users/UsersPage"
+import { ProfileManagementPage } from "@/pages/profiles/ProfileManagementPage"
 import { UserAccessPage } from "@/pages/users/UserAccessPage"
 import { StoreToolsPage } from "@/pages/stores/StoreToolsPage"
 import { ImportToolsPage } from "@/pages/stores/ImportToolsPage"
+import { QuickToolViewPage } from "@/pages/stores/QuickToolViewPage"
 import { ToolDetailsPage } from "@/pages/stores/ToolDetailsPage"
 import { SettingsPage } from "@/pages/settings/SettingsPage"
 import { SettingsFormManagementPage } from "@/pages/settings/SettingsFormManagementPage"
 import { DeliveryChallanPreviewPage } from "@/pages/challans/DeliveryChallanPreviewPage"
 import { ChallanHistoryPage } from "@/pages/challans/ChallanHistoryPage"
 import { ReturnChallanPreviewPage } from "@/pages/challans/ReturnChallanPreviewPage"
-import { ReportsPage } from "@/pages/reports/ReportsPage"
+
+// Tools Report Import
+import { ToolsReportPage } from "@/pages/reports/ToolsReportPage"
+
+import { AdminApprovalDashboard } from "@/pages/admin/AdminApprovalDashboard"
+import { ToolViewConfigPage } from "@/pages/settings/ToolViewConfigPage"
+import { TrashPage } from "@/pages/stores/TrashPage"
+import { ScrapPage } from "@/pages/stores/ScrapPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 
 function ProtectedRoute() {
@@ -32,6 +41,24 @@ function ProtectedRoute() {
 
     if (!user) {
         return <Navigate to="/login" replace />
+    }
+
+    return <Outlet />
+}
+
+function AdminRoute() {
+    const { user, loading } = useAuth()
+
+    if (loading) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center bg-background">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        )
+    }
+
+    if (!user || user.role !== "Admin") {
+        return <Navigate to="/dashboard" replace />
     }
 
     return <Outlet />
@@ -66,16 +93,20 @@ function IndexRedirect() {
     return <Navigate to="/dashboard" replace />
 }
 
-export function AppRouter() {
+function AppRoutes() {
+    const location = useLocation()
+    const state = location.state as { backgroundLocation?: Location }
+    const backgroundLocation = state?.backgroundLocation
+
     return (
-        <BrowserRouter>
-            <Routes>
+        <>
+            <Routes location={backgroundLocation || location}>
                 {/* Public routes - only allowed if not logged in */}
                 <Route element={<PublicRoute />}>
                     <Route path="/login" element={<LoginPage />} />
                 </Route>
 
-                {/* Protected routes - only allowed if logged in */}
+                {/* Protected routes */}
                 <Route element={<ProtectedRoute />}>
                     <Route element={<SidebarLayout />}>
                         <Route index element={<IndexRedirect />} />
@@ -85,25 +116,58 @@ export function AppRouter() {
                         <Route path="/stores" element={<StoresPage />} />
                         <Route path="/stores/:storeId/tools" element={<StoreToolsPage />} />
                         <Route path="/stores/:storeId/tools/import" element={<ImportToolsPage />} />
-                        <Route path="/vt/:toolId" element={<ToolDetailsPage />} />
+                        <Route path="/tools/scrap" element={<ScrapPage />} />
+                        <Route path="/scrap" element={<ScrapPage />} />
+                        <Route path="/vt/:toolId" element={<QuickToolViewPage />} />
+                        <Route path="/tooldetails/:toolId" element={<ToolDetailsPage />} />
                         <Route path="/challans/delivery/preview" element={<DeliveryChallanPreviewPage />} />
                         <Route path="/challans/history" element={<ChallanHistoryPage />} />
                         <Route path="/challans/return/preview/:dcId" element={<ReturnChallanPreviewPage />} />
-                        <Route path="/settings/reports" element={<ReportsPage />} />
-                        <Route path="/reports" element={<ReportsPage />} />
-                        <Route path="/users" element={<UsersPage />} />
-                        <Route path="/users/:id/access" element={<UserAccessPage />} />
-                        {/* <Route path="/tools" element={<ToolsPage />} /> */}
-                        <Route path="/settings" element={<SettingsPage />} />
-                        <Route path="/settings/forms" element={<SettingsFormManagementPage />} />
+                        
+                        <Route path="/reports" element={<ToolsReportPage />} />
+                        <Route path="/reports/tools" element={<ToolsReportPage />} />
+
+                        {/* Admin-only Protected Routes */}
+                        <Route element={<AdminRoute />}>
+                            <Route path="/tools/trash" element={<TrashPage />} />
+                            <Route path="/trash" element={<TrashPage />} />
+                            <Route path="/users" element={<UsersPage />} />
+                            <Route path="/users/:id/access" element={<UserAccessPage />} />
+                            <Route path="/profiles" element={<ProfileManagementPage />} />
+                            <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
+                            <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
+                            <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
+                            <Route path="/vendors" element={<ProfileManagementPage />} />
+                            <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
+                            <Route path="/settings" element={<SettingsPage />} />
+                            <Route path="/settings/forms" element={<SettingsFormManagementPage />} />
+                            <Route path="/settings/reports" element={<ToolsReportPage />} />
+                            <Route path="/settings/reports/tools" element={<ToolsReportPage />} />
+                            <Route path="/settings/tool-quick-view" element={<ToolViewConfigPage mode="quick" />} />
+                            <Route path="/settings/tool-details-view" element={<ToolViewConfigPage mode="details" />} />
+                            <Route path="/settings/tool-view" element={<ToolViewConfigPage mode="details" />} />
+                        </Route>
                     </Route>
                 </Route>
 
                 {/* Fallback */}
                 <Route path="*" element={<NotFoundPage />} />
             </Routes>
-        </BrowserRouter>
+
+            {/* Render Modal Overlay without unmounting background route */}
+            {backgroundLocation && (
+                <Routes>
+                    <Route path="/vt/:toolId" element={<QuickToolViewPage />} />
+                </Routes>
+            )}
+        </>
     )
 }
 
-// Router configuration updated with type imports
+export function AppRouter() {
+    return (
+        <BrowserRouter>
+            <AppRoutes />
+        </BrowserRouter>
+    )
+}

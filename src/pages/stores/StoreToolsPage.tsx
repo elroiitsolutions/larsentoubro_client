@@ -1,8 +1,6 @@
 import {
     Card,
     CardContent,
-    CardHeader,
-    CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,17 +20,31 @@ import {
     SheetHeader,
     SheetTitle,
     SheetTrigger,
-    SheetFooter,
-    SheetClose
+    SheetFooter
 } from "@/components/ui/sheet"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, Filter, CheckSquare, Square, Truck, Layers, Check } from "lucide-react"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, Check } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
+import storeService from "@/services/store.service"
 import { toast } from "sonner"
+import formService from "@/services/form.service"
 import { ToolFormModal } from "./ToolFormModal"
 import { VendorSelectionModal } from "./VendorSelectionModal"
+import { BulkEditToolsModal } from "./BulkEditToolsModal"
+import { ToolTransferModal } from "./ToolTransferModal"
+import { ScrapModal } from "./ScrapModal"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -46,14 +58,98 @@ const statusColors: Record<string, string> = {
     "Expired": "bg-slate-500/15 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400 ring-1 ring-slate-500/30 shadow-sm",
 }
 
-const categories = ["All", "Erection Tools", "Stringing Tools"];
-const statuses = ["All", "Available", "In Use", "Moving", "Missing", "Maintenance", "Damaged", "Expired"];
+const TOOL_COLUMNS = [
+    { key: "description", label: "Description" },
+    { key: "makeYear", label: "Make" },
+    { key: "capacity", label: "Capacity" },
+    { key: "safeWorkingLoad", label: "Safe Working Load" },
+    { key: "purchaserName", label: "Purchaser Name" },
+    { key: "supplierCode", label: "Supplier Code" },
+    { key: "dateOfSupply", label: "Date of Supply" },
+    { key: "toolType", label: "Tool Type" },
+    { key: "metalType", label: "Metal Type" },
+    { key: "toolVariant", label: "Tool Variant" },
+    { key: "purchaserContact", label: "Purchaser Contact" },
+    { key: "jobCode", label: "Job Code" },
+    { key: "jobDescription", label: "Job Description" },
+    { key: "currentSite", label: "Current Site" },
+    { key: "validation", label: "Validation" },
+    { key: "toolCode", label: "Item Code" }
+];
 
+const PAGE_SIZE_OPTIONS = [15, 30, 50, 70, 100];
 
-export function StoreToolsPage() {
-    const { storeId } = useParams();
+const renderFieldValue = (tool: any, key: string) => {
+    let val: any = undefined;
+    if (key === 'currentSite') {
+        val = tool.storeName || (tool.currentSite && typeof tool.currentSite === 'object' ? (tool.currentSite.name || tool.currentSite.location) : tool.currentSite);
+    } else if (key === 'validation') {
+        const rawVal = tool.validityPeriod || tool.validation;
+        val = (rawVal && rawVal !== 'N/A') ? rawVal : (tool.customFields?.validation || tool.customFields?.validityPeriod || rawVal);
+    } else if (key === 'toolCode') {
+        val = tool.toolCode || tool.itemCode || tool.customFields?.toolCode || tool.customFields?.itemCode;
+    } else {
+        val = tool[key] !== undefined ? tool[key] : tool.customFields?.[key];
+    }
+
+    if (val === undefined || val === null || String(val).trim() === '') {
+        return '-';
+    }
+
+    if (typeof val === 'object') {
+        val = val.name || val.location || val.projectCode || JSON.stringify(val);
+    } else if (key === 'dateOfSupply' && val) {
+        let str = String(val).trim();
+        // Handle raw Excel serial numbers like "46165"
+        if (!isNaN(Number(str)) && Number(str) > 30000 && Number(str) < 100000 && !str.includes('/') && !str.includes('-')) {
+            const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+            const dateObj = new Date(excelEpoch.getTime() + Number(str) * 86400000);
+            if (!isNaN(dateObj.getTime())) {
+                const mm = dateObj.getUTCMonth() + 1;
+                const dd = dateObj.getUTCDate();
+                const yyyy = dateObj.getUTCFullYear();
+                str = `${mm}/${dd}/${yyyy}`;
+            }
+        }
+        
+        // Handle invalid parsed strings like "1/1/46165" where year is Excel serial number 46165
+        if (typeof str === 'string' && str.includes('/')) {
+            const parts = str.split('/');
+            if (parts.length === 3) {
+                const yearNum = Number(parts[2]);
+                if (!isNaN(yearNum) && yearNum > 30000 && yearNum < 100000) {
+                    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+                    const dateObj = new Date(excelEpoch.getTime() + yearNum * 86400000);
+                    if (!isNaN(dateObj.getTime())) {
+                        const mm = dateObj.getUTCMonth() + 1;
+                        const dd = dateObj.getUTCDate();
+                        const yyyy = dateObj.getUTCFullYear();
+                        str = `${mm}/${dd}/${yyyy}`;
+                    }
+                }
+            }
+        }
+
+        let parsedDate = new Date(str);
+        if (isNaN(parsedDate.getTime()) && typeof str === 'string' && str.includes('/')) {
+            const parts = str.split('/');
+            if (parts.length === 3) {
+                const y = parseInt(parts[2], 10);
+                if (y < 3000) {
+                    parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                }
+            }
+        }
+        val = (isNaN(parsedDate.getTime()) || parsedDate.getFullYear() > 3000) ? str : parsedDate.toLocaleDateString();
+    }
+    return String(val);
+};
+
+export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string } = {}) {
+    const { storeId: paramStoreId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const storeId = overrideStoreId || paramStoreId || (location.state as any)?.fromStoreId;
 
     // Pass along dynamic breadcrumbs if they exist
     const currentBreadcrumbs = (location.state as any)?.breadcrumbs || [];
@@ -66,11 +162,92 @@ export function StoreToolsPage() {
     const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(new Set());
     const [selectedToolsMap, setSelectedToolsMap] = useState<Record<string, any>>({});
     const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+    const [isScrapModalOpen, setIsScrapModalOpen] = useState(false);
+    const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isSelectingAll, setIsSelectingAll] = useState(false);
+
+    // Delete Modal State
+    // Delete & Print Batch Modal State
+    const [deleteDialog, setDeleteDialog] = useState<{
+        isOpen: boolean;
+        isBulk: boolean;
+        toolId?: string;
+        toolCode?: string;
+        isPrinted?: boolean;
+    }>({
+        isOpen: false,
+        isBulk: false
+    });
+    const [deleting, setDeleting] = useState(false);
+    const [markingPrinted, setMarkingPrinted] = useState(false);
+
+    const handleSingleDelete = (tool: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDeleteDialog({
+            isOpen: true,
+            isBulk: false,
+            toolId: tool._id,
+            toolCode: tool.toolId || tool.description || 'this tool',
+            isPrinted: tool.isPrinted
+        });
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedToolIds.size === 0) return;
+        setDeleteDialog({
+            isOpen: true,
+            isBulk: true
+        });
+    };
+
+    const handleMarkPrinted = async () => {
+        if (selectedToolIds.size === 0) return;
+        setMarkingPrinted(true);
+        try {
+            const res = await toolService.markToolsAsPrinted(Array.from(selectedToolIds));
+            if (res.success) {
+                toast.success(res.message || `Marked ${selectedToolIds.size} tools as Printed`);
+                handleClearSelection();
+                fetchTools();
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || "Failed to mark tools as printed");
+        } finally {
+            setMarkingPrinted(false);
+        }
+    };
+
+    const confirmDelete = async () => {
+        setDeleting(true);
+        try {
+            if (deleteDialog.isBulk) {
+                const res = await toolService.bulkDeleteTools(Array.from(selectedToolIds), storeId);
+                if (res.success) {
+                    toast.success(res.message || `Deleted ${selectedToolIds.size} tools`);
+                    handleClearSelection();
+                    fetchTools();
+                }
+            } else if (deleteDialog.toolId) {
+                const res = await toolService.deleteTool(deleteDialog.toolId);
+                if (res.success) {
+                    toast.success(res.message || "Tool deleted successfully");
+                    fetchTools();
+                }
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || "Failed to delete tool(s)");
+        } finally {
+            setDeleting(false);
+            setDeleteDialog(prev => ({ ...prev, isOpen: false }));
+        }
+    };
 
     // Pagination and Filter States
     const [page, setPage] = useState(1);
-    const [limit] = useState(10);
+    const [limit, setLimit] = useState(15);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
@@ -177,12 +354,21 @@ export function StoreToolsPage() {
     };
 
     const [filterOptions, setFilterOptions] = useState<Record<string, string[]>>({});
+    const [formSchema, setFormSchema] = useState<any>(null);
 
     useEffect(() => {
         if (!storeId) return;
         toolService.getToolFilterOptions(storeId)
             .then(options => setFilterOptions(options))
             .catch(err => console.error("Failed to fetch tool filter options", err));
+
+        formService.getFormBySlug('tool-form')
+            .then(res => {
+                if (res.success && res.data) {
+                    setFormSchema(res.data);
+                }
+            })
+            .catch(err => console.error("Failed to fetch tool form schema", err));
     }, [storeId]);
 
     const getOptionsForField = useCallback((field: string, defaultOptions?: string[]): string[] => {
@@ -190,7 +376,13 @@ export function StoreToolsPage() {
         const stateOpts = Array.from(
             new Set(
                 tools
-                    .map((t: any) => t[field])
+                    .map((t: any) => {
+                        if (field === 'validityPeriod') {
+                            const raw = t.validityPeriod || t.validation;
+                            return (raw && raw !== 'N/A') ? raw : (t.customFields?.validation || t.customFields?.validityPeriod || raw);
+                        }
+                        return t[field] ?? t.customFields?.[field];
+                    })
                     .filter((v: any) => v !== null && v !== undefined && String(v).trim() !== "")
                     .map((v: any) => String(v))
             )
@@ -220,8 +412,8 @@ export function StoreToolsPage() {
         );
     };
 
-    const [sortBy, setSortBy] = useState("createdAt");
-    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [sortBy, setSortBy] = useState("serialNumber");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
     const fetchTools = useCallback(async () => {
         if (!storeId) return;
@@ -241,6 +433,26 @@ export function StoreToolsPage() {
                 setTools(data.data || []);
                 setTotal(data.total || 0);
                 setTotalPages(data.totalPages || 1);
+
+                // If we don't have breadcrumbs in state (e.g. on hard refresh),
+                // infer the projectId from the tools and reconstruct the breadcrumbs!
+                if (!(location.state as any)?.breadcrumbs && data.data && data.data.length > 0) {
+                    const project = data.data[0].project;
+                    const projId = typeof project === 'object' ? project._id : project;
+                    if (projId) {
+                        navigate(".", {
+                            replace: true,
+                            state: {
+                                ...location.state,
+                                breadcrumbs: [
+                                    { label: 'Projects', href: '/projects' },
+                                    { label: 'Stores', href: `/projects/${projId}/stores` },
+                                    { label: 'Tools', href: `/stores/${storeId}/tools` }
+                                ]
+                            }
+                        });
+                    }
+                }
             }
         } catch (error: any) {
             console.error(error);
@@ -258,17 +470,43 @@ export function StoreToolsPage() {
         return () => clearTimeout(timeout);
     }, [fetchTools]);
 
+    useEffect(() => {
+        if (!storeId) return;
+        storeService.getStoreById(storeId).then((res) => {
+            if (res.success && res.data) {
+                const storeObj: any = res.data;
+                const projId = storeObj.projectId || (typeof storeObj.project === 'object' ? storeObj.project?._id : storeObj.project);
+                if (projId && (location.state as any)?.projectId !== projId) {
+                    navigate(".", {
+                        replace: true,
+                        state: {
+                            ...location.state,
+                            projectId: projId,
+                            breadcrumbs: [
+                                { label: 'Projects', href: '/projects' },
+                                { label: 'Stores', href: `/projects/${projId}/stores` },
+                                { label: 'Tools', href: `/stores/${storeId}/tools` }
+                            ]
+                        }
+                    });
+                }
+            }
+        }).catch((err) => console.error("Failed to fetch store details for breadcrumbs", err));
+    }, [storeId]);
+
     const handleSort = (field: string) => {
-        if (sortBy === field) {
+        const targetField = (field === 'toolId' || field === 'systemId') ? 'serialNumber' : field;
+        if (sortBy === targetField || (sortBy === 'serialNumber' && (field === 'toolId' || field === 'systemId'))) {
             setSortOrder(sortOrder === "asc" ? "desc" : "asc");
         } else {
-            setSortBy(field);
+            setSortBy(targetField);
             setSortOrder("asc");
         }
     };
 
     const renderSortIcon = (field: string) => {
-        if (sortBy !== field) return <span className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-30 transition-opacity" />;
+        const isMatch = sortBy === field || (sortBy === 'serialNumber' && (field === 'toolId' || field === 'systemId'));
+        if (!isMatch) return <span className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-30 transition-opacity" />;
         return sortOrder === "asc"
             ? <ArrowUpIcon className="size-3.5 ml-1 text-primary animate-in slide-in-from-bottom-1" />
             : <ArrowDownIcon className="size-3.5 ml-1 text-primary animate-in slide-in-from-top-1" />;
@@ -330,6 +568,22 @@ export function StoreToolsPage() {
         setSelectedToolsMap({});
     };
 
+    const handleOpenBulkEdit = () => {
+        if (selectedToolIds.size === 0) {
+            toast.info("Please select tools first using checkboxes or click 'Select All Filtered'", {
+                action: {
+                    label: "Select All Filtered",
+                    onClick: async () => {
+                        await handleSelectAllFiltered();
+                        setIsBulkEditModalOpen(true);
+                    }
+                }
+            });
+            return;
+        }
+        setIsBulkEditModalOpen(true);
+    };
+
     const handleExport = async (exportScope: 'all' | 'filtered', exportType: 'excel' | 'csv') => {
         if (!storeId) return;
         setExporting(true);
@@ -363,6 +617,7 @@ export function StoreToolsPage() {
     };
 
     const { user } = useAuth();
+    const isAdmin = user?.role === "Admin";
     const isPageRestricted = Boolean(
         user &&
         user.role !== "Admin" &&
@@ -376,6 +631,7 @@ export function StoreToolsPage() {
     const isStoreRestricted = Boolean(
         user &&
         user.role !== "Admin" &&
+        user.role !== "Vendor" &&
         storeId &&
         user.stores &&
         user.stores.length > 0 &&
@@ -388,6 +644,21 @@ export function StoreToolsPage() {
 
     return (
         <div className="h-full flex flex-col overflow-hidden gap-4 mx-auto w-full animate-in fade-in duration-500">
+            {/* Vendor Scope Banner */}
+            {user?.role === "Vendor" && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-300 shadow-xs">
+                    <div className="flex items-center gap-2">
+                        <Truck className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>
+                            <strong>Vendor Delivery Scope:</strong> Displaying tools explicitly assigned to <strong>{user.username || "your vendor account"}</strong> via active Delivery Challans (DC). Unassigned tools are hidden.
+                        </span>
+                    </div>
+                    <span className="font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                        {total} Assigned Tool(s)
+                    </span>
+                </div>
+            )}
+
             {/* Standard Application Layout Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 shrink-0">
                 <div>
@@ -439,6 +710,34 @@ export function StoreToolsPage() {
                         </DropdownMenuContent>
                     </DropdownMenu>
 
+                    {isAdmin && (
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-rose-600 dark:text-rose-400 hover:text-rose-700"
+                            onClick={() => navigate('/tools/trash')}
+                        >
+                            <Trash2 className="size-4 text-rose-500" />
+                            Trash / Deleted
+                        </Button>
+                    )}
+
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-amber-600 dark:text-amber-400 hover:text-amber-700"
+                        onClick={() => {
+                            if (selectedToolIds.size > 0) {
+                                setIsScrapModalOpen(true);
+                            } else {
+                                navigate('/tools/scrap');
+                            }
+                        }}
+                    >
+                        <Archive className="size-4 text-amber-500" />
+                        Scrap {selectedToolIds.size > 0 ? `Selected (${selectedToolIds.size})` : ""}
+                    </Button>
+
                     <Button
                         variant="outline"
                         size="lg"
@@ -451,6 +750,18 @@ export function StoreToolsPage() {
                         <FileUp className="size-4 text-primary" />
                         Bulk Import
                     </Button>
+
+                    {isAdmin && (
+                        <Button
+                            variant={selectedToolIds.size > 0 ? "default" : "outline"}
+                            size="lg"
+                            className="gap-2 rounded-xl shadow-sm border-border/80 transition-all"
+                            onClick={handleOpenBulkEdit}
+                        >
+                            <Edit3 className="size-4" />
+                            Bulk Edit {selectedToolIds.size > 0 ? `(${selectedToolIds.size})` : ""}
+                        </Button>
+                    )}
 
                     <ToolFormModal storeId={storeId!} onSuccess={fetchTools} />
                 </div>
@@ -474,7 +785,7 @@ export function StoreToolsPage() {
                                 <SearchableSelect
                                     value={category}
                                     onValueChange={(val) => { setCategory(val); setPage(1); }}
-                                    options={categories.filter(c => c !== 'All')}
+                                    options={getOptionsForField('toolType')}
                                     placeholder="All Types"
                                     searchPlaceholder="Search tool type..."
                                     allLabel="All Types"
@@ -486,7 +797,7 @@ export function StoreToolsPage() {
                                 <SearchableSelect
                                     value={status}
                                     onValueChange={(val) => { setStatus(val); setPage(1); }}
-                                    options={statuses.filter(s => s !== 'All')}
+                                    options={getOptionsForField('status')}
                                     placeholder="All Statuses"
                                     searchPlaceholder="Search status..."
                                     allLabel="All Statuses"
@@ -496,7 +807,7 @@ export function StoreToolsPage() {
                             </div>
 
                             <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
-                                <SheetTrigger asChild>
+                                <SheetTrigger render={
                                     <Button
                                         variant="outline"
                                         className="h-10 gap-2 rounded-xl border-border/80 hover:bg-muted/50 transition-all font-semibold whitespace-nowrap shrink-0 shadow-sm"
@@ -509,7 +820,7 @@ export function StoreToolsPage() {
                                             </span>
                                         )}
                                     </Button>
-                                </SheetTrigger>
+                                } />
                                 <SheetContent className="w-full !max-w-full sm:!max-w-[750px] lg:!max-w-[860px] overflow-y-auto flex flex-col justify-between p-6 sm:p-8 bg-background/95 backdrop-blur-xl">
                                     <div className="space-y-6">
                                         <SheetHeader className="pb-4 border-b border-border/60">
@@ -524,16 +835,16 @@ export function StoreToolsPage() {
 
                                         {/* General & Identification */}
                                         <div className="space-y-3">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">General & Identification</h4>
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">General</h4>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {renderFilterSelect("Tool ID", "toolId", "All Tool IDs")}
-                                                {renderFilterSelect("Description / Name", "description", "All Descriptions")}
+                                                {renderFilterSelect("Validation", "validityPeriod", "All Validations")}
                                                 <div>
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tool Type</label>
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category / Tool Type</label>
                                                     <SearchableSelect
                                                         value={draftCategory}
                                                         onValueChange={(val) => setDraftCategory(val)}
-                                                        options={categories.filter(c => c !== 'All')}
+                                                        options={getOptionsForField('toolType')}
                                                         placeholder="All Types"
                                                         searchPlaceholder="Search tool type..."
                                                         allLabel="All Types"
@@ -545,49 +856,32 @@ export function StoreToolsPage() {
                                                     <SearchableSelect
                                                         value={draftStatus}
                                                         onValueChange={(val) => setDraftStatus(val)}
-                                                        options={statuses.filter(s => s !== 'All')}
+                                                        options={getOptionsForField('status')}
                                                         placeholder="All Statuses"
                                                         searchPlaceholder="Search status..."
                                                         allLabel="All Statuses"
                                                         allValue="All"
                                                     />
                                                 </div>
-                                                {renderFilterSelect("Tool Code", "toolCode", "All Tool Codes")}
-                                                {renderFilterSelect("Variant", "toolVariant", "All Variants")}
                                             </div>
                                         </div>
 
-                                        {/* Technical Specifications */}
-                                        <div className="space-y-3 pt-4 border-t border-border/60">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Technical Specifications</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {renderFilterSelect("Make / Year", "makeYear", "All Make / Years")}
-                                                {renderFilterSelect("Capacity", "capacity", "All Capacities")}
-                                                {renderFilterSelect("Safe Working Load (SWL)", "safeWorkingLoad", "All SWLs")}
-                                                {renderFilterSelect("Metal Type", "metalType", "All Metal Types")}
+                                        {/* Dynamic Fields from Schema */}
+                                        {formSchema && (
+                                            <div className="space-y-3 pt-4 border-t border-border/60">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Tool Details</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {formSchema.fields
+                                                        .filter((f: any) => !f.disabled && f.type !== 'file' && f.type !== 'checkbox')
+                                                        .sort((a: any, b: any) => a.order - b.order)
+                                                        .map((field: any) => (
+                                                            <div key={field.id}>
+                                                                {renderFilterSelect(field.label, field.name, `All ${field.label}`)}
+                                                            </div>
+                                                        ))}
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        {/* Procurement & Vendor */}
-                                        <div className="space-y-3 pt-4 border-t border-border/60">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Procurement & Vendor</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {renderFilterSelect("Purchaser Name", "purchaserName", "All Purchasers")}
-                                                {renderFilterSelect("Purchaser Contact", "purchaserContact", "All Contacts")}
-                                                {renderFilterSelect("Supplier Code", "supplierCode", "All Supplier Codes")}
-                                                {renderFilterSelect("Date of Supply", "dateOfSupply", "All Dates")}
-                                                {renderFilterSelect("Validity Period", "validityPeriod", "All Validity Periods")}
-                                            </div>
-                                        </div>
-
-                                        {/* Job & Notes */}
-                                        <div className="space-y-3 pt-4 border-t border-border/60">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Job & Notes</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {renderFilterSelect("Job Code", "jobCode", "All Job Codes")}
-                                                {renderFilterSelect("Remarks / Notes", "remarks", "All Remarks")}
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
 
                                     <SheetFooter className="pt-6 border-t border-border/60 flex flex-row items-center justify-between gap-3 sm:justify-between mt-6">
@@ -609,6 +903,50 @@ export function StoreToolsPage() {
                                 </SheetContent>
                             </Sheet>
 
+                            {/* Rows per page dropdown right after Advanced Filter */}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-xs text-muted-foreground font-medium whitespace-nowrap hidden sm:inline">
+                                    Rows per page
+                                </span>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        render={
+                                            <button
+                                                type="button"
+                                                className="h-10 px-3 rounded-xl border border-border/80 bg-background/50 hover:bg-background text-foreground text-xs font-bold flex items-center justify-between gap-1.5 transition-all cursor-pointer shadow-sm focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
+                                                title="Rows per page"
+                                            />
+                                        }
+                                    >
+                                        <span className="sm:hidden text-muted-foreground font-normal text-xs mr-0.5">Rows:</span>
+                                        <span>{limit}</span>
+                                        <ChevronDown className="size-3.5 text-muted-foreground stroke-[2.2]" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-28 min-w-[7rem] p-1 rounded-xl shadow-lg border border-border bg-popover z-50">
+                                        {PAGE_SIZE_OPTIONS.map((size) => {
+                                            const isSelected = limit === size;
+                                            return (
+                                                <DropdownMenuItem
+                                                    key={size}
+                                                    onClick={() => {
+                                                        setLimit(size);
+                                                        setPage(1);
+                                                    }}
+                                                    className={`flex items-center justify-between px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                                                        isSelected
+                                                            ? "bg-muted/80 text-foreground font-bold"
+                                                            : "text-foreground/80 hover:bg-muted hover:text-foreground"
+                                                    }`}
+                                                >
+                                                    <span>{size}</span>
+                                                    {isSelected && <Check className="size-3.5 text-foreground/80 stroke-[2.5]" />}
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+
                             {activeFilterCount > 0 && (
                                 <Button
                                     variant="ghost"
@@ -628,6 +966,7 @@ export function StoreToolsPage() {
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <div className="h-full overflow-auto">
                             <table className="h-full min-w-full text-sm text-left whitespace-nowrap">
+
                                 <thead className="sticky top-0 z-10 bg-card shadow-xs">
                                     <tr className="border-b bg-muted text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                                         <th className="w-12 px-4 py-4 select-none text-center">
@@ -648,65 +987,26 @@ export function StoreToolsPage() {
                                             </button>
                                         </th>
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolId')}>
-                                            <div className="flex items-center">Tool ID {renderSortIcon('toolId')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('description')}>
-                                            <div className="flex items-center">Description {renderSortIcon('description')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolCode')}>
-                                            <div className="flex items-center">Tool Code {renderSortIcon('toolCode')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolType')}>
-                                            <div className="flex items-center">Type {renderSortIcon('toolType')}</div>
+                                            <div className="flex items-center">System ID {renderSortIcon('toolId')}</div>
                                         </th>
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('status')}>
                                             <div className="flex items-center">Status {renderSortIcon('status')}</div>
                                         </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('makeYear')}>
-                                            <div className="flex items-center">Make Year {renderSortIcon('makeYear')}</div>
+                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('isPrinted')}>
+                                            <div className="flex items-center">Print Status {renderSortIcon('isPrinted')}</div>
                                         </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('capacity')}>
-                                            <div className="flex items-center">Capacity {renderSortIcon('capacity')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('safeWorkingLoad')}>
-                                            <div className="flex items-center">SWL {renderSortIcon('safeWorkingLoad')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('metalType')}>
-                                            <div className="flex items-center">Metal Type {renderSortIcon('metalType')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolVariant')}>
-                                            <div className="flex items-center">Variant {renderSortIcon('toolVariant')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('dateOfSupply')}>
-                                            <div className="flex items-center">Date of Supply {renderSortIcon('dateOfSupply')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('validityPeriod')}>
-                                            <div className="flex items-center">Validity Period {renderSortIcon('validityPeriod')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('purchaserName')}>
-                                            <div className="flex items-center">Purchaser Name {renderSortIcon('purchaserName')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('purchaserContact')}>
-                                            <div className="flex items-center">Purchaser Contact {renderSortIcon('purchaserContact')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('supplierCode')}>
-                                            <div className="flex items-center">Supplier Code {renderSortIcon('supplierCode')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('jobCode')}>
-                                            <div className="flex items-center">Job Code {renderSortIcon('jobCode')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('jobDescription')}>
-                                            <div className="flex items-center">Job Description {renderSortIcon('jobDescription')}</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('remarks')}>
-                                            <div className="flex items-center">Remarks {renderSortIcon('remarks')}</div>
-                                        </th>
+                                        {isAdmin && <th className="px-6 py-4 text-center">Actions</th>}
+                                        {TOOL_COLUMNS.map((col) => (
+                                            <th key={col.key} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(col.key)}>
+                                                <div className="flex items-center">{col.label} {renderSortIcon(col.key)}</div>
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={18} className="px-6 py-20 text-center">
+                                            <td colSpan={20} className="px-6 py-20 text-center">
                                                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                                                     <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
                                                     <p className="text-sm font-medium animate-pulse">Loading inventory...</p>
@@ -715,18 +1015,14 @@ export function StoreToolsPage() {
                                         </tr>
                                     ) : tools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={18} className="px-6 py-24 text-center">
-                                                <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                                                    <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                                                        <SearchIcon className="size-8 text-muted-foreground/50" />
-                                                    </div>
-                                                    <h3 className="text-lg font-semibold text-foreground mb-1">No tools found</h3>
-                                                    <p className="text-sm text-muted-foreground text-balance">
-                                                        We couldn't find any tools matching your current filters. Try adjusting your search criteria.
-                                                    </p>
+                                            <td colSpan={20} className="px-6 py-20 text-center">
+                                                <div className="flex flex-col items-center justify-center text-muted-foreground max-w-sm mx-auto">
+                                                    <SlidersHorizontal className="size-8 text-muted-foreground/40 mb-3" />
+                                                    <p className="text-sm font-medium text-foreground">No tools found</p>
+                                                    <p className="text-xs text-muted-foreground mt-1 mb-4">Try adjusting your filters or search terms</p>
                                                     <Button
-                                                        variant="ghost"
-                                                        className="mt-6 text-primary hover:text-primary/80"
+                                                        variant="outline"
+                                                        size="sm"
                                                         onClick={() => { setSearch(""); setCategory("All"); setStatus("All"); }}
                                                     >
                                                         Clear all filters
@@ -734,16 +1030,23 @@ export function StoreToolsPage() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ) : tools.map((t, i) => (
+                                    ) : tools.map((t) => (
                                         <tr
                                             key={t._id}
-                                            className={`group hover:bg-primary/[0.03] transition-colors duration-200 cursor-pointer whitespace-nowrap ${
-                                                selectedToolIds.has(t._id) ? "bg-primary/[0.05]" : ""
-                                            }`}
+                                            className={`group hover:bg-primary/[0.03] transition-colors duration-200 cursor-pointer whitespace-nowrap ${selectedToolIds.has(t._id) ? "bg-primary/[0.05]" : ""
+                                                }`}
                                             onClick={() => {
                                                 const toolId = t.toolId || t._id;
-                                                const newBreadcrumbs = [...currentBreadcrumbs, { label: toolId, href: `/vt/${encodeURIComponent(toolId)}` }];
-                                                navigate(`/vt/${encodeURIComponent(toolId)}`, { state: { breadcrumbs: newBreadcrumbs } });
+                                                const existingBreadcrumbs = (location.state as any)?.breadcrumbs || [
+                                                    { label: 'Projects', href: '/projects' },
+                                                    { label: 'Stores', href: (location.state as any)?.projectId ? `/projects/${(location.state as any).projectId}/stores` : '/projects' },
+                                                    { label: 'Tools', href: `/stores/${storeId}/tools` }
+                                                ];
+                                                const newBreadcrumbs = [
+                                                    ...existingBreadcrumbs,
+                                                    { label: `Quick View (${toolId})`, href: `/vt/${encodeURIComponent(toolId)}` }
+                                                ];
+                                                navigate(`/vt/${encodeURIComponent(toolId)}`, { state: { initialTool: t, backgroundLocation: location, fromStoreId: storeId, breadcrumbs: newBreadcrumbs } });
                                             }}
                                         >
                                             <td className="px-4 py-4 text-center" onClick={(e) => handleToggleTool(t, e)}>
@@ -764,38 +1067,41 @@ export function StoreToolsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-foreground group-hover:text-primary transition-colors">
-                                                    {t.description || "-"}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 font-mono text-xs text-primary font-semibold">
-                                                {t.toolCode || "-"}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-muted-foreground flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-border group-hover:bg-primary/50 transition-colors" />
-                                                    {t.toolType || "-"}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide ${statusColors[t.status] || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'}`}>
                                                     {t.status === "Available" && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />}
                                                     {t.status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-foreground/80">{t.makeYear || "-"}</td>
-                                            <td className="px-6 py-4 font-medium text-foreground/80">{t.capacity || "-"}</td>
-                                            <td className="px-6 py-4 font-medium text-foreground/80">{t.safeWorkingLoad || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{t.metalType || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{t.toolVariant || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground text-sm">{t.dateOfSupply || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground text-sm">{t.validityPeriod || "-"}</td>
-                                            <td className="px-6 py-4 text-foreground/80">{t.purchaserName || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{t.purchaserContact || "-"}</td>
-                                            <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{t.supplierCode || "-"}</td>
-                                            <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{t.jobCode || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{t.jobDescription || "-"}</td>
-                                            <td className="px-6 py-4 text-muted-foreground max-w-[200px] truncate" title={t.remarks || ""}>{t.remarks || "-"}</td>
+                                            <td className="px-6 py-4">
+                                                {t.isPrinted ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 ring-1 ring-emerald-500/30">
+                                                        <Printer className="size-3" />
+                                                        Printed
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400 ring-1 ring-slate-500/30">
+                                                        Not Printed
+                                                    </span>
+                                                )}
+                                            </td>
+                                            {isAdmin && (
+                                                <td className="px-6 py-4 text-center">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg"
+                                                        onClick={(e) => handleSingleDelete(t, e)}
+                                                        title="Delete tool"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </Button>
+                                                </td>
+                                            )}
+                                            {TOOL_COLUMNS.map((col) => (
+                                                <td key={col.key} className="px-6 py-4 text-foreground/80">
+                                                    {renderFieldValue(t, col.key)}
+                                                </td>
+                                            ))}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -805,59 +1111,259 @@ export function StoreToolsPage() {
 
                     {/* Premium Pagination Bar */}
                     <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t bg-muted/10 backdrop-blur-sm gap-4 shrink-0">
-                        <div className="text-sm font-medium text-muted-foreground">
+                        <div className="text-sm font-medium text-muted-foreground w-full sm:w-1/4 text-center sm:text-left">
                             Showing <span className="text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="text-foreground">{Math.min(page * limit, total)}</span> of <span className="text-foreground">{total}</span> items
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-full shadow-sm hover:shadow active:scale-95 transition-all px-4"
-                                disabled={page === 1 || loading}
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap flex-1 w-full">
+                            {/* First Page */}
+                            {page > 1 && (
+                                <button
+                                    onClick={() => setPage(1)}
+                                    disabled={loading}
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    title="First Page"
+                                >
+                                    «
+                                </button>
+                            )}
+
+                            {/* Previous Page */}
+                            <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1 || loading}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Previous Page"
                             >
-                                Previous
-                            </Button>
+                                ‹
+                            </button>
 
-                            <div className="flex items-center justify-center min-w-[5rem] px-2 py-1 rounded-full bg-background border shadow-inner text-sm font-semibold">
-                                {page} <span className="text-muted-foreground mx-1">/</span> {totalPages}
-                            </div>
+                            {/* Page Range Buttons */}
+                            {(() => {
+                                const pageRange = [];
+                                const maxVisiblePages = 10;
+                                let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+                                let endPage = startPage + maxVisiblePages - 1;
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-full shadow-sm hover:shadow active:scale-95 transition-all px-4"
-                                disabled={page >= totalPages || loading}
+                                if (endPage > totalPages) {
+                                    endPage = totalPages;
+                                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                }
+
+                                for (let i = startPage; i <= endPage; i++) {
+                                    pageRange.push(i);
+                                }
+
+                                return pageRange.map((pNum) => {
+                                    const isActive = pNum === page;
+                                    return (
+                                        <button
+                                            key={pNum}
+                                            onClick={() => setPage(pNum)}
+                                            disabled={loading}
+                                            className={`h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all cursor-pointer border ${
+                                                isActive
+                                                    ? "bg-primary border-primary text-primary-foreground shadow-md"
+                                                    : "bg-background border-border/85 hover:bg-muted text-foreground"
+                                            }`}
+                                        >
+                                            {pNum}
+                                        </button>
+                                    );
+                                });
+                            })()}
+
+                            {/* Next Page */}
+                            <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages || loading}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Next Page"
                             >
-                                Next
-                            </Button>
+                                ›
+                            </button>
+
+                            {/* Last Page */}
+                            {page < totalPages && (
+                                <button
+                                    onClick={() => setPage(totalPages)}
+                                    disabled={loading}
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    title="Last Page"
+                                >
+                                    »
+                                </button>
+                            )}
                         </div>
+                        {/* Spacer block to balance the layout and keep the center block aligned exactly in the middle */}
+                        <div className="hidden sm:block w-full sm:w-1/4" />
                     </div>
                 </CardContent>
             </Card>
 
             {/* Floating Bulk Selection Banner */}
             {selectedToolIds.size > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300">
-                    <div className="flex items-center gap-4 bg-card/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-border shadow-2xl ring-1 ring-primary/20">
-                        <div className="flex items-center gap-2.5">
-                            <div className="size-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-sm">
-                                {selectedToolIds.size}
+                <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300 w-[calc(100%-1.25rem)] max-w-xl sm:w-auto sm:max-w-none">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-4 bg-card/95 backdrop-blur-md p-3 sm:px-5 sm:py-3 rounded-2xl border border-border shadow-2xl ring-1 ring-primary/20 w-full">
+                        {/* Header info row */}
+                        <div className="flex items-center justify-between sm:justify-start gap-2.5">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="size-7 sm:size-8 rounded-lg sm:rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-xs sm:text-sm shrink-0">
+                                    {selectedToolIds.size}
+                                </div>
+                                <div className="min-w-0">
+                                    <h4 className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                                        <span className="sm:hidden">{selectedToolIds.size} Tool{selectedToolIds.size > 1 ? 's' : ''} Selected</span>
+                                        <span className="hidden sm:inline">Selected Tools: {selectedToolIds.size}</span>
+                                    </h4>
+                                    <p className="hidden sm:block text-xs text-muted-foreground truncate">
+                                        {isAllFilteredSelected ? "All filtered tools selected" : "Custom inventory selection"}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-foreground">
-                                    Selected Tools: {selectedToolIds.size}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                    {isAllFilteredSelected ? "All filtered tools selected" : "Custom inventory selection"}
-                                </p>
+
+                            {/* Mobile-only Clear button in header */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="sm:hidden h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg shrink-0 gap-1"
+                                onClick={handleClearSelection}
+                            >
+                                <X className="size-3.5" />
+                                <span>Clear</span>
+                            </Button>
+                        </div>
+
+                        <div className="hidden sm:block h-6 w-px bg-border/60 shrink-0" />
+
+                        {/* Mobile Actions: Primary CTA + Grid of secondary actions */}
+                        <div className="flex flex-col gap-2 sm:hidden w-full">
+                            {/* Primary Mobile Action: Delivery Challan */}
+                            {Object.values(selectedToolsMap).some(t => t.status === "Moving") ? (
+                                <Button
+                                    size="sm"
+                                    disabled
+                                    className="w-full h-9 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-1.5 cursor-not-allowed opacity-80"
+                                >
+                                    <Truck className="size-3.5 opacity-50" />
+                                    <span>Already Moving</span>
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    className="w-full h-9 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center justify-center gap-1.5 font-semibold"
+                                    onClick={() => setIsVendorModalOpen(true)}
+                                >
+                                    <Truck className="size-3.5" />
+                                    <span>Create Delivery Challan</span>
+                                </Button>
+                            )}
+
+                            {/* 4 Secondary Action Buttons Grid on Mobile */}
+                            <div className="grid grid-cols-4 gap-1.5 w-full">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center justify-center gap-1"
+                                    onClick={handleMarkPrinted}
+                                    disabled={markingPrinted}
+                                    title="Mark as Printed"
+                                >
+                                    {markingPrinted ? <Loader2 className="size-3 animate-spin shrink-0" /> : <Printer className="size-3 text-emerald-600 shrink-0" />}
+                                    <span className="truncate">Print</span>
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 flex items-center justify-center gap-1"
+                                    onClick={() => setIsTransferModalOpen(true)}
+                                    title="Transfer Tools"
+                                >
+                                    <ArrowRightLeft className="size-3 shrink-0" />
+                                    <span className="truncate">Transfer</span>
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-1 text-[11px] font-medium rounded-xl flex items-center justify-center gap-1 border-border/80"
+                                    onClick={() => setIsBulkEditModalOpen(true)}
+                                    title="Bulk Edit"
+                                >
+                                    <Edit3 className="size-3 text-primary shrink-0" />
+                                    <span className="truncate">Edit</span>
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center gap-1"
+                                    onClick={handleBulkDelete}
+                                    title="Delete Selected"
+                                >
+                                    <Trash2 className="size-3 shrink-0" />
+                                    <span className="truncate">Delete</span>
+                                </Button>
                             </div>
                         </div>
 
-                        <div className="h-6 w-px bg-border/60" />
+                        {/* Desktop Actions Row (Unchanged from original layout) */}
+                        <div className="hidden sm:flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 text-xs rounded-xl text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                onClick={handleMarkPrinted}
+                                disabled={markingPrinted}
+                            >
+                                {markingPrinted ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <Printer className="size-3.5 mr-1 text-emerald-600" />}
+                                Mark as Printed ({selectedToolIds.size})
+                            </Button>
 
-                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 text-xs rounded-xl text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                                onClick={() => setIsTransferModalOpen(true)}
+                            >
+                                <ArrowRightLeft className="size-3.5 mr-1" />
+                                Transfer ({selectedToolIds.size})
+                            </Button>
+
+                            {isAdmin && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 text-xs rounded-xl"
+                                    onClick={() => setIsBulkEditModalOpen(true)}
+                                >
+                                    <Edit3 className="size-3.5 mr-1 text-primary" />
+                                    Bulk Edit ({selectedToolIds.size})
+                                </Button>
+                            )}
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 text-xs rounded-xl text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                onClick={() => setIsScrapModalOpen(true)}
+                            >
+                                <Archive className="size-3.5 mr-1 text-amber-600" />
+                                Scrap Selected ({selectedToolIds.size})
+                            </Button>
+
+                            {isAdmin && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 text-xs rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                    onClick={handleBulkDelete}
+                                >
+                                    <Trash2 className="size-3.5 mr-1" />
+                                    Delete Selected ({selectedToolIds.size})
+                                </Button>
+                            )}
+
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -868,14 +1374,25 @@ export function StoreToolsPage() {
                                 Clear
                             </Button>
 
-                            <Button
-                                size="sm"
-                                className="h-9 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center gap-1.5"
-                                onClick={() => setIsVendorModalOpen(true)}
-                            >
-                                <Truck className="size-3.5" />
-                                <span>Create Delivery Challan</span>
-                            </Button>
+                            {Object.values(selectedToolsMap).some(t => t.status === "Moving") ? (
+                                <Button
+                                    size="sm"
+                                    disabled
+                                    className="h-9 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center gap-1.5 cursor-not-allowed opacity-80"
+                                >
+                                    <Truck className="size-3.5 opacity-50" />
+                                    <span>Already Moving</span>
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    className="h-9 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center gap-1.5"
+                                    onClick={() => setIsVendorModalOpen(true)}
+                                >
+                                    <Truck className="size-3.5" />
+                                    <span>Sub Contractor</span>
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -887,8 +1404,75 @@ export function StoreToolsPage() {
                 selectedTools={Object.values(selectedToolsMap)}
                 storeId={storeId}
             />
+
+            <ScrapModal
+                open={isScrapModalOpen}
+                onOpenChange={setIsScrapModalOpen}
+                selectedTools={Object.values(selectedToolsMap)}
+                storeId={storeId}
+            />
+
+            <BulkEditToolsModal
+                open={isBulkEditModalOpen}
+                onOpenChange={setIsBulkEditModalOpen}
+                storeId={storeId!}
+                selectedToolIds={Array.from(selectedToolIds)}
+                totalCount={selectedToolIds.size}
+                onSuccess={() => {
+                    handleClearSelection();
+                    fetchTools();
+                }}
+            />
+
+            <ToolTransferModal
+                open={isTransferModalOpen}
+                onOpenChange={setIsTransferModalOpen}
+                sourceStoreId={storeId!}
+                selectedToolIds={Array.from(selectedToolIds)}
+                selectedTools={tools.filter(t => selectedToolIds.has(t._id))}
+                onSuccess={() => {
+                    handleClearSelection();
+                    fetchTools();
+                }}
+            />
+
+            <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => !deleting && setDeleteDialog(prev => ({ ...prev, isOpen: open }))}>
+                <AlertDialogContent className="rounded-2xl max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-rose-600">
+                            <Trash2 className="size-6 text-rose-500" />
+                            <span>Confirm Tool Deletion</span>
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
+                            {deleteDialog.isBulk ? (
+                                <>Are you sure you want to delete <strong>{selectedToolIds.size}</strong> selected tools? Unprinted tools will move to <strong>Trash</strong> (re-sequenced), while printed tools will move to <strong>Scrap</strong> (no re-sequencing).</>
+                            ) : deleteDialog.isPrinted ? (
+                                <>Are you sure you want to delete printed tool <strong className="font-mono text-foreground">{deleteDialog.toolCode}</strong>? Because this tool is marked as <strong>Printed</strong>, it will move to <strong>Scrap</strong> and active tool IDs will <strong>NOT</strong> be re-sequenced.</>
+                            ) : (
+                                <>Are you sure you want to delete tool <strong className="font-mono text-foreground">{deleteDialog.toolCode}</strong>? It will move to <strong>Trash</strong> and remaining active tool IDs will be re-sequenced.</>
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-4 border-t mt-4">
+                        <AlertDialogCancel disabled={deleting} className="rounded-xl">
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={deleting}
+                            onClick={confirmDelete}
+                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                        >
+                            {deleting ? (
+                                <Loader2 className="size-4 animate-spin mr-1.5" />
+                            ) : null}
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }
 
+// StoreToolsPage with dynamic vendor database dropdown modal
 // StoreToolsPage with dynamic vendor database dropdown modal

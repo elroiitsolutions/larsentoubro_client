@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import {
     Dialog,
     DialogContent,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog"
 import { DynamicForm } from "@/components/DynamicForm"
 import formService from "@/services/form.service"
+import { toast } from "sonner"
 
 interface DynamicFormModalProps {
     isOpen: boolean
@@ -46,12 +47,12 @@ export function DynamicFormModal({ isOpen, onClose, formSlug, onSubmitSuccess, s
                 onSubmitSuccess();
                 onClose();
             } else {
-                alert("Failed to submit form: " + data.message);
+                toast.error("Failed to submit form: " + data.message);
             }
         } catch (err: any) {
             console.error(err);
             const message = err?.response?.data?.message || "An error occurred during submission";
-            alert(message);
+            toast.error(message);
         }
     }
 

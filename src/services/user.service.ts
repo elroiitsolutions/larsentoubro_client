@@ -7,6 +7,8 @@ export interface UserRecord {
     email: string;
     role: "Admin" | "Manager" | "Engineer" | "Analyst" | "Viewer" | string;
     user_id: string;
+    isVendor?: boolean;
+    vendorCode?: string;
     allowedPages?: string[];
     projects?: any[];
     stores?: any[];

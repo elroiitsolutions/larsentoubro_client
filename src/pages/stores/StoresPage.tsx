@@ -6,14 +6,15 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon, EditIcon, TrashIcon, Loader2, CheckCircle2Icon, ShieldAlertIcon } from "lucide-react"
+import { PlusIcon, StoreIcon, SearchIcon, MapPinIcon, EditIcon, TrashIcon, Loader2, ShieldAlertIcon } from "lucide-react"
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, Navigate } from "react-router-dom"
 import { DynamicFormSheet } from "@/components/DynamicFormSheet"
 import storeService from "@/services/store.service"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 import NoAccessPage from "../NoAccessPage"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 
 const storeStatusColors: Record<string, string> = {
     Operational: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20",
@@ -25,9 +26,16 @@ const storeStatusColors: Record<string, string> = {
 export function StoresPage() {
     const { projectId } = useParams();
     const navigate = useNavigate();
+
+    // If accessed globally via /stores without a projectId, redirect to Projects
+    if (!projectId) {
+        return <Navigate to="/projects" replace />;
+    }
+
     const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingStore, setEditingStore] = useState<any>(null);
+    const [deletingStore, setDeletingStore] = useState<{ id: string; name: string } | null>(null);
     const [stores, setStores] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -46,7 +54,7 @@ export function StoresPage() {
     });
 
     const assignedProjectIds = (user?.projects || []).map((p: any) => typeof p === 'object' ? p._id : p);
-    const isProjectRestricted = Boolean(user && user.role !== "Admin" && projectId && !assignedProjectIds.includes(projectId));
+    const isProjectRestricted = Boolean(user && user.role !== "Admin" && user.role !== "Vendor" && projectId && !assignedProjectIds.includes(projectId));
 
     const fetchStores = async () => {
         if (isProjectRestricted) {
@@ -72,8 +80,7 @@ export function StoresPage() {
         fetchStores();
     }, [projectId, user]);
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this store?")) return;
+    const handleDeleteStore = async (id: string) => {
         try {
             const data = await storeService.deleteStore(id);
             if (data.success) {
@@ -148,30 +155,6 @@ export function StoresPage() {
                 defaultValues={editingStore ? { ...editingStore, storeName: editingStore.name } : undefined}
             />
 
-            {/* Stats row */}
-            <div className="grid gap-6 sm:grid-cols-4">
-                {[
-                    { label: "Total Stores", value: stores.length.toString(), color: "text-foreground", bg: "bg-primary/10", icon: StoreIcon, iconColor: "text-primary" },
-                    { label: "Operational", value: stores.filter(s => s.status === 'Operational').length.toString(), color: "text-emerald-500", bg: "bg-emerald-500/10", icon: CheckCircle2Icon, iconColor: "text-emerald-500" },
-                    { label: "Renovation", value: stores.filter(s => s.status === 'Renovation').length.toString(), color: "text-orange-500", bg: "bg-orange-500/10", iconColor: "text-orange-500" },
-                    { label: "Closed", value: stores.filter(s => s.status === 'Closed').length.toString(), color: "text-red-500", bg: "bg-red-500/10", iconColor: "text-red-500" },
-                ].map((s) => (
-                    <Card key={s.label} className={`${bentoCardClass} p-6 flex flex-col justify-between hover:-translate-y-1`}>
-                        <div className="flex items-start justify-between">
-                            <span className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">{s.label}</span>
-                            {s.icon && (
-                                <div className={`p-2 rounded-lg ${s.bg} ${s.iconColor}`}>
-                                    <s.icon className="size-4" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="mt-4">
-                            <span className={`text-4xl font-black tracking-tighter ${s.color}`}>{s.value}</span>
-                        </div>
-                    </Card>
-                ))}
-            </div>
-
             {/* Table card */}
             <Card className={`${bentoCardClass} flex flex-col mt-2`}>
                 <CardHeader className="flex flex-row items-center gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">
@@ -219,7 +202,21 @@ export function StoresPage() {
                                         <tr
                                             key={store._id}
                                             className="border-b border-border/40 last:border-0 hover:bg-muted/60 transition-colors group cursor-pointer"
-                                            onClick={() => navigate(`/stores/${store._id}/tools`)}
+                                            onClick={() => {
+                                                if (projectId) {
+                                                    navigate(`/stores/${store._id}/tools`, {
+                                                        state: {
+                                                            breadcrumbs: [
+                                                                { label: 'Projects', href: '/projects' },
+                                                                { label: 'Stores', href: `/projects/${projectId}/stores` },
+                                                                { label: 'Tools', href: `/stores/${store._id}/tools` }
+                                                            ]
+                                                        }
+                                                    });
+                                                } else {
+                                                    navigate(`/stores/${store._id}/tools`);
+                                                }
+                                            }}
                                         >
                                             <td className="px-6 py-4 font-mono font-medium text-xs text-muted-foreground">{store.storeCode || store._id.substring(0, 8)}</td>
                                             <td className="px-6 py-4 font-bold text-foreground">
@@ -249,7 +246,19 @@ export function StoresPage() {
                                                         className="h-8 px-2.5 text-xs font-semibold hover:bg-primary/10 hover:text-primary cursor-pointer"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            navigate(`/stores/${store._id}/tools`);
+                                                            if (projectId) {
+                                                                navigate(`/stores/${store._id}/tools`, {
+                                                                    state: {
+                                                                        breadcrumbs: [
+                                                                            { label: 'Projects', href: '/projects' },
+                                                                            { label: 'Stores', href: `/projects/${projectId}/stores` },
+                                                                            { label: 'Tools', href: `/stores/${store._id}/tools` }
+                                                                        ]
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                navigate(`/stores/${store._id}/tools`);
+                                                            }
                                                         }}
                                                     >
                                                         Tools ({store.toolsCount || 0})
@@ -274,7 +283,7 @@ export function StoresPage() {
                                                                 className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    handleDelete(store._id);
+                                                                    setDeletingStore({ id: store._id, name: store.name || "this store" });
                                                                 }}
                                                             >
                                                                 <TrashIcon className="size-4" />
@@ -291,6 +300,17 @@ export function StoresPage() {
                     )}
                 </CardContent>
             </Card>
+
+            <ConfirmDialog
+                isOpen={!!deletingStore}
+                onClose={() => setDeletingStore(null)}
+                onConfirm={async () => {
+                    if (deletingStore) await handleDeleteStore(deletingStore.id);
+                }}
+                title="Delete Store"
+                description={`Are you sure you want to delete "${deletingStore?.name || "this store"}"? This action cannot be undone.`}
+                confirmText="Delete Store"
+            />
         </div>
     );
 }

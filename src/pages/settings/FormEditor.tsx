@@ -1,7 +1,13 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useFormBuilderStore } from "@/store/useFormBuilderStore"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue} from "@/components/ui/select"
 import { 
     ArrowLeftIcon, 
     ArrowUpIcon, 
@@ -21,11 +27,14 @@ import {
     InfoIcon
 } from "lucide-react"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
+import formService from "@/services/form.service"
 
 export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => void; onSave: (updatedForm: any) => void }) {
     const { fields, loadForm, addField, updateField, removeField, reorderFields } = useFormBuilderStore()
     const [expandedSettingsId, setExpandedSettingsId] = useState<string | null>(null)
     const [expandedOptionsId, setExpandedOptionsId] = useState<string | null>(null)
+    const [fieldToDelete, setFieldToDelete] = useState<{ id: string; label: string } | null>(null)
 
     useEffect(() => {
         loadForm(form)
@@ -37,7 +46,15 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
             toast.error("Please provide a name for all fields before saving")
             return
         }
-        onSave({ ...form, fields })
+
+        const sanitizedFields = fields.map((f, idx) => ({
+            ...f,
+            order: idx,
+            name: (f.name && f.name.trim()) || (f.label && f.label.toLowerCase().replace(/[^a-z0-9_]/gi, '_')) || `field_${idx}`,
+            label: f.label.trim()
+        }))
+
+        onSave({ ...form, fields: sanitizedFields })
     }
 
     const handleAddField = () => {
@@ -52,29 +69,52 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
         toast.success("New field added")
     }
 
-    const handleRemoveField = (id: string, label: string) => {
+    const handleRemoveField = async (id: string, label: string) => {
         removeField(id)
         if (expandedSettingsId === id) setExpandedSettingsId(null)
         if (expandedOptionsId === id) setExpandedOptionsId(null)
-        toast.success(`Removed "${label || 'Field'}"`)
+
+        const remainingFields = useFormBuilderStore.getState().fields.map((f, idx) => ({
+            ...f,
+            order: idx,
+            name: (f.name && f.name.trim()) || (f.label && f.label.toLowerCase().replace(/[^a-z0-9_]/gi, '_')) || `field_${idx}`,
+            label: f.label.trim()
+        }))
+
+        try {
+            await formService.saveForm({ ...form, fields: remainingFields })
+            toast.success(`Permanently deleted "${label || 'Field'}"`)
+        } catch (err: any) {
+            console.error(err)
+            toast.error("Failed to save deletion to database")
+        }
     }
 
     // Helper to add dropdown option
     const addOption = (fieldId: string, currentOptions: any[] = []) => {
-        const optNum = currentOptions.length + 1
+        const opts = currentOptions || []
+        const optNum = opts.length + 1
         const newOpt = { label: `Option ${optNum}`, value: `option_${optNum}` }
-        updateField(fieldId, { options: [...currentOptions, newOpt] })
+        updateField(fieldId, { options: [...opts, newOpt] })
     }
 
-    const removeOption = (fieldId: string, currentOptions: any[], idx: number) => {
-        const next = [...currentOptions]
+    const removeOption = (fieldId: string, currentOptions: any[] = [], idx: number) => {
+        const next = [...(currentOptions || [])]
         next.splice(idx, 1)
         updateField(fieldId, { options: next })
     }
 
-    const updateOptionLabel = (fieldId: string, currentOptions: any[], idx: number, newLabel: string) => {
-        const next = [...currentOptions]
-        next[idx] = { ...next[idx], label: newLabel, value: newLabel.toLowerCase().replace(/\s+/g, '_') }
+    const updateOptionLabel = (fieldId: string, currentOptions: any[] = [], idx: number, newLabel: string) => {
+        const opts = currentOptions || []
+        const next = opts.map((opt, i) => {
+            if (i !== idx) return opt
+            const optObj = typeof opt === 'string' ? { label: opt, value: opt.toLowerCase().replace(/\s+/g, '_') } : { ...opt }
+            return {
+                ...optObj,
+                label: newLabel,
+                value: newLabel.trim() ? newLabel.toLowerCase().replace(/[^a-z0-9_]/gi, '_') : `option_${idx + 1}`
+            }
+        })
         updateField(fieldId, { options: next })
     }
 
@@ -235,20 +275,21 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
 
                                         {/* Col 6-7: Input Type Selector (16.6% width) */}
                                         <div className="sm:col-span-2 w-full">
-                                            <select 
-                                                className="flex h-9 w-full rounded-xl border border-border/70 bg-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
-                                                value={field.type} 
-                                                onChange={(e) => updateField(field.id, { type: e.target.value as any })}
-                                            >
-                                                <option value="text">Text Input</option>
-                                                <option value="number">Number</option>
-                                                <option value="email">Email Address</option>
-                                                <option value="select">Dropdown Select</option>
-                                                <option value="checkbox">Checkbox</option>
-                                                <option value="radio">Radio Buttons</option>
-                                                <option value="textarea">Long Text</option>
-                                                <option value="switch">Yes/No Switch</option>
-                                            </select>
+                                            <Select value={field.type} onValueChange={(val: any) => updateField(field.id, { type: val })}>
+                                                <SelectTrigger className="flex h-9 w-full rounded-xl border border-border/70 bg-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer">
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="text">Text Input</SelectItem>
+                                                    <SelectItem value="number">Number</SelectItem>
+                                                    <SelectItem value="email">Email Address</SelectItem>
+                                                    <SelectItem value="select">Dropdown Select</SelectItem>
+                                                    <SelectItem value="checkbox">Checkbox</SelectItem>
+                                                    <SelectItem value="radio">Radio Buttons</SelectItem>
+                                                    <SelectItem value="textarea">Long Text</SelectItem>
+                                                    <SelectItem value="switch">Yes/No Switch</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
 
                                         {/* Col 8-12: Required Toggle, Options Button, Settings Button, Delete (41.6% width - generous room!) */}
@@ -317,7 +358,7 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                 variant="ghost" 
                                                 size="icon" 
                                                 className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl shrink-0 cursor-pointer" 
-                                                onClick={() => handleRemoveField(field.id, field.label)}
+                                                onClick={() => setFieldToDelete({ id: field.id, label: field.label })}
                                                 title="Delete Field"
                                             >
                                                 <TrashIcon className="size-4" />
@@ -340,39 +381,40 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                     onClick={() => addOption(field.id, field.options)}
                                                     className="h-8 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
                                                 >
-                                                    <PlusIcon className="size-3.5" />
+                                                    <PlusIcon className="size-3.5 text-primary" />
                                                     Add Option
                                                 </Button>
                                             </div>
 
                                             {(!field.options || field.options.length === 0) ? (
                                                 <p className="text-xs text-muted-foreground italic">
-                                                    No options added yet. Click "Add Option" above.
+                                                    No options added yet. Click "Add Option" to create dropdown choices.
                                                 </p>
                                             ) : (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {field.options.map((opt: any, optIdx: number) => (
-                                                        <div key={optIdx} className="flex items-center gap-2 bg-background p-2 rounded-xl border border-border/60 shadow-xs">
-                                                            <span className="text-xs font-mono text-muted-foreground w-6 text-center">
-                                                                {optIdx + 1}.
-                                                            </span>
-                                                            <Input 
-                                                                value={opt.label}
-                                                                onChange={(e) => updateOptionLabel(field.id, field.options || [], optIdx, e.target.value)}
-                                                                className="h-8 text-xs rounded-lg flex-1 border-border/60"
-                                                                placeholder="Option label..."
-                                                            />
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => removeOption(field.id, field.options || [], optIdx)}
-                                                                className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg shrink-0 cursor-pointer"
-                                                            >
-                                                                <XIcon className="size-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                                                    {field.options.map((opt: any, idx: number) => {
+                                                        const labelVal = typeof opt === 'string' ? opt : (opt?.label ?? '')
+                                                        return (
+                                                            <div key={idx} className="flex items-center gap-2 bg-background border border-border/60 rounded-xl p-1.5 px-3">
+                                                                <span className="text-xs font-mono font-bold text-muted-foreground">#{idx + 1}</span>
+                                                                <Input 
+                                                                    value={labelVal} 
+                                                                    onChange={(e) => updateOptionLabel(field.id, field.options || [], idx, e.target.value)} 
+                                                                    className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 font-medium"
+                                                                    placeholder="Option Label"
+                                                                />
+                                                                <Button 
+                                                                    type="button"
+                                                                    variant="ghost" 
+                                                                    size="icon" 
+                                                                    className="h-6 w-6 text-muted-foreground hover:text-destructive rounded-lg cursor-pointer shrink-0" 
+                                                                    onClick={() => removeOption(field.id, field.options || [], idx)}
+                                                                >
+                                                                    <XIcon className="size-3.5" />
+                                                                </Button>
+                                                            </div>
+                                                        )
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
@@ -381,80 +423,73 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                     {/* COLLAPSIBLE SETTINGS DRAWER (Placeholder, Helper Text & Rules) */}
                                     {isSettingsOpen && (
                                         <div className="bg-muted/20 border-t border-border/40 p-5 space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
-                                                    <Sliders className="size-4 text-primary" />
-                                                    Help Text & Advanced Rules for "{field.label}"
-                                                </h4>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setExpandedSettingsId(null)}
-                                                    className="h-7 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                                                >
-                                                    Close
-                                                </Button>
-                                            </div>
+                                            <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
+                                                <Sliders className="size-4 text-primary" />
+                                                Field Configuration & Validation Settings
+                                            </h4>
 
-                                            {/* 2-Column Horizontal Settings Grid */}
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div className="space-y-1.5">
-                                                    <label className="text-xs font-semibold text-foreground">
-                                                        Placeholder Text
+                                                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                                                        <span>Placeholder Text</span>
+                                                        <InfoIcon className="size-3 text-muted-foreground/60" />
                                                     </label>
                                                     <Input 
                                                         value={field.placeholder || ''} 
                                                         onChange={(e) => updateField(field.id, { placeholder: e.target.value })} 
-                                                        placeholder="e.g. Enter value here..."
-                                                        className="h-9 rounded-xl bg-background text-xs border-border/60"
+                                                        placeholder="e.g. Enter full name..."
+                                                        className="h-9 rounded-xl bg-background border-border/60 text-xs"
                                                     />
-                                                    <p className="text-[10px] text-muted-foreground">Example text shown inside the input before typing.</p>
                                                 </div>
 
                                                 <div className="space-y-1.5">
-                                                    <label className="text-xs font-semibold text-foreground">
-                                                        Helper Note / Subtitle
+                                                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                                                        <span>Helper Description Text</span>
+                                                        <HelpCircle className="size-3 text-muted-foreground/60" />
                                                     </label>
                                                     <Input 
                                                         value={field.helperText || ''} 
                                                         onChange={(e) => updateField(field.id, { helperText: e.target.value })} 
-                                                        placeholder="e.g. Used for official communications..."
-                                                        className="h-9 rounded-xl bg-background text-xs border-border/60"
+                                                        placeholder="e.g. As shown on official identification document"
+                                                        className="h-9 rounded-xl bg-background border-border/60 text-xs"
                                                     />
-                                                    <p className="text-[10px] text-muted-foreground">Small guidance text displayed below the field.</p>
                                                 </div>
                                             </div>
 
-                                            {/* Quick Validation Switches */}
-                                            <div className="flex flex-wrap items-center gap-5 pt-2 border-t border-border/40">
-                                                <span className="text-xs font-semibold text-muted-foreground">Quick Rules:</span>
-
-                                                <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-foreground font-medium">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        className="size-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                                                        checked={field.validations?.some(v => v.type === 'alphanumeric') || false}
-                                                        onChange={(e) => {
-                                                            let vals = field.validations ? [...field.validations] : []
-                                                            if (e.target.checked) {
-                                                                if (!vals.some(v => v.type === 'alphanumeric')) {
-                                                                    vals.push({ type: 'alphanumeric', message: 'Letters and numbers only' })
-                                                                }
-                                                            } else {
-                                                                vals = vals.filter(v => v.type !== 'alphanumeric')
-                                                            }
-                                                            updateField(field.id, { validations: vals })
-                                                        }}
-                                                    />
-                                                    <span>Letters & Numbers Only</span>
-                                                </label>
+                                            {/* Validation Rules */}
+                                            <div className="pt-2 border-t border-border/40 space-y-2">
+                                                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                                                    <ShieldCheck className="size-3.5 text-emerald-500" />
+                                                    Special Constraints:
+                                                </span>
 
                                                 {field.type === 'text' && (
-                                                    <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-foreground font-medium">
+                                                    <label className="inline-flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
                                                         <input 
-                                                            type="checkbox" 
-                                                            className="size-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                                                            type="checkbox"
+                                                            className="size-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                                                            checked={field.validations?.some(v => v.type === 'alphanumeric') || false}
+                                                            onChange={(e) => {
+                                                                let vals = field.validations ? [...field.validations] : []
+                                                                if (e.target.checked) {
+                                                                    if (!vals.some(v => v.type === 'alphanumeric')) {
+                                                                        vals.push({ type: 'alphanumeric', message: 'Must be alphanumeric' })
+                                                                    }
+                                                                } else {
+                                                                    vals = vals.filter(v => v.type !== 'alphanumeric')
+                                                                }
+                                                                updateField(field.id, { validations: vals })
+                                                            }}
+                                                        />
+                                                        <span>Enforce Alphanumeric Characters Only</span>
+                                                    </label>
+                                                )}
+
+                                                {field.type === 'email' && (
+                                                    <label className="inline-flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+                                                        <input 
+                                                            type="checkbox"
+                                                            className="size-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
                                                             checked={field.validations?.some(v => v.type === 'email') || false}
                                                             onChange={(e) => {
                                                                 let vals = field.validations ? [...field.validations] : []
@@ -480,6 +515,22 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                     </div>
                 )}
             </div>
+
+            {/* Confirmation Dialog for Field Deletion */}
+            <ConfirmDialog
+                isOpen={Boolean(fieldToDelete)}
+                onClose={() => setFieldToDelete(null)}
+                onConfirm={() => {
+                    if (fieldToDelete) {
+                        handleRemoveField(fieldToDelete.id, fieldToDelete.label)
+                        setFieldToDelete(null)
+                    }
+                }}
+                title="Delete Form Field"
+                description={`Are you sure you want to delete the field "${fieldToDelete?.label || 'Field'}"? You must click "Save Form Schema" afterward to apply changes.`}
+                confirmText="Delete Field"
+                variant="destructive"
+            />
         </div>
     )
 }

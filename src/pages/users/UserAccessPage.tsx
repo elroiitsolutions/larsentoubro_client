@@ -26,7 +26,6 @@ import {
     MailIcon,
     PhoneIcon,
     BadgeCheckIcon,
-    FilterIcon,
     XIcon,
     KeyIcon
 } from "lucide-react"
@@ -376,7 +375,7 @@ export function UserAccessPage() {
 
     return (
         /* CRITICAL: flex-1 min-h-0 overflow-y-auto ensures the page is fully scrollable inside SidebarLayout */
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full max-w-7xl mx-auto p-3 sm:p-4 gap-5 animate-in fade-in duration-200">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full p-3 sm:p-4 gap-5 animate-in fade-in duration-200">
             {/* Header with Essential User Info and Actions */}
             <div className="bg-card/80 backdrop-blur-md rounded-2xl border border-border/70 p-4 shadow-xs shrink-0">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

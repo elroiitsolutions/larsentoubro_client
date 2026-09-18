@@ -5,7 +5,6 @@ import { NavLink } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -15,19 +14,18 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   LayoutDashboardIcon,
   FolderOpenIcon,
-  StoreIcon,
   UsersIcon,
-  WrenchIcon,
   Settings2Icon,
-  LifeBuoyIcon,
-  SendIcon,
-  BuildingIcon,
-  FileTextIcon,
-  BarChart3Icon,
+  ShieldCheck,
+  Trash2Icon,
+  ArchiveIcon,
+  Building2,
+  FileText,
 } from "lucide-react"
 
 import logoUrl from "@/assets/logo.png"
@@ -54,23 +52,30 @@ const data = {
       items: [],
     },
     {
-      title: "Stores & Tools",
-      url: "/stores",
-      icon: <StoreIcon />,
-      isActive: false,
-      items: [],
-    },
-    {
-      title: "Challan Register",
+      title: "Challan History",
       url: "/challans/history",
-      icon: <FileTextIcon />,
+      icon: <FileText />,
       isActive: false,
       items: [],
     },
     {
-      title: "Reports & Audit",
-      url: "/settings/reports",
-      icon: <BarChart3Icon />,
+      title: "Scrap",
+      url: "/tools/scrap",
+      icon: <ArchiveIcon />,
+      isActive: false,
+      items: [],
+    },
+    {
+      title: "Profile Management",
+      url: "/profiles",
+      icon: <Building2 />,
+      isActive: false,
+      items: [],
+    },
+    {
+      title: "Trash",
+      url: "/tools/trash",
+      icon: <Trash2Icon />,
       isActive: false,
       items: [],
     },
@@ -82,30 +87,39 @@ const data = {
       items: [],
     },
     {
+      title: "Login Approvals",
+      url: "/admin/approvals",
+      icon: <ShieldCheck />,
+      isActive: false,
+      items: [],
+    },
+    {
       title: "Settings",
       url: "/settings",
       icon: <Settings2Icon />,
-      items: [
-        { title: "General", url: "/settings" },
-        { title: "Forms Management", url: "/settings/forms" },
-        { title: "Reports & Audit", url: "/settings/reports" },
-      ],
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
+  const { setOpen } = useSidebar()
 
   const filteredNavMain = React.useMemo(() => {
-    if (!user || user.role === "Admin") {
+    if (user?.role === "Admin") {
       return data.navMain
     }
-    if (user.role === "Vendor") {
+    if (user?.role === "Vendor") {
       return data.navMain.filter((item) => item.url === "/stores")
     }
-    const allowed = user.allowedPages || []
-    return data.navMain.filter((item) => allowed.includes(item.url) || (item.url === "/stores" && allowed.includes("/tools")))
+    const adminOnlyUrls = [
+      "/profiles",
+      "/tools/trash",
+      "/users",
+      "/admin/approvals",
+      "/settings"
+    ];
+    return data.navMain.filter((item) => !adminOnlyUrls.includes(item.url))
   }, [user])
 
   const currentUserData = React.useMemo(() => {
@@ -118,7 +132,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [user])
 
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar
+      variant="sidebar"
+      collapsible="icon"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      {...props}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

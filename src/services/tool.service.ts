@@ -33,6 +33,16 @@ export interface ToolRecord {
     category?: string;
     serialNumber?: string;
     condition?: string;
+    isDeleted?: boolean;
+    deletedAt?: string;
+    deletedBy?: any;
+    isPrinted?: boolean;
+    printedAt?: string;
+    printedBy?: any;
+    isScrapped?: boolean;
+    scrappedAt?: string;
+    scrappedBy?: any;
+    scrapReason?: string;
 }
 
 export interface ToolListResponse {
@@ -60,10 +70,17 @@ export interface ToolMutationResponse {
 export interface BulkImportPreviewResponse {
     success: boolean;
     data: {
+        jobId: string;
         records: any[];
-        totalCount: number;
+        totalRows: number;
         validCount: number;
         invalidCount: number;
+        columns: any[];
+        pagination: {
+            page: number;
+            pageSize: number;
+            totalPages: number;
+        };
     };
     message?: string;
 }
@@ -76,9 +93,31 @@ export interface BulkImportCommitData {
 
 export interface BulkImportCommitResponse {
     success: boolean;
-    data: BulkImportCommitData;
-    count?: number;
+    data: {
+        jobId: string;
+        status: string;
+        totalToProcess: number;
+    };
     message?: string;
+}
+
+export interface ImportJobProgress {
+    processedCount: number;
+    successCount: number;
+    failedCount: number;
+    totalToProcess: number;
+    percentage: number;
+    failedRows: Array<{ row: number | string; reason: string }>;
+}
+
+export interface ImportJobStatus {
+    _id: string;
+    status: 'parsing' | 'preview_ready' | 'processing' | 'completed' | 'failed';
+    totalRows: number;
+    validCount: number;
+    invalidCount: number;
+    progress: ImportJobProgress;
+    completedAt?: string;
 }
 
 export const toolService = {
@@ -98,6 +137,89 @@ export const toolService = {
     getToolById: async (toolId: string): Promise<ToolDetailResponse> => {
         const url = `/api/tools/${encodeURIComponent(toolId)}`;
         const response = await api.get<ToolDetailResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Soft deletes an existing tool by ID.
+     */
+    deleteTool: async (toolId: string): Promise<ToolMutationResponse> => {
+        const url = `/api/tools/${encodeURIComponent(toolId)}`;
+        const response = await api.delete<ToolMutationResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Soft deletes multiple tools by ID list.
+     */
+    bulkDeleteTools: async (toolIds: string[], storeId?: string): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = storeId ? `/api/stores/${storeId}/tools/bulk-delete` : `/api/tools/bulk-delete`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
+     * Marks selected tools as Printed.
+     */
+    markToolsAsPrinted: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/tools/mark-printed`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
+     * Retrieves scrapped printed tools from Scrap section.
+     */
+    getScrappedTools: async (queryParams?: Record<string, string>): Promise<ToolListResponse> => {
+        const query = new URLSearchParams(queryParams || {});
+        const url = `/api/tools/scrap?${query.toString()}`;
+        const response = await api.get<ToolListResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Retrieves soft-deleted tools from Trash.
+     */
+    getDeletedTools: async (queryParams?: Record<string, string>): Promise<ToolListResponse> => {
+        const query = new URLSearchParams(queryParams || {});
+        const url = `/api/tools/trash?${query.toString()}`;
+        const response = await api.get<ToolListResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Restores a soft-deleted tool by ID.
+     */
+    restoreTool: async (toolId: string): Promise<ToolMutationResponse> => {
+        const url = `/api/tools/${encodeURIComponent(toolId)}/restore`;
+        const response = await api.post<ToolMutationResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Restores multiple soft-deleted tools.
+     */
+    bulkRestoreTools: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/tools/bulk-restore`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
+     * Permanently deletes a tool by ID (Admin only).
+     */
+    permanentDeleteTool: async (toolId: string): Promise<ToolMutationResponse> => {
+        const url = `/api/tools/${encodeURIComponent(toolId)}/permanent`;
+        const response = await api.delete<ToolMutationResponse>(url);
+        return response.data;
+    },
+
+    /**
+     * Permanently deletes multiple tools (Admin only).
+     */
+    bulkPermanentDeleteTools: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/tools/bulk-permanent-delete`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
         return response.data;
     },
 
@@ -130,21 +252,56 @@ export const toolService = {
     },
 
     /**
-     * Previews a bulk import spreadsheet before committing.
+     * Previews a bulk import spreadsheet — returns jobId + first page of records.
+     * Records are stored server-side; client fetches pages on demand.
      */
     previewBulkImport: async (storeId: string, formData: FormData): Promise<BulkImportPreviewResponse> => {
         const url = `/api/stores/${storeId}/tools/bulk-import/preview`;
-        const response = await api.post<BulkImportPreviewResponse>(url, formData);
+        const response = await api.post<BulkImportPreviewResponse>(url, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            },
+            timeout: 120000 // 2 min timeout for large file uploads
+        });
         return response.data;
     },
 
     /**
-     * Commits validated records from bulk import into the store.
+     * Fetches paginated preview records from a stored import job.
      */
-    commitBulkImport: async (storeId: string, records: any[]): Promise<BulkImportCommitResponse> => {
-        const url = `/api/stores/${storeId}/tools/bulk-import/commit`;
-        const response = await api.post<BulkImportCommitResponse>(url, { records });
+    getImportJobRecords: async (storeId: string, jobId: string, page: number, pageSize: number) => {
+        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/records?page=${page}&pageSize=${pageSize}`;
+        const response = await api.get(url);
         return response.data;
+    },
+
+    /**
+     * Fetches import job status (for page reload recovery).
+     */
+    getImportJobStatus: async (storeId: string, jobId: string): Promise<{ success: boolean; data: ImportJobStatus }> => {
+        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}`;
+        const response = await api.get(url);
+        return response.data;
+    },
+
+    /**
+     * Commits an import job — returns immediately, processing happens in background.
+     */
+    commitBulkImport: async (storeId: string, jobId: string): Promise<BulkImportCommitResponse> => {
+        const url = `/api/stores/${storeId}/tools/bulk-import/commit`;
+        const response = await api.post<BulkImportCommitResponse>(url, { jobId });
+        return response.data;
+    },
+
+    /**
+     * Creates an EventSource for SSE progress streaming of an import job.
+     * Returns the EventSource instance; caller must manage cleanup.
+     */
+    createImportProgressStream: (storeId: string, jobId: string): EventSource => {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const token = localStorage.getItem('token') || '';
+        const url = `${baseUrl}/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/progress?token=${token}`;
+        return new EventSource(url);
     },
 
     /**
@@ -160,6 +317,30 @@ export const toolService = {
         const url = `/api/stores/${storeId}/tools/filter-options`;
         const response = await api.get<{ success: boolean; data: Record<string, string[]> }>(url);
         return response.data?.data || {};
+    },
+
+    bulkEditTools: async (
+        storeId: string,
+        payload: {
+            toolIds?: string[];
+            filterCriteria?: Record<string, string>;
+            updates: Record<string, any>;
+        }
+    ): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = storeId ? `/api/stores/${storeId}/tools/bulk-edit` : `/api/tools/bulk-edit`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, payload);
+        return response.data;
+    },
+
+    transferTools: async (payload: {
+        sourceStoreId: string;
+        destinationStoreId: string;
+        toolIds: string[];
+        remarks?: string;
+    }): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/stores/${payload.sourceStoreId}/tools/transfer`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, payload);
+        return response.data;
     },
 };
 

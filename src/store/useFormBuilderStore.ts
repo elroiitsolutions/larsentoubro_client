@@ -80,10 +80,14 @@ export const useFormBuilderStore = create<FormBuilderState>((set) => ({
     }));
   },
   removeField: (id) =>
-    set((state) => ({
-      fields: state.fields.filter((f) => f.id !== id),
-      selectedFieldId: state.selectedFieldId === id ? null : state.selectedFieldId,
-    })),
+    set((state) => {
+      const remaining = state.fields.filter((f) => f.id !== id);
+      const reordered = remaining.map((f, idx) => ({ ...f, order: idx }));
+      return {
+        fields: reordered,
+        selectedFieldId: state.selectedFieldId === id ? null : state.selectedFieldId,
+      };
+    }),
   updateField: (id, updates) =>
     set((state) => ({
       fields: state.fields.map((f) => (f.id === id ? { ...f, ...updates } : f)),

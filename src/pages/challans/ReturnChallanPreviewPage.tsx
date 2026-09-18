@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import challanService, { type ChallanRecord } from "@/services/challan.service";
 import { generateReturnChallanPDF } from "@/utils/pdf/challanPdfGenerator";
-import { calculateChallanSummary } from "@/utils/challan/challanCalculations";
 import { toast } from "sonner";
+import logoUrl from "@/assets/logo.png";
 
 export function ReturnChallanPreviewPage() {
     const { dcId } = useParams<{ dcId: string }>();
@@ -24,7 +24,7 @@ export function ReturnChallanPreviewPage() {
     const navigate = useNavigate();
     const state = location.state as any;
 
-    const [dc, setDc] = useState<ChallanRecord | null>(state?.referenceDc || null);
+    const [dc, setDc] = useState<ChallanRecord | null>(state?.referenceDc ||  null);
     const [loading, setLoading] = useState(!dc);
 
     const [challanDate, setChallanDate] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -99,7 +99,6 @@ export function ReturnChallanPreviewPage() {
 
     const returnedItems = items.filter(i => i.returnStatus === "Returned");
     const missingItems = items.filter(i => i.returnStatus === "Missing");
-    const summary = calculateChallanSummary(items);
 
     const handleStatusToggle = (idx: number, status: "Returned" | "Missing") => {
         const next = [...items];
@@ -164,9 +163,10 @@ export function ReturnChallanPreviewPage() {
                         <ArrowLeft className="size-5" />
                     </Button>
                     <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
+                            <img src={logoUrl} alt="L&T Logo" className="size-8 object-contain shrink-0" />
                             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                                <RotateCcw className="size-6 text-primary" />
+                                <RotateCcw className="size-5 text-primary" />
                                 Review & Create Return Challan (RC)
                             </h1>
                             <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
@@ -208,7 +208,7 @@ export function ReturnChallanPreviewPage() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
                     <p className="text-xs font-semibold text-muted-foreground uppercase">Consignee Vendor</p>
                     <div className="flex items-center gap-2 mt-1">
@@ -234,14 +234,6 @@ export function ReturnChallanPreviewPage() {
                         <span className="text-xl font-bold text-rose-600">{missingItems.length}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">Marked as Missing</span>
-                </Card>
-
-                <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">Original Value</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xl font-bold text-primary">₹ {summary.totalRate.toLocaleString()}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Total across items</span>
                 </Card>
             </div>
 

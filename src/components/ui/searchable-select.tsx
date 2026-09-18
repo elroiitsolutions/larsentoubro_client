@@ -5,10 +5,12 @@ import { Popover as PopoverPrimitive } from "@base-ui/react/popover"
 import { CheckIcon, ChevronDownIcon, SearchIcon, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+export type SearchableSelectOption = string | { label: string; value: string }
+
 export interface SearchableSelectProps {
   value?: string
   onValueChange: (value: string) => void
-  options: string[]
+  options: SearchableSelectOption[]
   placeholder?: string
   searchPlaceholder?: string
   allLabel?: string
@@ -44,26 +46,33 @@ export function SearchableSelect({
     }
   }, [open])
 
-  const uniqueOptions = React.useMemo(() => {
-    return Array.from(new Set(options)).filter(
-      (opt) => opt !== null && opt !== undefined && String(opt).trim() !== ""
-    )
+  const normalizedOptions = React.useMemo(() => {
+    const opts = options.map(opt => typeof opt === 'string' ? { label: opt, value: opt } : opt)
+    const seen = new Set()
+    return opts.filter(opt => {
+      if (!opt || opt.value === null || opt.value === undefined || String(opt.value).trim() === "") return false
+      if (seen.has(opt.value)) return false
+      seen.add(opt.value)
+      return true
+    })
   }, [options])
 
   const filteredOptions = React.useMemo(() => {
-    if (!search.trim()) return uniqueOptions
+    if (!search.trim()) return normalizedOptions
     const query = search.toLowerCase().trim()
-    return uniqueOptions.filter((opt) =>
-      String(opt).toLowerCase().includes(query)
+    return normalizedOptions.filter((opt) =>
+      String(opt.label).toLowerCase().includes(query) || String(opt.value).toLowerCase().includes(query)
     )
-  }, [uniqueOptions, search])
+  }, [normalizedOptions, search])
 
   const isAllSelected =
     value === "All" || value === "" || value === allValue
 
+  const selectedOption = React.useMemo(() => normalizedOptions.find(opt => opt.value === value), [normalizedOptions, value])
+
   const displayValue = isAllSelected
     ? allLabel || placeholder
-    : value
+    : selectedOption ? selectedOption.label : value
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
@@ -146,12 +155,12 @@ export function SearchableSelect({
               {/* Filtered Options */}
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((opt) => {
-                  const isSelected = value === opt && !isAllSelected
+                  const isSelected = value === opt.value && !isAllSelected
                   return (
                     <div
-                      key={opt}
+                      key={opt.value}
                       onClick={() => {
-                        onValueChange(opt)
+                        onValueChange(opt.value)
                         setOpen(false)
                       }}
                       className={cn(
@@ -164,7 +173,7 @@ export function SearchableSelect({
                           <CheckIcon className="size-3.5 text-primary shrink-0" />
                         ) : null}
                       </div>
-                      <span className="truncate">{opt}</span>
+                      <span className="truncate">{opt.label}</span>
                     </div>
                   )
                 })

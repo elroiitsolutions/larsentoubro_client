@@ -12,6 +12,7 @@ export interface StoreRecord {
     underMaintenanceToolsCount: number;
     status: string;
     projectId?: string;
+    project?: any;
 }
 
 export interface StoresResponse {
@@ -50,6 +51,14 @@ export const storeService = {
     createStore: async (data: Record<string, unknown>, endpoint?: string): Promise<StoreMutationResponse> => {
         const url = endpoint || "/api/stores";
         const response = await api.post<StoreMutationResponse>(url, data);
+        return response.data;
+    },
+
+    /**
+     * Retrieves a single store by its unique ID.
+     */
+    getStoreById: async (id: string): Promise<{ success: boolean; data?: StoreRecord; message?: string }> => {
+        const response = await api.get<{ success: boolean; data?: StoreRecord; message?: string }>(`/api/stores/${id}`);
         return response.data;
     },
 

@@ -3,6 +3,12 @@ import { useFormContext, Controller, useWatch } from 'react-hook-form';
 import type { FormField } from '@/store/useFormBuilderStore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue} from "@/components/ui/select"
 
 export function DynamicField({ field }: { field: FormField }) {
   const { control, formState: { errors } } = useFormContext();
@@ -78,17 +84,16 @@ export function DynamicField({ field }: { field: FormField }) {
               );
             case 'select':
               return (
-                <select
-                  {...hookField}
-                  id={field.name}
-                  disabled={field.disabled}
-                  className={`flex h-9 w-full min-w-0 rounded-2xl border border-transparent bg-input/50 px-2.5 py-1 text-base transition-[color,box-shadow] duration-200 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 ${error ? 'border-destructive focus-visible:ring-destructive/20' : ''}`}
-                >
-                  <option value="">Select an option</option>
-                  {(field.options || []).map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                <Select disabled={field.disabled} name={field.name} value={hookField.value || ""} onValueChange={(val) => hookField.onChange(val)}>
+                  <SelectTrigger className={`flex h-9 w-full min-w-0 rounded-2xl border border-transparent bg-input/50 px-2.5 py-1 text-base transition-[color,box-shadow] duration-200 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 ${error ? 'border-destructive focus-visible:ring-destructive/20' : ''}`}>
+                    <SelectValue placeholder="Select an option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(field.options || []).map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               );
             case 'radio':
               return (

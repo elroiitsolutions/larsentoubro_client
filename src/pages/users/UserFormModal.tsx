@@ -9,6 +9,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+    SelectSeparator
+} from "@/components/ui/select"
+import {
     UserPlusIcon,
     UserIcon,
     Loader2,
@@ -42,7 +50,8 @@ export function UserFormModal({
     const [userId, setUserId] = React.useState("")
     const [phone, setPhone] = React.useState("")
     const [password, setPassword] = React.useState("")
-    const [role, setRole] = React.useState<"Admin" | "User" | "Vendor">("User")
+    const [role, setRole] = React.useState<"Admin" | "User">("User")
+    const [status, setStatus] = React.useState<"Active" | "Inactive">("Active")
     const [saving, setSaving] = React.useState(false)
 
     React.useEffect(() => {
@@ -54,7 +63,8 @@ export function UserFormModal({
             setUserId(editingUser.user_id || "")
             setPhone(editingUser.phonenumber || "")
             setPassword("")
-            setRole(editingUser.role === "Admin" || editingUser.role === "Vendor" ? editingUser.role : "User")
+            setRole(editingUser.role === "Admin" ? "Admin" : "User")
+            setStatus("Active")
         } else {
             setName("")
             setEmail("")
@@ -62,6 +72,7 @@ export function UserFormModal({
             setPhone("")
             setPassword("")
             setRole("User")
+            setStatus("Active")
         }
     }, [isOpen, editingUser])
 
@@ -86,14 +97,13 @@ export function UserFormModal({
                 user_id: userId.trim(),
                 phonenumber: phone.trim(),
                 role: role,
+                status: status,
             }
 
             if (!isEdit) {
                 payload.allowedPages = role === "Admin"
                     ? ["/dashboard", "/projects", "/stores", "/tools", "/users", "/settings"]
-                    : role === "Vendor"
-                        ? ["/stores", "/tools"]
-                        : ["/dashboard", "/projects", "/stores"]
+                    : ["/dashboard", "/projects", "/stores"]
                 payload.projects = []
                 payload.stores = []
             }
@@ -118,7 +128,6 @@ export function UserFormModal({
                 )
                 onSuccess()
                 onClose()
-                // Directly navigate to dedicated Manage Access page for permissions
                 navigate(`/users/${targetId}/access`)
             } else {
                 toast.error(res.message || "Failed to save user account.")
@@ -136,7 +145,7 @@ export function UserFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-h-[90vh]">
+            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
                 {/* Header */}
                 <DialogHeader className="px-6 py-5 border-b border-border/60 bg-muted/20 shrink-0">
                     <div className="flex items-center gap-3">
@@ -145,12 +154,12 @@ export function UserFormModal({
                         </div>
                         <div>
                             <DialogTitle className="text-xl font-bold text-foreground">
-                                {isEdit ? "Edit Member Account" : "Create New Member Account"}
+                                {isEdit ? "Edit Internal User / Admin" : "Create Internal User / Admin"}
                             </DialogTitle>
                             <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                                 {isEdit
                                     ? "Update member profile details. For permissions, use the Manage Access page."
-                                    : "Register basic profile details. Upon saving, you will configure Page, Project & Store permissions on the dedicated Manage Access page."}
+                                    : "Register internal application user. Upon saving, you can configure Page, Project & Store permissions."}
                             </DialogDescription>
                         </div>
                     </div>
@@ -164,12 +173,12 @@ export function UserFormModal({
                     <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
                         <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
                             <UserIcon className="size-4 text-primary" />
-                            Member Identity & Contact Information
+                            Internal Member Identity & Profile
                         </h3>
 
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Full Name */}
-                            <div>
+                            <div className="md:col-span-2">
                                 <label className="text-xs font-bold text-foreground block mb-1.5">
                                     Full Name <span className="text-rose-500">*</span>
                                 </label>
@@ -231,41 +240,52 @@ export function UserFormModal({
                                 />
                             </div>
 
-                            {/* Role Selection (RBAC) */}
+                            {/* Active Status */}
                             <div>
                                 <label className="text-xs font-bold text-foreground block mb-1.5">
-                                    Account Role (RBAC) <span className="text-rose-500">*</span>
+                                    Account Status <span className="text-rose-500">*</span>
                                 </label>
-                                <select
-                                    value={role}
-                                    onChange={(e) => setRole(e.target.value as any)}
-                                    className="h-10 w-full rounded-xl bg-background border border-border/70 text-sm font-semibold px-3 focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
-                                >
-                                    <option value="User">User — Controlled access via Projects, Stores & Page Permissions</option>
-                                    <option value="Vendor">Vendor — Simplified workflow for Tool Issue & Return operations</option>
-                                    <option value="Admin">Admin — Full unrestricted application & system access</option>
-                                </select>
+                                <Select value={status} onValueChange={(val: any) => setStatus(val)}>
+                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Active">Active — Member can log in & perform actions</SelectItem>
+                                        <SelectItem value="Inactive">Inactive — Account disabled</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Role Selection */}
+                            <div className="md:col-span-2">
+                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                    System Role (RBAC) <span className="text-rose-500">*</span>
+                                </label>
+                                <Select value={role} onValueChange={(val: any) => setRole(val)}>
+                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="User">User — Access controlled by Projects, Stores & Page Scope</SelectItem>
+                                        <SelectSeparator />
+                                        <SelectItem value="Admin">Admin — Full unrestricted platform & system management</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <div className="mt-2 p-2.5 rounded-xl border bg-muted/20 text-xs">
-                                    {role === "Admin" && (
+                                    {role === "Admin" ? (
                                         <p className="text-blue-600 dark:text-blue-400 font-medium">
-                                            <span className="font-bold">Admin:</span> Full access to entire application, users, projects, stores, tools, and permissions.
+                                            <span className="font-bold">Admin:</span> Unrestricted access across all Projects, Stores, Tools, Reports, and System Settings.
                                         </p>
-                                    )}
-                                    {role === "Vendor" && (
-                                        <p className="text-amber-600 dark:text-amber-400 font-medium">
-                                            <span className="font-bold">Vendor:</span> Restricted to tool issue and return operations (/stores & /tools). Cannot access administrative modules.
-                                        </p>
-                                    )}
-                                    {role === "User" && (
+                                    ) : (
                                         <p className="text-muted-foreground font-medium">
-                                            <span className="font-bold">User:</span> Standard access controlled by assigned Projects, Stores, and Page-Level Permissions.
+                                            <span className="font-bold">User:</span> Standard access scope governed by assigned Projects, Stores, and Page Permissions.
                                         </p>
                                     )}
                                 </div>
                             </div>
 
                             {/* Password */}
-                            <div>
+                            <div className="md:col-span-2">
                                 <label className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-1.5">
                                     <KeyIcon className="size-3.5 text-primary" />
                                     <span>{isEdit ? "Admin Reset Password" : "Account Password"}</span>
@@ -286,7 +306,7 @@ export function UserFormModal({
                                 <p className="text-[11px] text-muted-foreground mt-1">
                                     {isEdit
                                         ? "Only Admins can reset user passwords."
-                                        : "Member will use this password for initial login."}
+                                        : "Member will use this password for login access."}
                                 </p>
                             </div>
                         </div>
@@ -295,7 +315,7 @@ export function UserFormModal({
                     <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-start gap-3">
                         <ShieldCheckIcon className="size-5 text-primary shrink-0 mt-0.5" />
                         <div className="text-xs text-muted-foreground leading-relaxed">
-                            <span className="font-bold text-foreground">Next Step:</span> Upon clicking save, you will be redirected to the dedicated <span className="font-semibold text-primary">Manage Access & Permissions</span> page to configure page-level access, Project assignments, and Store dependencies.
+                            <span className="font-bold text-foreground">Next Step:</span> Upon saving, you will be directed to <span className="font-semibold text-primary">Manage Access & Permissions</span> to configure Project assignments, Store access, and Page permissions.
                         </div>
                     </div>
                 </form>
@@ -318,7 +338,7 @@ export function UserFormModal({
                         disabled={saving}
                     >
                         {saving && <Loader2 className="size-4 animate-spin" />}
-                        <span>{isEdit ? "Update & Manage Access" : "Create & Manage Access"}</span>
+                        <span>{isEdit ? "Update Member Profile" : "Create & Configure Access"}</span>
                         <ArrowRightIcon className="size-4" />
                     </Button>
                 </div>

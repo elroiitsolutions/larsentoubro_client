@@ -86,18 +86,22 @@ export function BulkImportModal({ onSuccess }: BulkImportModalProps) {
     };
 
     const handleCommit = async () => {
-        if (!previewData?.records) return;
+        const jobId = previewData?.jobId;
+        if (!jobId) return;
 
         setLoading(true);
-        // Only send valid records
-        const validRecords = previewData.records.filter((r: any) => r.isValid);
 
         try {
-            const data = await toolService.commitBulkImport(storeId || '', validRecords);
+            const data = await toolService.commitBulkImport(storeId || '', jobId);
 
-            if (data.success) {
-                const resultData: BulkImportCommitData = data.data || { successCount: 0, failedCount: 0, failedRows: [] };
-                toast.success(`Successfully imported ${resultData.successCount} tools`);
+            if (data.success && data.data) {
+                const commitInfo = data.data;
+                const resultData: BulkImportCommitData = {
+                    successCount: commitInfo.totalToProcess || previewData.validCount || 0,
+                    failedCount: previewData.invalidCount || 0,
+                    failedRows: []
+                };
+                toast.success(`Successfully started import for ${resultData.successCount} tools`);
                 setResult(resultData);
                 setStep('result');
                 if (resultData.successCount > 0) {
