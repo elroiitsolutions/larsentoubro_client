@@ -43,11 +43,6 @@ export interface ToolRecord {
     scrappedAt?: string;
     scrappedBy?: any;
     scrapReason?: string;
-    scrapDealer?: {
-        _id?: string;
-        name?: string;
-        code?: string;
-    };
 }
 
 export interface ToolListResponse {

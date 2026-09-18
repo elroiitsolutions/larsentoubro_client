@@ -5,7 +5,6 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { SearchableSelect } from "@/components/ui/searchable-select"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,10 +25,10 @@ import {
     X,
     QrCode,
     Printer,
+    FileText,
     Building2
 } from "lucide-react"
 import toolService, { type ToolRecord } from "@/services/tool.service"
-import profileService from "@/services/profile.service"
 import { VendorSelectionModal } from "./VendorSelectionModal"
 import { toast } from "sonner"
 
@@ -42,14 +41,12 @@ export function ScrapPage() {
     // Selection
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-    // Pagination & Search & Filter
+    // Pagination & Search
     const [page, setPage] = useState(1)
     const [limit] = useState(10)
     const [total, setTotal] = useState(0)
     const [, setTotalPages] = useState(1)
     const [search, setSearch] = useState("")
-    const [scrapDealerFilter, setScrapDealerFilter] = useState("All")
-    const [scrapDealerOptions, setScrapDealerOptions] = useState<{ label: string; value: string }[]>([])
 
     // Dialog state
     const [dialogState, setDialogState] = useState<{
@@ -62,39 +59,13 @@ export function ScrapPage() {
         type: 'restore'
     })
 
-    const fetchScrapDealers = useCallback(async () => {
-        try {
-            const res = await profileService.getProfiles({ profileType: 'ScrapDealer', limit: 1000 })
-            const list = res.data || []
-            const optionsMap = new Map<string, string>()
-
-            list.forEach((p: any) => {
-                if (p.name) optionsMap.set(p.name, p.name)
-            })
-
-            const options = Array.from(optionsMap.values()).map(name => ({
-                label: name,
-                value: name
-            }))
-
-            setScrapDealerOptions(options)
-        } catch (e) {
-            console.error("Error fetching scrap dealers for filter:", e)
-        }
-    }, [])
-
-    useEffect(() => {
-        fetchScrapDealers()
-    }, [fetchScrapDealers])
-
     const fetchScrappedTools = useCallback(async () => {
         setLoading(true)
         try {
             const res = await toolService.getScrappedTools({
                 page: page.toString(),
                 limit: limit.toString(),
-                search,
-                scrapDealer: scrapDealerFilter
+                search
             })
             if (res?.success) {
                 setScrappedTools(res.data || [])
@@ -107,7 +78,7 @@ export function ScrapPage() {
         } finally {
             setLoading(false)
         }
-    }, [page, limit, search, scrapDealerFilter])
+    }, [page, limit, search])
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -115,22 +86,6 @@ export function ScrapPage() {
         }, 300)
         return () => clearTimeout(timeout)
     }, [fetchScrappedTools])
-
-    // Merge any scrap dealers found in scrapped tools into filter options
-    useEffect(() => {
-        if (scrappedTools.length > 0) {
-            setScrapDealerOptions(prev => {
-                const map = new Map(prev.map(o => [o.value, o.label]))
-                scrappedTools.forEach(t => {
-                    const name = t.scrapDealer?.name || (t.scrapReason?.includes('Scrap Dealer:') ? t.scrapReason.split('Scrap Dealer:')[1]?.trim() : null)
-                    if (name && !map.has(name)) {
-                        map.set(name, name)
-                    }
-                })
-                return Array.from(map.values()).map(name => ({ label: name, value: name }))
-            })
-        }
-    }, [scrappedTools])
 
     const handleToggleSelect = (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
@@ -219,50 +174,18 @@ export function ScrapPage() {
             </div>
 
             <Card className="flex-1 min-h-0 flex flex-col border-border/50 shadow-lg shadow-black/5 overflow-hidden rounded-2xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl">
-                {/* Search & Filter Bar */}
+                {/* Search Bar */}
                 <div className="p-4 border-b bg-muted/20 backdrop-blur-md shrink-0">
                     <div className="flex flex-col sm:flex-row items-center gap-3">
                         <div className="relative group flex-1 w-full">
                             <SearchIcon className="absolute left-3 top-2.5 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <Input
-                                placeholder="Search scrapped tools by ID, code, description, or dealer..."
-                                className="pl-10 h-10 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-sm rounded-xl text-sm"
+                                placeholder="Search scrapped tools by ID, code, or description..."
+                                className="pl-10 h-10 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-sm rounded-xl"
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                             />
                         </div>
-
-                        {/* Scrap Dealer Dropdown Filter */}
-                        <div className="w-full sm:w-64 shrink-0">
-                            <SearchableSelect
-                                options={scrapDealerOptions}
-                                value={scrapDealerFilter}
-                                onValueChange={(val) => {
-                                    setScrapDealerFilter(val);
-                                    setPage(1);
-                                }}
-                                allLabel="All Scrap Dealers"
-                                placeholder="Filter by Scrap Dealer..."
-                                className="h-10 rounded-xl"
-                            />
-                        </div>
-
-                        {/* Reset Filters */}
-                        {(search || scrapDealerFilter !== "All") && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    setSearch("");
-                                    setScrapDealerFilter("All");
-                                    setPage(1);
-                                }}
-                                className="h-10 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground shrink-0 rounded-xl cursor-pointer"
-                            >
-                                <RotateCcw className="size-3.5 mr-1.5" />
-                                Reset Filters
-                            </Button>
-                        )}
                     </div>
                 </div>
 
@@ -290,7 +213,6 @@ export function ScrapPage() {
                                         <th className="px-6 py-4">Tool ID</th>
                                         <th className="px-6 py-4">Description</th>
                                         <th className="px-6 py-4">Print Status</th>
-                                        <th className="px-6 py-4">Scrap Dealer</th>
                                         <th className="px-6 py-4">Original Store / Site</th>
                                         <th className="px-6 py-4">Project</th>
                                         <th className="px-6 py-4">Scrapped Date</th>
@@ -301,7 +223,7 @@ export function ScrapPage() {
                                 <tbody className="divide-y divide-border/40">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={10} className="px-6 py-20 text-center">
+                                            <td colSpan={9} className="px-6 py-20 text-center">
                                                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                                                     <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
                                                     <p className="text-sm font-medium animate-pulse">Loading scrapped tools...</p>
@@ -310,7 +232,7 @@ export function ScrapPage() {
                                         </tr>
                                     ) : scrappedTools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={10} className="px-6 py-24 text-center">
+                                            <td colSpan={9} className="px-6 py-24 text-center">
                                                 <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
                                                     <div className="size-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4 text-amber-600">
                                                         <Archive className="size-8" />
@@ -330,14 +252,12 @@ export function ScrapPage() {
                                             const projectName = typeof projectObj === 'object' ? projectObj.name : '-'
                                             const scrappedByName = t.scrappedBy?.name || t.scrappedBy?.email || 'User'
                                             const scrappedDateStr = t.scrappedAt ? new Date(t.scrappedAt).toLocaleString() : '-'
-                                            const scrapDealerName = t.scrapDealer?.name || (t.scrapReason?.includes('Scrap Dealer:') ? t.scrapReason.split('Scrap Dealer:')[1]?.trim() : '-')
 
                                             return (
                                                 <tr
                                                     key={t._id}
-                                                    className={`group hover:bg-muted/30 transition-colors duration-200 ${
-                                                        selectedIds.has(t._id) ? "bg-primary/[0.05]" : ""
-                                                    }`}
+                                                    className={`group hover:bg-muted/30 transition-colors duration-200 ${selectedIds.has(t._id) ? "bg-primary/[0.05]" : ""
+                                                        }`}
                                                 >
                                                     <td className="px-4 py-4 text-center" onClick={(e) => handleToggleSelect(t._id, e)}>
                                                         <button
@@ -375,16 +295,6 @@ export function ScrapPage() {
                                                             <Printer className="size-3" />
                                                             Printed
                                                         </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        {scrapDealerName && scrapDealerName !== '-' ? (
-                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 ring-1 ring-amber-500/30">
-                                                                <Building2 className="size-3" />
-                                                                {scrapDealerName}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-muted-foreground text-xs font-mono">-</span>
-                                                        )}
                                                     </td>
                                                     <td className="px-6 py-4 text-muted-foreground">
                                                         {storeName}
