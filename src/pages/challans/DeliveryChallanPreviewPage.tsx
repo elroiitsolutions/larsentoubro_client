@@ -48,28 +48,28 @@ export function DeliveryChallanPreviewPage() {
     const [remarks, setRemarks] = useState(state?.remarks || "");
 
     // Consignee / Subcontractor & Location Details (Editable)
-    const vendorCode = initialVendor.vendorCode || "V-001";
-    const [subcontractorName, setSubcontractorName] = useState(initialVendor.name || "Selected Subcontractor");
-    const [consigneeAddress, setConsigneeAddress] = useState(initialVendor.address || "Powai Campus, Saki Vihar Road, Mumbai");
-    const [siteCode, setSiteCode] = useState(state?.siteCode || "LT003");
-    const [locationChainage, setLocationChainage] = useState("Loc: 59/3 to 60/0");
-    const [consigneeGstNo, setConsigneeGstNo] = useState(initialVendor.gstNumber || "27AAACL0140P1Z0");
+    const vendorCode = initialVendor.vendorCode || "-";
+    const [subcontractorName, setSubcontractorName] = useState(initialVendor.name || "-");
+    const [consigneeAddress, setConsigneeAddress] = useState(initialVendor.address || "-");
+    const [siteCode, setSiteCode] = useState(state?.siteCode || "-");
+    const [locationChainage, setLocationChainage] = useState("-");
+    const [consigneeGstNo, setConsigneeGstNo] = useState(initialVendor.gstNumber || "-");
 
     // Accounting & TRN Fields (Editable)
-    const [trnCode, setTrnCode] = useState("M 25");
-    const [sendingCentreCode, setSendingCentreCode] = useState("STR-01");
+    const [trnCode, setTrnCode] = useState("-");
+    const [sendingCentreCode, setSendingCentreCode] = useState("-");
     const [mrNo, setMrNo] = useState("-");
     const [mrDate, setMrDate] = useState("-");
-    const [stockType, setStockType] = useState("CAPTIVE");
+    const [stockType, setStockType] = useState("-");
     const [ewayBillNo, setEwayBillNo] = useState("-");
 
     // Gate Pass & Transport Details (Editable)
-    const [gatePassNo, setGatePassNo] = useState("GP-2026-001");
-    const [gatePassApprovedBy, setGatePassApprovedBy] = useState("APPROVED");
-    const [consignorTaxNo, setConsignorTaxNo] = useState("27AAACL0140P1Z0");
+    const [gatePassNo, setGatePassNo] = useState("-");
+    const [gatePassApprovedBy, setGatePassApprovedBy] = useState("-");
+    const [consignorTaxNo, setConsignorTaxNo] = useState("-");
     const [vehicleNo, setVehicleNo] = useState("-");
     const [lrNo, setLrNo] = useState("-");
-    const [freightStatus, setFreightStatus] = useState("PAID");
+    const [freightStatus, setFreightStatus] = useState("-");
 
     // Receiver Details (Editable)
     const [receiverName, setReceiverName] = useState("");
@@ -172,7 +172,16 @@ export function DeliveryChallanPreviewPage() {
         try {
             setCreating(true);
             const payload = getChallanPayload();
-            const res = await challanService.createDeliveryChallan(payload);
+            let res;
+            if (state?.isScrapDC || initialVendor?.profileType === "ScrapDealer") {
+                const scrapDealerId = initialVendor?._id || initialVendor?.id || payload.vendorId || payload.vendor?._id;
+                res = await challanService.createScrapDeliveryChallan({
+                    ...payload,
+                    scrapDealerId
+                });
+            } else {
+                res = await challanService.createDeliveryChallan(payload);
+            }
 
             if (res.success && res.data) {
                 toast.success(`Delivery Challan ${formatDCNumber(res.data.challanNumber)} created successfully! Automatically downloading PDF...`);
@@ -523,7 +532,7 @@ export function DeliveryChallanPreviewPage() {
                                 </div>
                                 <div>
                                     <span className="font-bold text-[9px] text-slate-500">MRN NO.</span>
-                                    <Input value={mrnNo} onChange={e => setMrnNo(e.target.value)} placeholder="MRN-001" className="h-6 text-[10px] font-bold border-slate-300" />
+                                    <Input value={mrnNo} onChange={e => setMrnNo(e.target.value)} placeholder="-" className="h-6 text-[10px] font-bold border-slate-300" />
                                 </div>
                                 <div>
                                     <span className="font-bold text-[9px] text-slate-500">RECEIPT DATE</span>

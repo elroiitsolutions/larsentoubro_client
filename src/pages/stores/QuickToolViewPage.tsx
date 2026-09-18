@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
 import { StoreToolsPage } from "./StoreToolsPage";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
     Loader2,
@@ -26,6 +27,8 @@ export function QuickToolViewPage() {
     const { toolId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
+    const isAdmin = user?.role === "Admin";
 
     const initialTool = (location.state as any)?.initialTool;
     const isModalOnly = Boolean((location.state as any)?.backgroundLocation);
@@ -425,17 +428,19 @@ export function QuickToolViewPage() {
                         )}
 
                         {/* Action Buttons */}
-                        <div className="pt-2 flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full rounded-xl h-9 font-bold gap-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 cursor-pointer"
-                                onClick={() => setShowDeleteConfirm(true)}
-                            >
-                                <Trash2 className="size-3.5" />
-                                <span>Delete Tool</span>
-                            </Button>
-                        </div>
+                        {isAdmin && (
+                            <div className="pt-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full rounded-xl h-9 font-bold gap-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 cursor-pointer"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                >
+                                    <Trash2 className="size-3.5" />
+                                    <span>Delete Tool</span>
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

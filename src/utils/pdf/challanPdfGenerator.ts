@@ -185,10 +185,10 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.text(String(challan.trnCode || (isReturn ? 'RET' : 'M 25')), 22, 69, { align: 'center' });
-    doc.text(String(challan.sendingCentreCode || 'STR-01'), 45, 69, { align: 'center' });
+    doc.text(String(challan.sendingCentreCode || '-'), 45, 69, { align: 'center' });
     doc.text(String(challan.mrNo || challan.mrnNo || '-'), 71, 69, { align: 'center' });
     doc.text(String(challan.mrDate || '-'), 93.5, 69, { align: 'center' });
-    doc.text(String(challan.stockType || 'CAPTIVE'), 118.5, 69, { align: 'center' });
+    doc.text(String(challan.stockType), 118.5, 69, { align: 'center' });
     doc.text(String(isReturn ? siteCodeStr : vendorCodeStr), 150, 69, { align: 'center' });
     doc.text(String(challan.ewayBillNo || '-'), 182, 69, { align: 'center' });
 

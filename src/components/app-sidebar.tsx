@@ -25,6 +25,7 @@ import {
   Trash2Icon,
   ArchiveIcon,
   Building2,
+  FileText,
 } from "lucide-react"
 
 import logoUrl from "@/assets/logo.png"
@@ -51,6 +52,20 @@ const data = {
       items: [],
     },
     {
+      title: "Challan History",
+      url: "/challans/history",
+      icon: <FileText />,
+      isActive: false,
+      items: [],
+    },
+    {
+      title: "Scrap",
+      url: "/tools/scrap",
+      icon: <ArchiveIcon />,
+      isActive: false,
+      items: [],
+    },
+    {
       title: "Profile Management",
       url: "/profiles",
       icon: <Building2 />,
@@ -61,13 +76,6 @@ const data = {
       title: "Trash",
       url: "/tools/trash",
       icon: <Trash2Icon />,
-      isActive: false,
-      items: [],
-    },
-    {
-      title: "Scrap",
-      url: "/tools/scrap",
-      icon: <ArchiveIcon />,
       isActive: false,
       items: [],
     },
@@ -98,14 +106,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { setOpen } = useSidebar()
 
   const filteredNavMain = React.useMemo(() => {
-    if (!user || user.role === "Admin") {
+    if (user?.role === "Admin") {
       return data.navMain
     }
-    if (user.role === "Vendor") {
+    if (user?.role === "Vendor") {
       return data.navMain.filter((item) => item.url === "/stores")
     }
-    const allowed = user.allowedPages || []
-    return data.navMain.filter((item) => allowed.includes(item.url) || item.url === "/tools/trash" || item.url === "/tools/scrap" || (item.url === "/stores" && allowed.includes("/tools")))
+    const adminOnlyUrls = [
+      "/profiles",
+      "/tools/trash",
+      "/users",
+      "/admin/approvals",
+      "/settings"
+    ];
+    return data.navMain.filter((item) => !adminOnlyUrls.includes(item.url))
   }, [user])
 
   const currentUserData = React.useMemo(() => {

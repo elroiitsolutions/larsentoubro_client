@@ -61,6 +61,11 @@ const challanService = {
         return res.data;
     },
 
+    createScrapDeliveryChallan: async (data: any): Promise<{ success: boolean; data: ChallanRecord; message?: string }> => {
+        const res = await api.post('/api/challans/scrap-delivery', data);
+        return res.data;
+    },
+
     createReturnChallan: async (data: any): Promise<{ success: boolean; data: ChallanRecord; message?: string }> => {
         const res = await api.post('/api/challans/return', data);
         return res.data;

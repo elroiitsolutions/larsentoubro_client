@@ -44,6 +44,7 @@ import { ToolFormModal } from "./ToolFormModal"
 import { VendorSelectionModal } from "./VendorSelectionModal"
 import { BulkEditToolsModal } from "./BulkEditToolsModal"
 import { ToolTransferModal } from "./ToolTransferModal"
+import { ScrapModal } from "./ScrapModal"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -161,6 +162,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(new Set());
     const [selectedToolsMap, setSelectedToolsMap] = useState<Record<string, any>>({});
     const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+    const [isScrapModalOpen, setIsScrapModalOpen] = useState(false);
     const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isSelectingAll, setIsSelectingAll] = useState(false);
@@ -615,6 +617,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     };
 
     const { user } = useAuth();
+    const isAdmin = user?.role === "Admin";
     const isPageRestricted = Boolean(
         user &&
         user.role !== "Admin" &&
@@ -707,24 +710,32 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-rose-600 dark:text-rose-400 hover:text-rose-700"
-                        onClick={() => navigate('/tools/trash')}
-                    >
-                        <Trash2 className="size-4 text-rose-500" />
-                        Trash / Deleted
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-rose-600 dark:text-rose-400 hover:text-rose-700"
+                            onClick={() => navigate('/tools/trash')}
+                        >
+                            <Trash2 className="size-4 text-rose-500" />
+                            Trash / Deleted
+                        </Button>
+                    )}
 
                     <Button
                         variant="outline"
                         size="lg"
                         className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-amber-600 dark:text-amber-400 hover:text-amber-700"
-                        onClick={() => navigate('/tools/scrap')}
+                        onClick={() => {
+                            if (selectedToolIds.size > 0) {
+                                setIsScrapModalOpen(true);
+                            } else {
+                                navigate('/tools/scrap');
+                            }
+                        }}
                     >
                         <Archive className="size-4 text-amber-500" />
-                        Scrap
+                        Scrap {selectedToolIds.size > 0 ? `Selected (${selectedToolIds.size})` : ""}
                     </Button>
 
                     <Button
@@ -740,15 +751,17 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         Bulk Import
                     </Button>
 
-                    <Button
-                        variant={selectedToolIds.size > 0 ? "default" : "outline"}
-                        size="lg"
-                        className="gap-2 rounded-xl shadow-sm border-border/80 transition-all"
-                        onClick={handleOpenBulkEdit}
-                    >
-                        <Edit3 className="size-4" />
-                        Bulk Edit {selectedToolIds.size > 0 ? `(${selectedToolIds.size})` : ""}
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            variant={selectedToolIds.size > 0 ? "default" : "outline"}
+                            size="lg"
+                            className="gap-2 rounded-xl shadow-sm border-border/80 transition-all"
+                            onClick={handleOpenBulkEdit}
+                        >
+                            <Edit3 className="size-4" />
+                            Bulk Edit {selectedToolIds.size > 0 ? `(${selectedToolIds.size})` : ""}
+                        </Button>
+                    )}
 
                     <ToolFormModal storeId={storeId!} onSuccess={fetchTools} />
                 </div>
@@ -982,7 +995,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('isPrinted')}>
                                             <div className="flex items-center">Print Status {renderSortIcon('isPrinted')}</div>
                                         </th>
-                                        <th className="px-6 py-4 text-center">Actions</th>
+                                        {isAdmin && <th className="px-6 py-4 text-center">Actions</th>}
                                         {TOOL_COLUMNS.map((col) => (
                                             <th key={col.key} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(col.key)}>
                                                 <div className="flex items-center">{col.label} {renderSortIcon(col.key)}</div>
@@ -1071,17 +1084,19 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg"
-                                                    onClick={(e) => handleSingleDelete(t, e)}
-                                                    title="Delete tool"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </Button>
-                                            </td>
+                                            {isAdmin && (
+                                                <td className="px-6 py-4 text-center">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg"
+                                                        onClick={(e) => handleSingleDelete(t, e)}
+                                                        title="Delete tool"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </Button>
+                                                </td>
+                                            )}
                                             {TOOL_COLUMNS.map((col) => (
                                                 <td key={col.key} className="px-6 py-4 text-foreground/80">
                                                     {renderFieldValue(t, col.key)}
@@ -1315,25 +1330,39 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 Transfer ({selectedToolIds.size})
                             </Button>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 text-xs rounded-xl"
-                                onClick={() => setIsBulkEditModalOpen(true)}
-                            >
-                                <Edit3 className="size-3.5 mr-1 text-primary" />
-                                Bulk Edit ({selectedToolIds.size})
-                            </Button>
+                            {isAdmin && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 text-xs rounded-xl"
+                                    onClick={() => setIsBulkEditModalOpen(true)}
+                                >
+                                    <Edit3 className="size-3.5 mr-1 text-primary" />
+                                    Bulk Edit ({selectedToolIds.size})
+                                </Button>
+                            )}
 
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-9 text-xs rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                                onClick={handleBulkDelete}
+                                className="h-9 text-xs rounded-xl text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                onClick={() => setIsScrapModalOpen(true)}
                             >
-                                <Trash2 className="size-3.5 mr-1" />
-                                Delete Selected ({selectedToolIds.size})
+                                <Archive className="size-3.5 mr-1 text-amber-600" />
+                                Scrap Selected ({selectedToolIds.size})
                             </Button>
+
+                            {isAdmin && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 text-xs rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                    onClick={handleBulkDelete}
+                                >
+                                    <Trash2 className="size-3.5 mr-1" />
+                                    Delete Selected ({selectedToolIds.size})
+                                </Button>
+                            )}
 
                             <Button
                                 variant="outline"
@@ -1372,6 +1401,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             <VendorSelectionModal
                 open={isVendorModalOpen}
                 onOpenChange={setIsVendorModalOpen}
+                selectedTools={Object.values(selectedToolsMap)}
+                storeId={storeId}
+            />
+
+            <ScrapModal
+                open={isScrapModalOpen}
+                onOpenChange={setIsScrapModalOpen}
                 selectedTools={Object.values(selectedToolsMap)}
                 storeId={storeId}
             />

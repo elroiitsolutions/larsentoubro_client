@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import challanService, { type ChallanRecord } from "@/services/challan.service";
 import vendorService from "@/services/vendor.service";
+import profileService from "@/services/profile.service";
 import userService from "@/services/user.service";
 import {
     getChallanStatusBadgeClass,
@@ -57,8 +58,9 @@ export function ChallanHistoryPage() {
 
     const fetchVendors = async () => {
         try {
-            const [vendorRes, userRes, challanRes] = await Promise.all([
+            const [vendorRes, profileRes, userRes, challanRes] = await Promise.all([
                 vendorService.getVendors({ limit: 500 }).catch(() => ({ data: [] })),
+                profileService.getProfiles({ limit: 1000 }).catch(() => ({ data: [] })),
                 userService.getUsers().catch(() => ({ success: false, data: [] })),
                 challanService.getChallans({ limit: 500 }).catch(() => ({ data: [] }))
             ]);
@@ -84,14 +86,21 @@ export function ChallanHistoryPage() {
                 addVendor(id, v?.name, v?.vendorCode || v?.user_id);
             });
 
-            // 2. Extract from userService (role === 'Vendor')
+            // 2. Extract from profileService (all profile types: Subcontractor, ScrapDealer, Supplier)
+            const pList = Array.isArray(profileRes?.data) ? profileRes.data : [];
+            pList.forEach((p: any) => {
+                const id = p?._id || p?.id;
+                addVendor(id, p?.name, p?.code || p?.vendorCode);
+            });
+
+            // 3. Extract from userService (role === 'Vendor')
             const uList = Array.isArray(userRes?.data) ? userRes.data : (Array.isArray(userRes) ? userRes : []);
             uList.filter((u: any) => u && (u.role === "Vendor" || u.role === "vendor")).forEach((u: any) => {
                 const id = u?._id || u?.id;
                 addVendor(id, u?.name, u?.user_id || u?.vendorCode);
             });
 
-            // 3. Extract from existing challans vendor snapshots
+            // 4. Extract from existing challans vendor snapshots
             const cList = Array.isArray(challanRes?.data) ? challanRes.data : [];
             cList.forEach((c: any) => {
                 if (c?.vendor) {

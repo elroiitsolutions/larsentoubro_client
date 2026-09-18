@@ -46,6 +46,24 @@ function ProtectedRoute() {
     return <Outlet />
 }
 
+function AdminRoute() {
+    const { user, loading } = useAuth()
+
+    if (loading) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center bg-background">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        )
+    }
+
+    if (!user || user.role !== "Admin") {
+        return <Navigate to="/dashboard" replace />
+    }
+
+    return <Outlet />
+}
+
 function PublicRoute() {
     const { user, loading } = useAuth()
 
@@ -98,8 +116,6 @@ function AppRoutes() {
                         <Route path="/stores" element={<StoresPage />} />
                         <Route path="/stores/:storeId/tools" element={<StoreToolsPage />} />
                         <Route path="/stores/:storeId/tools/import" element={<ImportToolsPage />} />
-                        <Route path="/tools/trash" element={<TrashPage />} />
-                        <Route path="/trash" element={<TrashPage />} />
                         <Route path="/tools/scrap" element={<ScrapPage />} />
                         <Route path="/scrap" element={<ScrapPage />} />
                         <Route path="/vt/:toolId" element={<QuickToolViewPage />} />
@@ -108,26 +124,29 @@ function AppRoutes() {
                         <Route path="/challans/history" element={<ChallanHistoryPage />} />
                         <Route path="/challans/return/preview/:dcId" element={<ReturnChallanPreviewPage />} />
                         
-                        {/* Reports Navigation Flow: Settings -> Tools Report */}
-                        <Route path="/settings/reports" element={<ToolsReportPage />} />
-                        <Route path="/settings/reports/tools" element={<ToolsReportPage />} />
-                        
                         <Route path="/reports" element={<ToolsReportPage />} />
                         <Route path="/reports/tools" element={<ToolsReportPage />} />
 
-                        <Route path="/users" element={<UsersPage />} />
-                        <Route path="/users/:id/access" element={<UserAccessPage />} />
-                        <Route path="/profiles" element={<ProfileManagementPage />} />
-                        <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
-                        <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
-                        <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
-                        <Route path="/vendors" element={<ProfileManagementPage />} />
-                        <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
-                        <Route path="/settings" element={<SettingsPage />} />
-                        <Route path="/settings/forms" element={<SettingsFormManagementPage />} />
-                        <Route path="/settings/tool-quick-view" element={<ToolViewConfigPage mode="quick" />} />
-                        <Route path="/settings/tool-details-view" element={<ToolViewConfigPage mode="details" />} />
-                        <Route path="/settings/tool-view" element={<ToolViewConfigPage mode="details" />} />
+                        {/* Admin-only Protected Routes */}
+                        <Route element={<AdminRoute />}>
+                            <Route path="/tools/trash" element={<TrashPage />} />
+                            <Route path="/trash" element={<TrashPage />} />
+                            <Route path="/users" element={<UsersPage />} />
+                            <Route path="/users/:id/access" element={<UserAccessPage />} />
+                            <Route path="/profiles" element={<ProfileManagementPage />} />
+                            <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
+                            <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
+                            <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
+                            <Route path="/vendors" element={<ProfileManagementPage />} />
+                            <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
+                            <Route path="/settings" element={<SettingsPage />} />
+                            <Route path="/settings/forms" element={<SettingsFormManagementPage />} />
+                            <Route path="/settings/reports" element={<ToolsReportPage />} />
+                            <Route path="/settings/reports/tools" element={<ToolsReportPage />} />
+                            <Route path="/settings/tool-quick-view" element={<ToolViewConfigPage mode="quick" />} />
+                            <Route path="/settings/tool-details-view" element={<ToolViewConfigPage mode="details" />} />
+                            <Route path="/settings/tool-view" element={<ToolViewConfigPage mode="details" />} />
+                        </Route>
                     </Route>
                 </Route>
 

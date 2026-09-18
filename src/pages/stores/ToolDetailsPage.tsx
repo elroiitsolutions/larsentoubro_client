@@ -25,6 +25,7 @@ import {
     ArrowLeft,
     Trash2,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,6 +44,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function ToolDetailsPage() {
     const { storeId: paramStoreId, toolId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isAdmin = user?.role === "Admin";
 
     const [tool, setTool] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -267,30 +270,34 @@ export function ToolDetailsPage() {
 
                 {/* Quick Action Buttons */}
                 <div className="flex items-center gap-2">
-                    <ToolFormModal
-                        storeId={tool.currentSite?._id || (typeof tool.currentSite === 'string' ? tool.currentSite : '') || paramStoreId || ''}
-                        tool={tool}
-                        onSuccess={() => window.location.reload()}
-                        triggerButton={
+                    {isAdmin && (
+                        <>
+                            <ToolFormModal
+                                storeId={tool.currentSite?._id || (typeof tool.currentSite === 'string' ? tool.currentSite : '') || paramStoreId || ''}
+                                tool={tool}
+                                onSuccess={() => window.location.reload()}
+                                triggerButton={
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer font-medium"
+                                    >
+                                        <Edit className="size-3.5 text-primary" />
+                                        Edit Tool
+                                    </Button>
+                                }
+                            />
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer font-medium"
+                                className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium cursor-pointer"
+                                onClick={() => setShowDeleteConfirm(true)}
                             >
-                                <Edit className="size-3.5 text-primary" />
-                                Edit Tool
+                                <Trash2 className="size-3.5 text-rose-500" />
+                                Delete Tool
                             </Button>
-                        }
-                    />
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium cursor-pointer"
-                        onClick={() => setShowDeleteConfirm(true)}
-                    >
-                        <Trash2 className="size-3.5 text-rose-500" />
-                        Delete Tool
-                    </Button>
+                        </>
+                    )}
                     {tool.qrLink && (
                         <Button
                             variant="outline"
