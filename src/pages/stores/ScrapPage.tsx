@@ -25,7 +25,6 @@ import {
     X,
     QrCode,
     Printer,
-    FileText,
     Building2
 } from "lucide-react"
 import toolService, { type ToolRecord } from "@/services/tool.service"

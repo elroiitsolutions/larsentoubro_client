@@ -24,9 +24,7 @@ import {
     Hash, 
     RefreshCw, 
     Loader2,
-    FileText,
-    BadgeAlert
-} from "lucide-react";
+    FileText} from "lucide-react";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";

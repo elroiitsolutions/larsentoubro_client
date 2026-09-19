@@ -1296,7 +1296,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     }}
                                 >
                                     <Truck className="size-4" />
-                                    <span>Sub Contractor (Delivery Challan)</span>
+                                    <span>Sub Contractor</span>
                                 </Button>
                             )}
 
