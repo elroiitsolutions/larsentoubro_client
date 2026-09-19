@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ import {
     Loader2,
     AlertCircle,
     Download,
-    MapPin
+    MapPin,
+    Layers
 } from "lucide-react";
 import challanService from "@/services/challan.service";
 import { generateDeliveryChallanPDF, formatDateDDMMYYYY, formatDCNumber } from "@/utils/pdf/challanPdfGenerator";
@@ -37,7 +38,6 @@ export function DeliveryChallanPreviewPage() {
 
     // Header & Company Titles (Static Non-Editable)
     const companyName = "LARSEN & TOUBRO LIMITED, CONSTRUCTION";
-    const companyDivision = "L&T Construction";
     const documentTitle = "DELIVERY CHALLAN";
     const docReferenceCode = "ECC-O&M/STR/906";
     const registeredOfficeAddress = "Registered Office : L & T House, Ballard Estate, Bombay - 400 038.";
@@ -52,7 +52,7 @@ export function DeliveryChallanPreviewPage() {
     const [subcontractorName, setSubcontractorName] = useState(initialVendor.name || "-");
     const [consigneeAddress, setConsigneeAddress] = useState(initialVendor.address || "-");
     const [siteCode, setSiteCode] = useState(state?.siteCode || "-");
-    const [locationChainage, setLocationChainage] = useState("-");
+    const [indentNo, setIndentNo] = useState(state?.indentNo || "-");
     const [consigneeGstNo, setConsigneeGstNo] = useState(initialVendor.gstNumber || "-");
 
     // Accounting & TRN Fields (Editable)
@@ -66,7 +66,8 @@ export function DeliveryChallanPreviewPage() {
     // Gate Pass & Transport Details (Editable)
     const [gatePassNo, setGatePassNo] = useState("-");
     const [gatePassApprovedBy, setGatePassApprovedBy] = useState("-");
-    const [consignorTaxNo, setConsignorTaxNo] = useState("-");
+    const [consignorTaxNo, setConsignorTaxNo] = useState(state?.consignorTaxNo || initialVendor.gstNumber || "-");
+
     const [vehicleNo, setVehicleNo] = useState("-");
     const [lrNo, setLrNo] = useState("-");
     const [freightStatus, setFreightStatus] = useState("-");
@@ -110,6 +111,50 @@ export function DeliveryChallanPreviewPage() {
         );
     }
 
+    const [isGrouped, setIsGrouped] = useState(false);
+
+    // Group items with the same description
+    const groupedItems = useMemo(() => {
+        const groups: { [key: string]: {
+            stableId: string;
+            indices: number[];
+            materialCode: string;
+            description: string;
+            qrs: string[];
+            quantity: number;
+            unit: string;
+            rate: number;
+        } } = {};
+        const groupOrder: string[] = [];
+
+        items.forEach((item, idx) => {
+            const descKey = (item.description || "Tool Item").trim().toLowerCase();
+            const qr = item.toolId || item.toolCode || item.tool || "";
+
+            if (!groups[descKey]) {
+                groups[descKey] = {
+                    stableId: String(item.tool || item.toolId || idx),
+                    indices: [idx],
+                    materialCode: item.materialCode || "",
+                    description: item.description || "Tool Item",
+                    qrs: qr ? [qr] : [],
+                    quantity: Number(item.quantity || 1),
+                    unit: item.unit || "NOS",
+                    rate: Number(item.rate || 0)
+                };
+                groupOrder.push(descKey);
+            } else {
+                groups[descKey].indices.push(idx);
+                if (qr) {
+                    groups[descKey].qrs.push(qr);
+                }
+                groups[descKey].quantity += Number(item.quantity || 1);
+            }
+        });
+
+        return groupOrder.map(key => groups[key]);
+    }, [items]);
+
     const summary = calculateChallanSummary(items);
 
     const handleItemChange = (idx: number, field: string, val: any) => {
@@ -118,11 +163,35 @@ export function DeliveryChallanPreviewPage() {
         setItems(next);
     };
 
-    const getChallanPayload = () => ({
-        subcontractorName,
-        siteCode,
-        vendorCode,
-        locationChainage,
+    const handleGroupedItemChange = (group: typeof groupedItems[0], field: string, val: any) => {
+        const next = [...items];
+        group.indices.forEach(idx => {
+            next[idx] = { ...next[idx], [field]: val };
+        });
+        setItems(next);
+    };
+
+    const getChallanPayload = (forPdf: boolean = false) => {
+        let challanItems = items;
+        if (forPdf && isGrouped) {
+            challanItems = groupedItems.map(g => ({
+                tool: items[g.indices[0]]?.tool,
+                toolId: g.qrs.join(", "),
+                materialCode: g.materialCode,
+                description: g.description,
+                toolCode: g.materialCode,
+                quantity: g.quantity,
+                unit: g.unit,
+                rate: g.rate,
+                remarks: ""
+            }));
+        }
+
+        return {
+            subcontractorName,
+            siteCode,
+            indentNo,
+            vendorCode,
         vendorId: initialVendor._id,
         vendor: {
             ...initialVendor,
@@ -151,14 +220,15 @@ export function DeliveryChallanPreviewPage() {
         receiptDate,
         docReferenceCode,
         remarks,
-        items
-    });
+        items: challanItems
+    };
+};
 
     const handleDownloadDraft = async () => {
         try {
             const draftData = {
                 challanNumber: "DC-26-001",
-                ...getChallanPayload()
+                ...getChallanPayload(true)
             };
             await generateDeliveryChallanPDF(draftData, { download: true, fileName: "Delivery_Challan_Draft.pdf" });
             toast.success("Downloaded Delivery Challan PDF Draft");
@@ -170,8 +240,16 @@ export function DeliveryChallanPreviewPage() {
 
     const handleConfirmCreate = async () => {
         try {
+            if (initialTools.some((t: any) => t.status === "Moving")) {
+                toast.error("Cannot create Delivery Challan: One or more tools are already Moving");
+                return;
+            }
+            if (initialTools.some((t: any) => t.status === "Missing")) {
+                toast.error("Cannot create Delivery Challan: One or more tools are marked as Missing");
+                return;
+            }
             setCreating(true);
-            const payload = getChallanPayload();
+            const payload = getChallanPayload(false);
             let res;
             if (state?.isScrapDC || initialVendor?.profileType === "ScrapDealer") {
                 const scrapDealerId = initialVendor?._id || initialVendor?.id || payload.vendorId || payload.vendor?._id;
@@ -187,7 +265,8 @@ export function DeliveryChallanPreviewPage() {
                 toast.success(`Delivery Challan ${formatDCNumber(res.data.challanNumber)} created successfully! Automatically downloading PDF...`);
 
                 try {
-                    await generateDeliveryChallanPDF({ ...payload, ...res.data }, { download: true });
+                    const pdfPayload = getChallanPayload(true);
+                    await generateDeliveryChallanPDF({ ...pdfPayload, ...res.data, items: pdfPayload.items }, { download: true });
                 } catch (pdfErr) {
                     console.error("PDF generation error:", pdfErr);
                     toast.error("Challan created, but automatic PDF download failed.");
@@ -266,15 +345,15 @@ export function DeliveryChallanPreviewPage() {
                     </div>
                     <span className="text-[11px] sm:text-xs text-muted-foreground">Manual Challan Slip Alignments</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                     <div>
                         <label className="text-xs font-bold text-muted-foreground block mb-1">Site Code</label>
                         <Input value={siteCode} onChange={e => setSiteCode(e.target.value)} className="h-8 text-xs font-semibold" />
                     </div>
-                    <div>
-                        <label className="text-xs font-bold text-muted-foreground block mb-1">Tower / Location / Chainage</label>
-                        <Input value={locationChainage} onChange={e => setLocationChainage(e.target.value)} placeholder="e.g. Loc: 59/3 to 60/0" className="h-8 text-xs font-semibold" />
-                    </div>
+                    {/* <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1">Indent No.</label>
+                        <Input value={indentNo} onChange={e => setIndentNo(e.target.value)} placeholder="e.g. IND-001" className="h-8 text-xs font-semibold font-mono" />
+                    </div> */}
                     <div>
                         <label className="text-xs font-bold text-muted-foreground block mb-1">Receiver Name</label>
                         <Input value={receiverName} onChange={e => setReceiverName(e.target.value)} placeholder="Full Name" className="h-8 text-xs font-semibold" />
@@ -318,10 +397,19 @@ export function DeliveryChallanPreviewPage() {
                             <div className="p-2 text-center bg-slate-50 font-black text-base sm:text-lg text-black uppercase">
                                 {documentTitle}
                             </div>
-                            <div className="grid grid-cols-2 divide-x-2 divide-black flex-1">
+                            <div className="grid grid-cols-3 divide-x-2 divide-black flex-1">
                                 <div className="p-2 space-y-1">
                                     <span className="font-bold text-[10px] block">DC NO.</span>
                                     <span className="font-bold text-xs block font-mono text-slate-700">DC-26-001</span>
+                                </div>
+                                <div className="p-2 space-y-1">
+                                    <span className="font-bold text-[10px] block">INDENT NO.</span>
+                                    <Input
+                                        value={indentNo}
+                                        onChange={e => setIndentNo(e.target.value)}
+                                        placeholder="-"
+                                        className="h-7 text-xs font-bold font-mono border-slate-400 bg-white"
+                                    />
                                 </div>
                                 <div className="p-2 space-y-1">
                                     <span className="font-bold text-[10px] block">DATE (DD-MM-YYYY)</span>
@@ -402,6 +490,35 @@ export function DeliveryChallanPreviewPage() {
                         </div>
                     </div>
 
+                    {/* View Mode Toggle Bar */}
+                    <div className="p-2 px-3 bg-slate-100 border-b-2 border-black flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                <Layers className="size-3.5 text-blue-700" />
+                                <span>Tools Listing:</span>
+                            </span>
+                            <span className="text-xs font-medium text-slate-600">
+                                {isGrouped 
+                                    ? `Consolidated by Description (${groupedItems.length} groups, ${summary.totalQuantity} total qty)` 
+                                    : `Individual Tools (${items.length} listed)`}
+                            </span>
+                        </div>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant={isGrouped ? "default" : "outline"}
+                            onClick={() => setIsGrouped(prev => !prev)}
+                            className={`h-7 text-xs font-bold px-3 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs transition-all ${
+                                isGrouped 
+                                    ? "bg-blue-700 hover:bg-blue-800 text-white border-blue-800" 
+                                    : "bg-white hover:bg-slate-50 text-slate-800 border-slate-400"
+                            }`}
+                        >
+                            <Layers className="size-3.5" />
+                            <span>{isGrouped ? "Disable Grouping (Show All Tools)" : "Group Same Description Tools"}</span>
+                        </Button>
+                    </div>
+
                     {/* Row 3: Items Table with Material Code Column */}
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs border-collapse">
@@ -416,50 +533,101 @@ export function DeliveryChallanPreviewPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-black">
-                                {items.map((item, idx) => (
-                                    <tr key={item.tool} className="text-center font-medium">
-                                        <td className="p-2 border-r-2 border-black font-bold">{idx + 1}</td>
-                                        <td className="p-2 border-r-2 border-black">
-                                            <Input
-                                                value={item.materialCode}
-                                                onChange={e => handleItemChange(idx, "materialCode", e.target.value)}
-                                                className="font-mono font-bold text-xs h-7 border-slate-400 bg-white text-center"
-                                            />
-                                        </td>
-                                        <td className="p-2 border-r-2 border-black text-left space-y-1">
-                                            <Input
-                                                value={item.description}
-                                                onChange={e => handleItemChange(idx, "description", e.target.value)}
-                                                className="font-extrabold text-xs h-7 border-slate-400 bg-white"
-                                            />
-                                            <p className="font-mono text-[11px] text-blue-700">QR: {item.toolId || item.tool}</p>
-                                        </td>
-                                        <td className="p-2 border-r-2 border-black">
-                                            <Input 
-                                                type="number"
-                                                min={1}
-                                                value={item.quantity}
-                                                onChange={e => handleItemChange(idx, "quantity", Number(e.target.value))}
-                                                className="h-7 w-20 text-center font-bold text-xs border-slate-400 bg-white mx-auto"
-                                            />
-                                        </td>
-                                        <td className="p-2 border-r-2 border-black">
-                                            <Input 
-                                                value={item.unit}
-                                                onChange={e => handleItemChange(idx, "unit", e.target.value)}
-                                                className="h-7 w-16 text-center uppercase font-bold text-xs border-slate-400 bg-white mx-auto"
-                                            />
-                                        </td>
-                                        <td className="p-2">
-                                            <Input 
-                                                type="number"
-                                                value={item.rate || 0}
-                                                onChange={e => handleItemChange(idx, "rate", Number(e.target.value))}
-                                                className="h-7 w-24 text-center font-mono text-xs border-slate-400 bg-white mx-auto"
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
+                                {isGrouped ? (
+                                    groupedItems.map((group, idx) => (
+                                        <tr key={group.stableId} className="text-center font-medium bg-white">
+                                            <td className="p-2 border-r-2 border-black font-bold">{idx + 1}</td>
+                                            <td className="p-2 border-r-2 border-black">
+                                                <Input
+                                                    value={group.materialCode}
+                                                    onChange={e => handleGroupedItemChange(group, "materialCode", e.target.value)}
+                                                    className="font-mono font-bold text-xs h-7 border-slate-400 bg-white text-center"
+                                                />
+                                            </td>
+                                            <td className="p-2 border-r-2 border-black text-left space-y-1">
+                                                <Input
+                                                    value={group.description}
+                                                    onChange={e => handleGroupedItemChange(group, "description", e.target.value)}
+                                                    className="font-extrabold text-xs h-7 border-slate-400 bg-white"
+                                                />
+                                                <div className="font-mono text-[11px] text-blue-700 leading-snug break-words">
+                                                    <span className="font-bold text-slate-700">QR: </span>
+                                                    <span>{group.qrs.join(", ")}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-2 border-r-2 border-black">
+                                                <Input 
+                                                    type="number"
+                                                    min={1}
+                                                    value={group.quantity}
+                                                    readOnly
+                                                    className="h-7 w-20 text-center font-bold text-xs border-slate-400 bg-slate-50 mx-auto cursor-default"
+                                                    title={`${group.qrs.length} tool QR(s) consolidated in this group`}
+                                                />
+                                            </td>
+                                            <td className="p-2 border-r-2 border-black">
+                                                <Input 
+                                                    value={group.unit}
+                                                    onChange={e => handleGroupedItemChange(group, "unit", e.target.value)}
+                                                    className="h-7 w-16 text-center uppercase font-bold text-xs border-slate-400 bg-white mx-auto"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <Input 
+                                                    type="number"
+                                                    value={group.rate || 0}
+                                                    onChange={e => handleGroupedItemChange(group, "rate", Number(e.target.value))}
+                                                    className="h-7 w-24 text-center font-mono text-xs border-slate-400 bg-white mx-auto"
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    items.map((item, idx) => (
+                                        <tr key={item.tool} className="text-center font-medium">
+                                            <td className="p-2 border-r-2 border-black font-bold">{idx + 1}</td>
+                                            <td className="p-2 border-r-2 border-black">
+                                                <Input
+                                                    value={item.materialCode}
+                                                    onChange={e => handleItemChange(idx, "materialCode", e.target.value)}
+                                                    className="font-mono font-bold text-xs h-7 border-slate-400 bg-white text-center"
+                                                />
+                                            </td>
+                                            <td className="p-2 border-r-2 border-black text-left space-y-1">
+                                                <Input
+                                                    value={item.description}
+                                                    onChange={e => handleItemChange(idx, "description", e.target.value)}
+                                                    className="font-extrabold text-xs h-7 border-slate-400 bg-white"
+                                                />
+                                                <p className="font-mono text-[11px] text-blue-700">QR: {item.toolId || item.tool}</p>
+                                            </td>
+                                            <td className="p-2 border-r-2 border-black">
+                                                <Input 
+                                                    type="number"
+                                                    min={1}
+                                                    value={item.quantity}
+                                                    onChange={e => handleItemChange(idx, "quantity", Number(e.target.value))}
+                                                    className="h-7 w-20 text-center font-bold text-xs border-slate-400 bg-white mx-auto"
+                                                />
+                                            </td>
+                                            <td className="p-2 border-r-2 border-black">
+                                                <Input 
+                                                    value={item.unit}
+                                                    onChange={e => handleItemChange(idx, "unit", e.target.value)}
+                                                    className="h-7 w-16 text-center uppercase font-bold text-xs border-slate-400 bg-white mx-auto"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <Input 
+                                                    type="number"
+                                                    value={item.rate || 0}
+                                                    onChange={e => handleItemChange(idx, "rate", Number(e.target.value))}
+                                                    className="h-7 w-24 text-center font-mono text-xs border-slate-400 bg-white mx-auto"
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -481,11 +649,27 @@ export function DeliveryChallanPreviewPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 divide-y-2 md:divide-y-0 md:divide-x-2 divide-black p-2 bg-white gap-2">
                         <div>
                             <span className="font-bold text-[10px] block">CONSIGNOR SALES / GST TAX NO. & DATE</span>
-                            <Input value={consignorTaxNo} onChange={e => setConsignorTaxNo(e.target.value)} className="h-7 font-bold text-xs border-slate-400 bg-white mt-1" />
+                            <Input 
+                                value={consignorTaxNo} 
+                                onChange={e => setConsignorTaxNo(e.target.value)} 
+                                className="h-7 font-bold text-xs border-slate-400 bg-white mt-1 font-mono uppercase" 
+                                placeholder="GST / Tax Number"
+                            />
                         </div>
                         <div>
                             <span className="font-bold text-[10px] block">CONSIGNEE / SUBCONTRACTOR GST NO. & DATE</span>
-                            <Input value={consigneeGstNo} onChange={e => setConsigneeGstNo(e.target.value)} className="h-7 font-bold text-xs border-slate-400 bg-white mt-1 font-mono" />
+                            <Input 
+                                value={consigneeGstNo} 
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setConsigneeGstNo(val);
+                                    if (consignorTaxNo === consigneeGstNo || consignorTaxNo === "-" || !consignorTaxNo) {
+                                        setConsignorTaxNo(val);
+                                    }
+                                }} 
+                                className="h-7 font-bold text-xs border-slate-400 bg-white mt-1 font-mono uppercase" 
+                                placeholder="GST / Tax Number"
+                            />
                         </div>
                     </div>
 

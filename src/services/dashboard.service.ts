@@ -13,6 +13,7 @@ export interface SummaryCardsData {
     unusable: number;
     missing: number;
     inTransit: number;
+    moving?: number;
 }
 
 export interface StoreNode {
