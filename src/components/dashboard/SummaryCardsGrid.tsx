@@ -11,6 +11,7 @@ import {
     Building2
 } from "lucide-react";
 import type { SummaryCardsData, DivisionNode, DashboardFilterParams } from "@/services/dashboard.service";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
     data: SummaryCardsData;
@@ -29,6 +30,9 @@ export const SummaryCardsGrid: React.FC<Props> = ({
     filters,
     onChangeFilter
 }) => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === "Admin";
+
     // Extract available projects
     const availableProjects = hierarchyData
         ? (filters?.division && filters.division !== "All"
@@ -86,9 +90,9 @@ export const SummaryCardsGrid: React.FC<Props> = ({
         {
             key: "moving",
             title: "Moving",
-            count: data.inTransit,
+            count: data.inTransit ?? data.moving ?? 0,
             icon: Truck,
-            filterVal: "In Transit",
+            filterVal: "Moving",
             gradient: "from-cyan-600/10 via-cyan-500/5 to-transparent",
             borderColor: "border-cyan-500/30",
             textColor: "text-cyan-500",
@@ -111,74 +115,76 @@ export const SummaryCardsGrid: React.FC<Props> = ({
 
     return (
         <div className="w-full space-y-5">
-            {/* Enhanced Executive Header Banner with Searchable Project & Store Filters */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-background to-card border border-primary/15 shadow-sm">
-                <div className="flex items-center gap-3.5">
-                    <div className="size-11 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shadow-inner shrink-0">
-                        <Building2 className="size-5.5" />
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-xl font-black tracking-tight text-foreground">
-                                Centralized Management Dashboard
-                            </h1>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                Live Inventory
-                            </span>
+            {/* Enhanced Executive Header Banner with Searchable Project & Store Filters - Admin Only */}
+            {isAdmin && (
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-background to-card border border-primary/15 shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                        <div className="size-11 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shadow-inner shrink-0">
+                            <Building2 className="size-5.5" />
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                            Executive monitoring for tool status, field deployments, project stores & movement tracking
-                        </p>
+                        <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h1 className="text-xl font-black tracking-tight text-foreground">
+                                    Centralized Management Dashboard
+                                </h1>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Live Inventory
+                                </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Executive monitoring for tool status, field deployments, project stores & movement tracking
+                            </p>
+                        </div>
                     </div>
+
+                    {/* Project and Store Filter Selectors */}
+                    {hierarchyData && onChangeFilter && filters && (
+                        <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto bg-background/60 backdrop-blur-md p-2 rounded-xl border border-border/60 shadow-xs">
+                            {/* Project Filter */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 pl-1">
+                                    <FolderKanban className="size-3.5 text-indigo-500" /> Project:
+                                </span>
+                                <SearchableSelect
+                                    value={filters.project || "All"}
+                                    onValueChange={(val) => {
+                                        onChangeFilter("project", val);
+                                        // Reset store if project changes
+                                        onChangeFilter("store", "All");
+                                    }}
+                                    options={projectOptions}
+                                    placeholder="All Projects"
+                                    allLabel="All Projects"
+                                    searchPlaceholder="Search project..."
+                                    className="w-[170px] sm:w-[210px]"
+                                />
+                            </div>
+
+                            {/* Store Filter */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 pl-1">
+                                    <StoreIcon className="size-3.5 text-emerald-500" /> Store:
+                                </span>
+                                <SearchableSelect
+                                    value={filters.store || "All"}
+                                    onValueChange={(val) => onChangeFilter("store", val)}
+                                    options={storeOptions}
+                                    placeholder="All Stores"
+                                    allLabel="All Stores"
+                                    searchPlaceholder="Search store..."
+                                    className="w-[170px] sm:w-[210px]"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
-
-                {/* Project and Store Filter Selectors */}
-                {hierarchyData && onChangeFilter && filters && (
-                    <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto bg-background/60 backdrop-blur-md p-2 rounded-xl border border-border/60 shadow-xs">
-                        {/* Project Filter */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 pl-1">
-                                <FolderKanban className="size-3.5 text-indigo-500" /> Project:
-                            </span>
-                            <SearchableSelect
-                                value={filters.project || "All"}
-                                onValueChange={(val) => {
-                                    onChangeFilter("project", val);
-                                    onChangeFilter("store", "All");
-                                    onChangeFilter("hub", "All");
-                                }}
-                                options={projectOptions}
-                                placeholder="All Projects"
-                                allLabel="All Projects"
-                                searchPlaceholder="Search project..."
-                                className="w-[170px] sm:w-[210px]"
-                            />
-                        </div>
-
-                        {/* Store Filter */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 pl-1">
-                                <StoreIcon className="size-3.5 text-emerald-500" /> Store:
-                            </span>
-                            <SearchableSelect
-                                value={filters.store || "All"}
-                                onValueChange={(val) => onChangeFilter("store", val)}
-                                options={storeOptions}
-                                placeholder="All Stores"
-                                allLabel="All Stores"
-                                searchPlaceholder="Search store..."
-                                className="w-[170px] sm:w-[210px]"
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {cards.map((card) => {
                     const Icon = card.icon;
-                    const isSelected = activeStatus === card.filterVal;
+                    const isSelected = activeStatus === card.filterVal || (card.key === "moving" && (activeStatus === "Moving" || activeStatus === "In Transit"));
 
                     return (
                         <Card

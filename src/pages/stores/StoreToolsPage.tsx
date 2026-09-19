@@ -1277,6 +1277,15 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     <Truck className="size-4 opacity-50" />
                                     <span>Already Moving</span>
                                 </Button>
+                            ) : Object.values(selectedToolsMap).some(t => t.status === "Missing") ? (
+                                <Button
+                                    size="sm"
+                                    disabled
+                                    className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                                >
+                                    <Truck className="size-4 opacity-50" />
+                                    <span>Tool is Missing</span>
+                                </Button>
                             ) : (
                                 <Button
                                     size="sm"

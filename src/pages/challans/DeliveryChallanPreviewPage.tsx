@@ -240,6 +240,14 @@ export function DeliveryChallanPreviewPage() {
 
     const handleConfirmCreate = async () => {
         try {
+            if (initialTools.some((t: any) => t.status === "Moving")) {
+                toast.error("Cannot create Delivery Challan: One or more tools are already Moving");
+                return;
+            }
+            if (initialTools.some((t: any) => t.status === "Missing")) {
+                toast.error("Cannot create Delivery Challan: One or more tools are marked as Missing");
+                return;
+            }
             setCreating(true);
             const payload = getChallanPayload(false);
             let res;

@@ -157,6 +157,14 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
             toast.error("Please select a destination recipient profile first");
             return;
         }
+        if (selectedTools.some((t: any) => t.status === "Moving")) {
+            toast.error("Cannot create Delivery Challan: One or more selected tools are already Moving");
+            return;
+        }
+        if (selectedTools.some((t: any) => t.status === "Missing")) {
+            toast.error("Cannot create Delivery Challan: One or more selected tools are Missing");
+            return;
+        }
         onOpenChange(false);
         const mappedVendorObj = {
             _id: selectedProfileDetails._id,
