@@ -31,9 +31,10 @@ import {
     Download,
     ShieldCheck,
     FileCheck,
-    Hash
+    Hash,
+    Plus
 } from "lucide-react"
-import profileService, { type ProfileRecord, type ProfileType } from "@/services/profile.service"
+import profileService, { type ProfileRecord, type ProfileType, type KeyPersonnelContact } from "@/services/profile.service"
 import formService from "@/services/form.service"
 import { toast } from "sonner"
 
@@ -55,6 +56,28 @@ const DOCUMENT_CATEGORIES = [
     'Other'
 ]
 
+const formatAadhaarNumber = (val: string, prevVal: string = ""): string => {
+    if (prevVal.endsWith("-") && val === prevVal.slice(0, -1)) {
+        val = val.slice(0, -1);
+    }
+    const digits = val.replace(/\D/g, "").slice(0, 12);
+    const isDeleting = val.length < prevVal.length;
+
+    if (digits.length <= 4) {
+        if (digits.length === 4 && !isDeleting) {
+            return `${digits}-`;
+        }
+        return digits;
+    } else if (digits.length <= 8) {
+        if (digits.length === 8 && !isDeleting) {
+            return `${digits.slice(0, 4)}-${digits.slice(4)}-`;
+        }
+        return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    } else {
+        return `${digits.slice(0, 4)}-${digits.slice(4, 8)}-${digits.slice(8)}`;
+    }
+};
+
 export function ProfileFormModal({
     isOpen,
     onClose,
@@ -65,14 +88,18 @@ export function ProfileFormModal({
     const isEdit = Boolean(editingProfile)
     const [activeTab, setActiveTab] = React.useState<"details" | "documents">("details")
 
+    const emptyContact: KeyPersonnelContact = {
+        name: "",
+        designation: "",
+        phone: "",
+        alternatePhone: "",
+        email: ""
+    }
+
     // Core Fields State
     const [name, setName] = React.useState("")
     const [code, setCode] = React.useState("")
-    const [contactPerson, setContactPerson] = React.useState("")
-    const [contactDesignation, setContactDesignation] = React.useState("")
-    const [contactEmail, setContactEmail] = React.useState("")
-    const [contactPhone, setContactPhone] = React.useState("")
-    const [alternatePhone, setAlternatePhone] = React.useState("")
+    const [keyPersonnel, setKeyPersonnel] = React.useState<KeyPersonnelContact[]>([{ ...emptyContact }])
     const [address, setAddress] = React.useState("")
     const [gstNumber, setGstNumber] = React.useState("")
     const [panNumber, setPanNumber] = React.useState("")
@@ -80,6 +107,27 @@ export function ProfileFormModal({
     const [licenseNumber, setLicenseNumber] = React.useState("")
     const [status, setStatus] = React.useState<"Active" | "Inactive">("Active")
     const [customFields, setCustomFields] = React.useState<Record<string, any>>({})
+
+    const handleAddPersonnel = () => {
+        setKeyPersonnel(prev => [...prev, { ...emptyContact }])
+    }
+
+    const handleRemovePersonnel = (index: number) => {
+        setKeyPersonnel(prev => {
+            if (prev.length <= 1) {
+                return [{ ...emptyContact }]
+            }
+            return prev.filter((_, i) => i !== index)
+        })
+    }
+
+    const handlePersonnelChange = (index: number, field: keyof KeyPersonnelContact, value: string) => {
+        setKeyPersonnel(prev => {
+            const updated = [...prev]
+            updated[index] = { ...updated[index], [field]: value }
+            return updated
+        })
+    }
 
     // Dynamic Form Schema State
     const [formDefinition, setFormDefinition] = React.useState<any>(null)
@@ -164,15 +212,27 @@ export function ProfileFormModal({
         if (editingProfile) {
             setName(editingProfile.name || "")
             setCode(editingProfile.code || "")
-            setContactPerson(editingProfile.contactPerson || "")
-            setContactDesignation(editingProfile.contactDesignation || "")
-            setContactEmail(editingProfile.contactEmail || "")
-            setContactPhone(editingProfile.contactPhone || "")
-            setAlternatePhone(editingProfile.alternatePhone || "")
+            if (editingProfile.keyPersonnel && editingProfile.keyPersonnel.length > 0) {
+                setKeyPersonnel(editingProfile.keyPersonnel.map(k => ({
+                    name: k.name || "",
+                    designation: k.designation || "",
+                    phone: k.phone || "",
+                    alternatePhone: k.alternatePhone || "",
+                    email: k.email || ""
+                })))
+            } else {
+                setKeyPersonnel([{
+                    name: editingProfile.contactPerson || "",
+                    designation: editingProfile.contactDesignation || "",
+                    phone: editingProfile.contactPhone || "",
+                    alternatePhone: editingProfile.alternatePhone || "",
+                    email: editingProfile.contactEmail || ""
+                }])
+            }
             setAddress(editingProfile.address || "")
             setGstNumber(editingProfile.gstNumber || "")
             setPanNumber(editingProfile.panNumber || "")
-            setAadhaarNumber(editingProfile.aadhaarNumber || "")
+            setAadhaarNumber(formatAadhaarNumber(editingProfile.aadhaarNumber || ""))
             setLicenseNumber(editingProfile.licenseNumber || "")
             setStatus(editingProfile.status || "Active")
             setCustomFields(editingProfile.customFields || {})
@@ -180,11 +240,7 @@ export function ProfileFormModal({
         } else {
             setName("")
             setCode("")
-            setContactPerson("")
-            setContactDesignation("")
-            setContactEmail("")
-            setContactPhone("")
-            setAlternatePhone("")
+            setKeyPersonnel([{ ...emptyContact }])
             setAddress("")
             setGstNumber("")
             setPanNumber("")
@@ -210,22 +266,34 @@ export function ProfileFormModal({
             return
         }
 
-        if (!contactPhone.trim() && !contactEmail.trim()) {
+        const primaryPhone = (keyPersonnel[0]?.phone || "").trim()
+        const primaryEmail = (keyPersonnel[0]?.email || "").trim()
+
+        if (!primaryPhone && !primaryEmail) {
             toast.error("Please provide at least a phone number or email address.")
             return
         }
 
         setSaving(true)
         try {
+            const primaryContact = keyPersonnel[0] || emptyContact
+
             const payload: Partial<ProfileRecord> = {
                 profileType,
                 name: name.trim(),
                 code: code.trim() ? code.trim().toUpperCase() : undefined,
-                contactPerson: contactPerson.trim(),
-                contactDesignation: contactDesignation.trim(),
-                contactEmail: contactEmail.trim(),
-                contactPhone: contactPhone.trim(),
-                alternatePhone: alternatePhone.trim(),
+                contactPerson: (primaryContact.name || "").trim(),
+                contactDesignation: (primaryContact.designation || "").trim(),
+                contactEmail: (primaryContact.email || "").trim(),
+                contactPhone: (primaryContact.phone || "").trim(),
+                alternatePhone: (primaryContact.alternatePhone || "").trim(),
+                keyPersonnel: keyPersonnel.map(k => ({
+                    name: (k.name || "").trim(),
+                    designation: (k.designation || "").trim(),
+                    phone: (k.phone || "").trim(),
+                    alternatePhone: (k.alternatePhone || "").trim(),
+                    email: (k.email || "").trim()
+                })),
                 address: address.trim(),
                 gstNumber: gstNumber.trim().toUpperCase(),
                 panNumber: panNumber.trim().toUpperCase(),
@@ -430,77 +498,147 @@ export function ProfileFormModal({
 
                             {/* Section 2: Contact Person & Details */}
                             <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                                    <UserCheck className="size-4 text-primary" />
-                                    Key Personnel & Contact Details
-                                </h3>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            Contact Person Name
-                                        </label>
-                                        <Input
-                                            value={contactPerson}
-                                            onChange={(e) => setContactPerson(e.target.value)}
-                                            placeholder="e.g. Dinesh G"
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            Designation
-                                        </label>
-                                        <Input
-                                            value={contactDesignation}
-                                            onChange={(e) => setContactDesignation(e.target.value)}
-                                            placeholder="e.g. Site Manager / Proprietor"
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
-                                            <PhoneCall className="size-3.5 text-primary" />
-                                            Primary Phone Number <span className="text-rose-500">*</span>
-                                        </label>
-                                        <Input
-                                            value={contactPhone}
-                                            onChange={(e) => setContactPhone(e.target.value)}
-                                            placeholder="e.g. 9934110587"
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
-                                            <PhoneCall className="size-3.5 text-muted-foreground" />
-                                            Alternate Phone Number
-                                        </label>
-                                        <Input
-                                            value={alternatePhone}
-                                            onChange={(e) => setAlternatePhone(e.target.value)}
-                                            placeholder="e.g. 9876543210"
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                        />
-                                    </div>
-
-                                    <div className="md:col-span-2">
-                                        <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
-                                            <Mail className="size-3.5 text-primary" />
-                                            Email Address
-                                        </label>
-                                        <Input
-                                            type="email"
-                                            value={contactEmail}
-                                            onChange={(e) => setContactEmail(e.target.value)}
-                                            placeholder="e.g. contact@company.com"
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                        />
-                                    </div>
+                                <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                        <UserCheck className="size-4 text-primary" />
+                                        <span>Key Personnel & Contact Details</span>
+                                        {keyPersonnel.length > 1 && (
+                                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                                                {keyPersonnel.length}
+                                            </span>
+                                        )}
+                                    </h3>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleAddPersonnel}
+                                        className="h-8 px-2.5 text-xs font-semibold gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all shadow-xs"
+                                        title="Add one more Key Personnel & Contact Details"
+                                    >
+                                        <Plus className="size-3.5" />
+                                        <span>Add Personnel</span>
+                                    </Button>
                                 </div>
+
+                                <div className="space-y-4">
+                                    {keyPersonnel.map((contact, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={
+                                                keyPersonnel.length > 1
+                                                    ? "p-3.5 sm:p-4 rounded-xl bg-muted/20 border border-border/60 space-y-3 transition-all"
+                                                    : "space-y-3"
+                                            }
+                                        >
+                                            {keyPersonnel.length > 1 && (
+                                                <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                                                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                                        <span className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold">
+                                                            {idx + 1}
+                                                        </span>
+                                                        {idx === 0 ? "Primary Contact Person" : `Key Personnel #${idx + 1}`}
+                                                    </span>
+                                                    {idx > 0 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleRemovePersonnel(idx)}
+                                                            className="h-7 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors gap-1"
+                                                            title="Remove Personnel"
+                                                        >
+                                                            <Trash2 className="size-3.5" />
+                                                            <span>Remove</span>
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                        Contact Person Name
+                                                    </label>
+                                                    <Input
+                                                        value={contact.name}
+                                                        onChange={(e) => handlePersonnelChange(idx, "name", e.target.value)}
+                                                        placeholder="e.g. Dinesh G"
+                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                        Designation
+                                                    </label>
+                                                    <Input
+                                                        value={contact.designation}
+                                                        onChange={(e) => handlePersonnelChange(idx, "designation", e.target.value)}
+                                                        placeholder="e.g. Site Manager / Proprietor"
+                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
+                                                        <PhoneCall className="size-3.5 text-primary" />
+                                                        Primary Phone Number {idx === 0 && <span className="text-rose-500">*</span>}
+                                                    </label>
+                                                    <Input
+                                                        value={contact.phone}
+                                                        onChange={(e) => handlePersonnelChange(idx, "phone", e.target.value)}
+                                                        placeholder="e.g. 9934110587"
+                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                        required={idx === 0}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
+                                                        <PhoneCall className="size-3.5 text-muted-foreground" />
+                                                        Alternate Phone Number
+                                                    </label>
+                                                    <Input
+                                                        value={contact.alternatePhone}
+                                                        onChange={(e) => handlePersonnelChange(idx, "alternatePhone", e.target.value)}
+                                                        placeholder="e.g. 9876543210"
+                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                    />
+                                                </div>
+
+                                                <div className="md:col-span-2">
+                                                    <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
+                                                        <Mail className="size-3.5 text-primary" />
+                                                        Email Address
+                                                    </label>
+                                                    <Input
+                                                        type="email"
+                                                        value={contact.email}
+                                                        onChange={(e) => handlePersonnelChange(idx, "email", e.target.value)}
+                                                        placeholder="e.g. contact@company.com"
+                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {keyPersonnel.length > 1 && (
+                                    <div className="pt-2 flex justify-end">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleAddPersonnel}
+                                            className="h-8 px-3 text-xs font-semibold gap-1.5 text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                                        >
+                                            <Plus className="size-3.5" />
+                                            <span>Add Another Key Personnel</span>
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Section 3: Identifiers, PAN, GST, Licenses */}
@@ -541,8 +679,9 @@ export function ProfileFormModal({
                                         </label>
                                         <Input
                                             value={aadhaarNumber}
-                                            onChange={(e) => setAadhaarNumber(e.target.value)}
-                                            placeholder="e.g. 1234 5678 9012"
+                                            onChange={(e) => setAadhaarNumber(formatAadhaarNumber(e.target.value, aadhaarNumber))}
+                                            placeholder="e.g. 1234-5678-9012"
+                                            maxLength={14}
                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono font-medium"
                                         />
                                     </div>
@@ -590,7 +729,7 @@ export function ProfileFormModal({
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {formDefinition.fields
-                                            .filter((f: any) => !['name', 'code', 'contactPerson', 'contactDesignation', 'contactEmail', 'contactPhone', 'alternatePhone', 'address', 'gstNumber', 'panNumber', 'aadhaarNumber', 'licenseNumber', 'status'].includes(f.name))
+                                            .filter((f: any) => !['name', 'code', 'contactPerson', 'contactDesignation', 'contactEmail', 'contactPhone', 'alternatePhone', 'keyPersonnel', 'address', 'gstNumber', 'panNumber', 'aadhaarNumber', 'licenseNumber', 'status'].includes(f.name))
                                             .map((field: any) => (
                                                 <div key={field.id} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
                                                     <label className="text-xs font-bold text-foreground block mb-1.5">

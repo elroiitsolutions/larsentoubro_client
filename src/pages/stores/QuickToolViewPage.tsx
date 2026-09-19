@@ -3,32 +3,18 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
 import { StoreToolsPage } from "./StoreToolsPage";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
     Loader2,
     X,
-    Tag,
-    Trash2
+    Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export function QuickToolViewPage() {
     const { toolId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { user } = useAuth();
-    const isAdmin = user?.role === "Admin";
 
     const initialTool = (location.state as any)?.initialTool;
     const isModalOnly = Boolean((location.state as any)?.backgroundLocation);
@@ -36,8 +22,6 @@ export function QuickToolViewPage() {
     const [tool, setTool] = useState<any>(initialTool || null);
     const [loading, setLoading] = useState(!initialTool);
     const [viewSchema, setViewSchema] = useState<any>(null);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deleting, setDeleting] = useState(false);
 
     const fromStoreId = (location.state as any)?.fromStoreId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
 
@@ -46,24 +30,6 @@ export function QuickToolViewPage() {
             navigate(`/stores/${fromStoreId}/tools`);
         } else {
             navigate(-1);
-        }
-    };
-
-    const confirmDelete = async () => {
-        if (!tool?._id) return;
-        setDeleting(true);
-        try {
-            const res = await toolService.deleteTool(tool._id);
-            if (res.success) {
-                toast.success(res.message || "Tool soft-deleted successfully");
-                handleClose();
-            }
-        } catch (error: any) {
-            console.error(error);
-            toast.error(error?.response?.data?.message || "Failed to delete tool");
-        } finally {
-            setDeleting(false);
-            setShowDeleteConfirm(false);
         }
     };
 
@@ -427,52 +393,9 @@ export function QuickToolViewPage() {
                             </div>
                         )}
 
-                        {/* Action Buttons */}
-                        {isAdmin && (
-                            <div className="pt-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full rounded-xl h-9 font-bold gap-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 cursor-pointer"
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                >
-                                    <Trash2 className="size-3.5" />
-                                    <span>Delete Tool</span>
-                                </Button>
-                            </div>
-                        )}
                     </div>
                 )}
             </div>
-
-            <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !deleting && setShowDeleteConfirm(open)}>
-                <AlertDialogContent className="rounded-2xl max-w-md">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-rose-600">
-                            <Trash2 className="size-6 text-rose-500" />
-                            <span>Confirm Tool Deletion</span>
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
-                            Are you sure you want to delete tool <strong className="font-mono text-foreground">{toolIdVal}</strong>? It will be moved to the Trash section and can be restored later.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-4 border-t mt-4">
-                        <AlertDialogCancel disabled={deleting} className="rounded-xl">
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            disabled={deleting}
-                            onClick={confirmDelete}
-                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
-                        >
-                            {deleting ? (
-                                <Loader2 className="size-4 animate-spin mr-1.5" />
-                            ) : null}
-                            Delete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     );
 

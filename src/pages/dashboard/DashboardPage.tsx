@@ -66,15 +66,40 @@ export function DashboardPage() {
         loadStats(filters);
     }, [filters, loadStats]);
 
+    // If non-admin user has access to only 1 store or project, pre-select it
+    useEffect(() => {
+        if (user && user.role !== "Admin") {
+            const userStore = user.stores && user.stores.length === 1 ? user.stores[0] : null;
+            const storeIdStr = userStore ? String(typeof userStore === 'object' ? userStore._id : userStore) : null;
+
+            const userProject = user.projects && user.projects.length === 1 ? user.projects[0] : null;
+            const projIdStr = userProject ? String(typeof userProject === 'object' ? userProject._id : userProject) : null;
+
+            if (storeIdStr || projIdStr) {
+                setFilters(prev => ({
+                    ...prev,
+                    ...(storeIdStr && prev.store === "All" ? { store: storeIdStr } : {}),
+                    ...(projIdStr && prev.project === "All" ? { project: projIdStr } : {})
+                }));
+            }
+        }
+    }, [user]);
+
     const handleFilterChange = (key: keyof DashboardFilterParams, value: string) => {
         setFilters((prev) => ({ ...prev, [key]: value }));
     };
 
     const handleResetFilters = () => {
+        const userStore = user && user.role !== "Admin" && user.stores && user.stores.length === 1 ? user.stores[0] : null;
+        const storeIdStr = userStore ? String(typeof userStore === 'object' ? userStore._id : userStore) : "All";
+
+        const userProject = user && user.role !== "Admin" && user.projects && user.projects.length === 1 ? user.projects[0] : null;
+        const projIdStr = userProject ? String(typeof userProject === 'object' ? userProject._id : userProject) : "All";
+
         setFilters({
             division: "All",
-            project: "All",
-            store: "All",
+            project: projIdStr,
+            store: storeIdStr,
             hub: "All",
             category: "All",
             status: "All",

@@ -15,6 +15,15 @@ export interface ProfileDocument {
     uploadedBy?: string;
 }
 
+export interface KeyPersonnelContact {
+    _id?: string;
+    name: string;
+    designation: string;
+    phone: string;
+    alternatePhone: string;
+    email: string;
+}
+
 export interface ProfileRecord {
     _id: string;
     profileType: ProfileType;
@@ -25,6 +34,7 @@ export interface ProfileRecord {
     contactPhone?: string;
     alternatePhone?: string;
     contactEmail?: string;
+    keyPersonnel?: KeyPersonnelContact[];
     address?: string;
     gstNumber?: string;
     panNumber?: string;

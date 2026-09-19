@@ -125,7 +125,13 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     const challanNumFormatted = formatDCNumber(challan.challanNumber);
-    doc.text(challanNumFormatted, 16, 54);
+    doc.text(challanNumFormatted, 16, 53);
+    if (challan.indentNo && challan.indentNo !== '-') {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.8);
+        doc.text(`INDENT: ${challan.indentNo}`, 16, 57);
+    }
+    doc.setFontSize(9);
     doc.text(formatDateDDMMYYYY(challan.challanDate), 64, 54);
 
     // Consignee Right Box

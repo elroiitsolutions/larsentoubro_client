@@ -10,7 +10,7 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import React from "react"
-import { HomeIcon, ChevronRightIcon } from "lucide-react"
+import { HomeIcon, ChevronRightIcon, MoreVertical } from "lucide-react"
 
 const generateBreadcrumbs = (pathname: string, state?: any): Array<{ label: string, href: string }> => {
     const projectId = state?.projectId || state?.fromProjectId;
@@ -173,8 +173,10 @@ export function SiteHeader() {
 
     return (
         <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-background/80 backdrop-blur-md px-4 transition-all duration-300">
-            <SidebarTrigger className="-ml-1 hover:bg-muted/50 rounded-lg size-8" />
-            <Separator orientation="vertical" className="mx-1.5 h-4.5 bg-border/50" />
+            <SidebarTrigger className="-ml-1 hover:bg-muted/50 rounded-lg size-8 md:hidden text-foreground" title="Open navigation">
+                <MoreVertical className="size-4.5" />
+            </SidebarTrigger>
+            <Separator orientation="vertical" className="mx-1.5 h-4.5 bg-border/50 md:hidden" />
             <Breadcrumb>
                 <BreadcrumbList className="font-medium tracking-tight sm:gap-1.5 text-sm text-foreground/80">
                     <BreadcrumbItem className="hidden md:flex items-center">

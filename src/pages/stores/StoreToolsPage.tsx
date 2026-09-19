@@ -33,8 +33,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, Check } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
+import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, ChevronUp, Check } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
 import storeService from "@/services/store.service"
@@ -166,6 +166,28 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isSelectingAll, setIsSelectingAll] = useState(false);
+    const [isBulkActionsOpen, setIsBulkActionsOpen] = useState(false);
+    const bulkActionsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (selectedToolIds.size === 0) {
+            setIsBulkActionsOpen(false);
+        }
+    }, [selectedToolIds.size]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (bulkActionsRef.current && !bulkActionsRef.current.contains(event.target as Node)) {
+                setIsBulkActionsOpen(false);
+            }
+        };
+        if (isBulkActionsOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isBulkActionsOpen]);
 
     // Delete Modal State
     // Delete & Print Batch Modal State
@@ -566,6 +588,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const handleClearSelection = () => {
         setSelectedToolIds(new Set());
         setSelectedToolsMap({});
+        setIsBulkActionsOpen(false);
     };
 
     const handleOpenBulkEdit = () => {
@@ -710,7 +733,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {isAdmin && (
+                    {/* {isAdmin && (
                         <Button
                             variant="outline"
                             size="lg"
@@ -720,9 +743,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             <Trash2 className="size-4 text-rose-500" />
                             Trash / Deleted
                         </Button>
-                    )}
+                    )} */}
 
-                    <Button
+                    {/* <Button
                         variant="outline"
                         size="lg"
                         className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-amber-600 dark:text-amber-400 hover:text-amber-700"
@@ -736,7 +759,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     >
                         <Archive className="size-4 text-amber-500" />
                         Scrap {selectedToolIds.size > 0 ? `Selected (${selectedToolIds.size})` : ""}
-                    </Button>
+                    </Button> */}
 
                     <Button
                         variant="outline"
@@ -1200,201 +1223,182 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 </CardContent>
             </Card>
 
-            {/* Floating Bulk Selection Banner */}
+            {/* Floating Bulk Selection Action Button & Popover (Positioned on the bottom-left to never block center pagination) */}
             {selectedToolIds.size > 0 && (
-                <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300 w-[calc(100%-1.25rem)] max-w-xl sm:w-auto sm:max-w-none">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-4 bg-card/95 backdrop-blur-md p-3 sm:px-5 sm:py-3 rounded-2xl border border-border shadow-2xl ring-1 ring-primary/20 w-full">
-                        {/* Header info row */}
-                        <div className="flex items-center justify-between sm:justify-start gap-2.5">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="size-7 sm:size-8 rounded-lg sm:rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-xs sm:text-sm shrink-0">
-                                    {selectedToolIds.size}
+                <div ref={bulkActionsRef} className="fixed bottom-3 sm:bottom-5 left-4 sm:left-6 z-50 flex flex-col items-start gap-2.5 animate-in slide-in-from-bottom-5 duration-300">
+                    {/* Expanded Actions Popover / Card */}
+                    {isBulkActionsOpen && (
+                        <div className="bg-card/95 backdrop-blur-xl p-4 rounded-2xl border border-border shadow-2xl ring-1 ring-primary/20 w-[calc(100vw-2rem)] max-w-sm sm:max-w-md animate-in slide-in-from-bottom-2 fade-in-50 duration-200 flex flex-col gap-3">
+                            {/* Header row with count, label, and clear */}
+                            <div className="flex items-center justify-between gap-2.5 pb-2.5 border-b border-border/60">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="size-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                                        {selectedToolIds.size}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className="text-sm font-semibold text-foreground truncate">
+                                            Selected Tools: {selectedToolIds.size}
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                            {isAllFilteredSelected ? "All filtered tools selected" : "Custom inventory selection"}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="min-w-0">
-                                    <h4 className="text-xs sm:text-sm font-semibold text-foreground truncate">
-                                        <span className="sm:hidden">{selectedToolIds.size} Tool{selectedToolIds.size > 1 ? 's' : ''} Selected</span>
-                                        <span className="hidden sm:inline">Selected Tools: {selectedToolIds.size}</span>
-                                    </h4>
-                                    <p className="hidden sm:block text-xs text-muted-foreground truncate">
-                                        {isAllFilteredSelected ? "All filtered tools selected" : "Custom inventory selection"}
-                                    </p>
+                                <div className="flex items-center gap-1 shrink-0">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg gap-1"
+                                        onClick={handleClearSelection}
+                                        title="Clear all selected tools"
+                                    >
+                                        <X className="size-3.5" />
+                                        <span>Clear</span>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
+                                        onClick={() => setIsBulkActionsOpen(false)}
+                                        title="Collapse"
+                                    >
+                                        <ChevronDown className="size-4" />
+                                    </Button>
                                 </div>
                             </div>
 
-                            {/* Mobile-only Clear button in header */}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="sm:hidden h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg shrink-0 gap-1"
-                                onClick={handleClearSelection}
-                            >
-                                <X className="size-3.5" />
-                                <span>Clear</span>
-                            </Button>
-                        </div>
-
-                        <div className="hidden sm:block h-6 w-px bg-border/60 shrink-0" />
-
-                        {/* Mobile Actions: Primary CTA + Grid of secondary actions */}
-                        <div className="flex flex-col gap-2 sm:hidden w-full">
-                            {/* Primary Mobile Action: Delivery Challan */}
+                            {/* Primary Action: Delivery Challan / Sub Contractor */}
                             {Object.values(selectedToolsMap).some(t => t.status === "Moving") ? (
                                 <Button
                                     size="sm"
                                     disabled
-                                    className="w-full h-9 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-1.5 cursor-not-allowed opacity-80"
+                                    className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
                                 >
-                                    <Truck className="size-3.5 opacity-50" />
+                                    <Truck className="size-4 opacity-50" />
                                     <span>Already Moving</span>
+                                </Button>
+                            ) : Object.values(selectedToolsMap).some(t => t.status === "Missing") ? (
+                                <Button
+                                    size="sm"
+                                    disabled
+                                    className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                                >
+                                    <Truck className="size-4 opacity-50" />
+                                    <span>Tool is Missing</span>
                                 </Button>
                             ) : (
                                 <Button
                                     size="sm"
-                                    className="w-full h-9 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center justify-center gap-1.5 font-semibold"
-                                    onClick={() => setIsVendorModalOpen(true)}
+                                    className="w-full h-10 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center justify-center gap-2 font-semibold"
+                                    onClick={() => {
+                                        setIsVendorModalOpen(true);
+                                        setIsBulkActionsOpen(false);
+                                    }}
                                 >
-                                    <Truck className="size-3.5" />
-                                    <span>Create Delivery Challan</span>
+                                    <Truck className="size-4" />
+                                    <span>Sub Contractor</span>
                                 </Button>
                             )}
 
-                            {/* 4 Secondary Action Buttons Grid on Mobile */}
-                            <div className="grid grid-cols-4 gap-1.5 w-full">
+                            {/* Grid of Action Buttons */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center justify-center gap-1"
+                                    className="h-9 text-xs font-medium rounded-xl text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center justify-center gap-1.5"
                                     onClick={handleMarkPrinted}
                                     disabled={markingPrinted}
                                     title="Mark as Printed"
                                 >
-                                    {markingPrinted ? <Loader2 className="size-3 animate-spin shrink-0" /> : <Printer className="size-3 text-emerald-600 shrink-0" />}
-                                    <span className="truncate">Print</span>
+                                    {markingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <Printer className="size-3.5 text-emerald-600 shrink-0" />}
+                                    <span className="truncate">Mark as Printed ({selectedToolIds.size})</span>
                                 </Button>
 
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 flex items-center justify-center gap-1"
-                                    onClick={() => setIsTransferModalOpen(true)}
+                                    className="h-9 text-xs font-medium rounded-xl text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 flex items-center justify-center gap-1.5"
+                                    onClick={() => {
+                                        setIsTransferModalOpen(true);
+                                        setIsBulkActionsOpen(false);
+                                    }}
                                     title="Transfer Tools"
                                 >
-                                    <ArrowRightLeft className="size-3 shrink-0" />
-                                    <span className="truncate">Transfer</span>
+                                    <ArrowRightLeft className="size-3.5 shrink-0" />
+                                    <span className="truncate">Transfer ({selectedToolIds.size})</span>
                                 </Button>
+
+                                {isAdmin && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 border-border/80"
+                                        onClick={() => {
+                                            setIsBulkEditModalOpen(true);
+                                            setIsBulkActionsOpen(false);
+                                        }}
+                                        title="Bulk Edit"
+                                    >
+                                        <Edit3 className="size-3.5 text-primary shrink-0" />
+                                        <span className="truncate">Bulk Edit ({selectedToolIds.size})</span>
+                                    </Button>
+                                )}
 
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-9 px-1 text-[11px] font-medium rounded-xl flex items-center justify-center gap-1 border-border/80"
-                                    onClick={() => setIsBulkEditModalOpen(true)}
-                                    title="Bulk Edit"
+                                    className="h-9 text-xs font-medium rounded-xl text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center justify-center gap-1.5"
+                                    onClick={() => {
+                                        setIsScrapModalOpen(true);
+                                        setIsBulkActionsOpen(false);
+                                    }}
+                                    title="Scrap Selected"
                                 >
-                                    <Edit3 className="size-3 text-primary shrink-0" />
-                                    <span className="truncate">Edit</span>
+                                    <Archive className="size-3.5 text-amber-600 shrink-0" />
+                                    <span className="truncate">Scrap Selected ({selectedToolIds.size})</span>
                                 </Button>
 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 px-1 text-[11px] font-medium rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center gap-1"
-                                    onClick={handleBulkDelete}
-                                    title="Delete Selected"
-                                >
-                                    <Trash2 className="size-3 shrink-0" />
-                                    <span className="truncate">Delete</span>
-                                </Button>
+                                {isAdmin && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 text-xs font-medium rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center gap-1.5 sm:col-span-2"
+                                        onClick={() => {
+                                            handleBulkDelete();
+                                            setIsBulkActionsOpen(false);
+                                        }}
+                                        title="Delete Selected"
+                                    >
+                                        <Trash2 className="size-3.5 shrink-0" />
+                                        <span className="truncate">Delete Selected ({selectedToolIds.size})</span>
+                                    </Button>
+                                )}
                             </div>
                         </div>
+                    )}
 
-                        {/* Desktop Actions Row (Unchanged from original layout) */}
-                        <div className="hidden sm:flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 text-xs rounded-xl text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-                                onClick={handleMarkPrinted}
-                                disabled={markingPrinted}
-                            >
-                                {markingPrinted ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <Printer className="size-3.5 mr-1 text-emerald-600" />}
-                                Mark as Printed ({selectedToolIds.size})
-                            </Button>
-
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 text-xs rounded-xl text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
-                                onClick={() => setIsTransferModalOpen(true)}
-                            >
-                                <ArrowRightLeft className="size-3.5 mr-1" />
-                                Transfer ({selectedToolIds.size})
-                            </Button>
-
-                            {isAdmin && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 text-xs rounded-xl"
-                                    onClick={() => setIsBulkEditModalOpen(true)}
-                                >
-                                    <Edit3 className="size-3.5 mr-1 text-primary" />
-                                    Bulk Edit ({selectedToolIds.size})
-                                </Button>
-                            )}
-
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 text-xs rounded-xl text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                                onClick={() => setIsScrapModalOpen(true)}
-                            >
-                                <Archive className="size-3.5 mr-1 text-amber-600" />
-                                Scrap Selected ({selectedToolIds.size})
-                            </Button>
-
-                            {isAdmin && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 text-xs rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                                    onClick={handleBulkDelete}
-                                >
-                                    <Trash2 className="size-3.5 mr-1" />
-                                    Delete Selected ({selectedToolIds.size})
-                                </Button>
-                            )}
-
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 text-xs rounded-xl"
-                                onClick={handleClearSelection}
-                            >
-                                <X className="size-3.5 mr-1" />
-                                Clear
-                            </Button>
-
-                            {Object.values(selectedToolsMap).some(t => t.status === "Moving") ? (
-                                <Button
-                                    size="sm"
-                                    disabled
-                                    className="h-9 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center gap-1.5 cursor-not-allowed opacity-80"
-                                >
-                                    <Truck className="size-3.5 opacity-50" />
-                                    <span>Already Moving</span>
-                                </Button>
-                            ) : (
-                                <Button
-                                    size="sm"
-                                    className="h-9 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center gap-1.5"
-                                    onClick={() => setIsVendorModalOpen(true)}
-                                >
-                                    <Truck className="size-3.5" />
-                                    <span>Sub Contractor</span>
-                                </Button>
-                            )}
+                    {/* Single Left-Side Trigger Button showing count (1, 2, 3...) */}
+                    <button
+                        type="button"
+                        onClick={() => setIsBulkActionsOpen(prev => !prev)}
+                        className={`flex items-center gap-2.5 bg-card/95 backdrop-blur-md px-3.5 py-2.5 rounded-2xl border border-border shadow-2xl ring-1 transition-all cursor-pointer select-none group shrink-0 ${
+                            isBulkActionsOpen ? "ring-primary shadow-primary/10 bg-accent/40" : "ring-primary/20 hover:bg-accent/60"
+                        }`}
+                        title={isBulkActionsOpen ? "Close actions menu" : "Open actions menu"}
+                    >
+                        <div className="size-7 sm:size-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 group-hover:scale-105 transition-transform">
+                            {selectedToolIds.size}
                         </div>
-                    </div>
+                        <div className="text-left">
+                            <h4 className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+                                <span>Selected Tools ({selectedToolIds.size})</span>
+                                <ChevronUp className={`size-3.5 text-muted-foreground transition-transform duration-200 ${isBulkActionsOpen ? "rotate-180" : ""}`} />
+                            </h4>
+                            <p className="text-[10px] text-muted-foreground leading-tight hidden sm:block">
+                                {isBulkActionsOpen ? "Click to close" : "Click to view actions"}
+                            </p>
+                        </div>
+                    </button>
                 </div>
             )}
 

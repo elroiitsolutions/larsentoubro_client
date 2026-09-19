@@ -83,7 +83,7 @@ export function SettingsPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/challans/history')}>
+                {/* <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/challans/history')}>
                     <CardContent className="p-6">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="p-2.5 rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
@@ -95,7 +95,7 @@ export function SettingsPage() {
                             View and manage delivery & return challan history.
                         </p>
                     </CardContent>
-                </Card>
+                </Card> */}
                 <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/settings/tool-quick-view')}>
                     <CardContent className="p-6">
                         <div className="flex items-center gap-3 mb-3">
