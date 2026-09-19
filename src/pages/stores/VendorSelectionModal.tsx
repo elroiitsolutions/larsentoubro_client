@@ -47,8 +47,29 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
     // Form inputs for Challan Date, Delivery Date, Remarks, Notes
     const [challanDate, setChallanDate] = useState<string>(new Date().toISOString().split("T")[0]);
     const [deliveryDate, setDeliveryDate] = useState<string>(new Date().toISOString().split("T")[0]);
+    const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
     const [remarks, setRemarks] = useState("");
     const [notes, setNotes] = useState("");
+
+    const handleDeliveryPresetClick = (type: "1week" | "1month" | "3months" | "6months") => {
+        const base = challanDate ? new Date(challanDate + "T00:00:00") : new Date();
+        const d = new Date(base);
+        if (type === "1week") {
+            d.setDate(d.getDate() + 7);
+        } else if (type === "1month") {
+            d.setMonth(d.getMonth() + 1);
+        } else if (type === "3months") {
+            d.setMonth(d.getMonth() + 3);
+        } else if (type === "6months") {
+            d.setMonth(d.getMonth() + 6);
+        }
+
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        setDeliveryDate(`${year}-${month}-${day}`);
+        setSelectedPreset(type);
+    };
 
     // Quick Add Profile state
     const [isCreatingProfile, setIsCreatingProfile] = useState(false);
@@ -407,8 +428,32 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                             type="date"
                             className="h-9 text-xs sm:text-sm w-full"
                             value={deliveryDate}
-                            onChange={e => setDeliveryDate(e.target.value)}
+                            onChange={e => {
+                                setDeliveryDate(e.target.value);
+                                setSelectedPreset(null);
+                            }}
                         />
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            {[
+                                { label: "1 week", value: "1week" as const },
+                                { label: "1 month", value: "1month" as const },
+                                { label: "3 months", value: "3months" as const },
+                                { label: "6 months", value: "6months" as const },
+                            ].map(preset => (
+                                <button
+                                    key={preset.value}
+                                    type="button"
+                                    onClick={() => handleDeliveryPresetClick(preset.value)}
+                                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer ${
+                                        selectedPreset === preset.value
+                                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                            : "bg-background hover:bg-muted text-muted-foreground hover:text-foreground border-border/80"
+                                    }`}
+                                >
+                                    {preset.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="col-span-1 sm:col-span-2">
