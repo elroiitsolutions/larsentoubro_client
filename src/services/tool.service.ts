@@ -168,6 +168,15 @@ export const toolService = {
     },
 
     /**
+     * Unmarks selected tools as Printed (resets to Not Printed).
+     */
+    unmarkToolsAsPrinted: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/tools/unmark-printed`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
      * Retrieves scrapped printed tools from Scrap section.
      */
     getScrappedTools: async (queryParams?: Record<string, string>): Promise<ToolListResponse> => {

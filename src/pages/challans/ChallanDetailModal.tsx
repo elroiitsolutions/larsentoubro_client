@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -6,7 +7,8 @@ import {
     Download,
     Package,
     CheckCircle2,
-    AlertTriangle
+    AlertTriangle,
+    ArrowRightLeft
 } from "lucide-react";
 import type { ChallanRecord } from "@/services/challan.service";
 import {
@@ -25,6 +27,7 @@ interface ChallanDetailModalProps {
 }
 
 export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetailModalProps) {
+    const navigate = useNavigate();
     if (!challan) return null;
 
     const handleDownloadPdf = async () => {
@@ -60,9 +63,14 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                                     <span className={`${getChallanTypeBadgeClass(challan.challanType)} shrink-0`}>
                                         {challan.challanType} Challan
                                     </span>
-                                    <span className={`${getChallanStatusBadgeClass(challan.status)} shrink-0`}>
-                                        {challan.status}
-                                    </span>
+                                    {(() => {
+                                        const displayStatus = challan.status === "Returned" ? "Completed" : challan.status;
+                                        return (
+                                            <span className={`${getChallanStatusBadgeClass(displayStatus)} shrink-0`}>
+                                                {displayStatus}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
                                 <DialogDescription className="text-xs text-muted-foreground mt-1 truncate">
                                     Created on {new Date(challan.challanDate).toLocaleDateString()} by {challan.createdBy?.name || "L&T Admin"}
@@ -104,6 +112,16 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                         {isReturn && challan.referenceDcNumber && (
                             <p className="text-xs text-foreground mt-0.5 truncate">
                                 <strong>Reference DC:</strong> <span className="font-mono text-primary font-bold">{challan.referenceDcNumber}</span>
+                            </p>
+                        )}
+                        {!isReturn && challan.transferFromDcNumber && (
+                            <p className="text-xs text-foreground mt-0.5 truncate">
+                                <strong>Transfer from DC:</strong> <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">{challan.transferFromDcNumber}</span>
+                            </p>
+                        )}
+                        {challan.transferredToDcNumber && (
+                            <p className="text-xs text-foreground mt-0.5 truncate">
+                                <strong>Transferred to DC:</strong> <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">{challan.transferredToDcNumber}</span>
                             </p>
                         )}
                     </div>
@@ -183,10 +201,61 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                     </div>
                 </div>
 
-                <DialogFooter>
-                    <Button onClick={() => onOpenChange(false)} variant="outline" className="w-24">
+                <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t pt-4">
+                    <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full sm:w-24">
                         Close
                     </Button>
+                    {challan.challanType === "Delivery" && challan.status === "Active" && (
+                        <Button
+                            size="sm"
+                            className="w-full sm:w-auto h-9 px-3.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5"
+                            onClick={() => {
+                                onOpenChange(false);
+                                navigate("/challans/delivery/preview", {
+                                    state: {
+                                        isTransfer: true,
+                                        transferFromDcId: challan._id,
+                                        transferFromDcNumber: challan.challanNumber,
+                                        selectedTools: (challan.items || []).map((t: any, idx: number) => ({
+                                            _id: t.tool?._id || t.tool,
+                                            toolId: t.toolId || `TOOL-${idx}`,
+                                            toolCode: t.toolCode || "",
+                                            materialCode: t.toolCode || t.materialCode || `MAT-${1000 + idx}`,
+                                            description: t.description || "Tool Item",
+                                            quantity: Number(t.quantity || 1),
+                                            unit: t.unit || "NOS",
+                                            rate: Number(t.rate || 0),
+                                            remarks: t.remarks || "",
+                                            status: "Available"
+                                        })),
+                                        vendor: challan.vendor,
+                                        storeId: challan.store?._id || challan.store,
+                                        siteCode: "",
+                                        previousSiteCode: challan.siteCode || "",
+                                        subcontractorName: challan.subcontractorName || challan.vendor?.name,
+                                        locationChainage: challan.locationChainage || "",
+                                        workFrontLocation: challan.workFrontLocation || "",
+                                        trnCode: challan.trnCode || "M 25",
+                                        sendingCentreCode: challan.sendingCentreCode || "-",
+                                        mrNo: challan.mrNo || "-",
+                                        mrDate: challan.mrDate || "-",
+                                        stockType: challan.stockType || "-",
+                                        ewayBillNo: challan.ewayBillNo || "-",
+                                        gatePassNo: challan.gatePassNo || "-",
+                                        gatePassApprovedBy: challan.gatePassApprovedBy || "-",
+                                        consignorTaxNo: challan.consignorTaxNo || challan.vendor?.gstNumber || "-",
+                                        vehicleNo: challan.vehicleNo || "-",
+                                        lrNo: challan.lrNo || "-",
+                                        freightStatus: challan.freightStatus || "-",
+                                        remarks: `Site Transfer from ${challan.challanNumber}`
+                                    }
+                                });
+                            }}
+                        >
+                            <ArrowRightLeft className="size-3.5" />
+                            <span>Transfer to Another Site</span>
+                        </Button>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -97,14 +97,40 @@ export function ScrapPage() {
         setSelectedIds(next)
     }
 
-    const isAllSelected = scrappedTools.length > 0 && selectedIds.size === scrappedTools.length
+    const [isSelectingAll, setIsSelectingAll] = useState(false)
 
-    const handleToggleSelectAll = () => {
+    const isAllSelected = total > 0 && selectedIds.size >= total
+
+    const handleToggleSelectAll = async () => {
         if (isAllSelected) {
             setSelectedIds(new Set())
-        } else {
+            return
+        }
+
+        if (total <= scrappedTools.length) {
             const next = new Set(scrappedTools.map(t => t._id))
             setSelectedIds(next)
+            return
+        }
+
+        try {
+            setIsSelectingAll(true)
+            const res = await toolService.getScrappedTools({
+                page: "1",
+                limit: "10000",
+                search
+            })
+            if (res?.success && res.data) {
+                const next = new Set<string>(res.data.map((t: any) => t._id))
+                setSelectedIds(next)
+                toast.success(`Selected all ${res.data.length} scrapped tools`)
+            }
+        } catch (err: any) {
+            console.error("Error selecting all scrapped tools:", err)
+            const next = new Set(scrappedTools.map(t => t._id))
+            setSelectedIds(next)
+        } finally {
+            setIsSelectingAll(false)
         }
     }
 
@@ -177,10 +203,10 @@ export function ScrapPage() {
                 <div className="p-4 border-b bg-muted/20 backdrop-blur-md shrink-0">
                     <div className="flex flex-col sm:flex-row items-center gap-3">
                         <div className="relative group flex-1 w-full">
-                            <SearchIcon className="absolute left-3 top-2.5 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
                             <Input
                                 placeholder="Search scrapped tools by ID, code, or description..."
-                                className="pl-10 h-10 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-sm rounded-xl"
+                                className="!pl-10 h-10 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-sm rounded-xl"
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                             />
@@ -198,11 +224,13 @@ export function ScrapPage() {
                                             <button
                                                 type="button"
                                                 onClick={handleToggleSelectAll}
-                                                disabled={scrappedTools.length === 0}
+                                                disabled={scrappedTools.length === 0 || isSelectingAll}
                                                 className="flex items-center justify-center text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-                                                title="Select all"
+                                                title={isAllSelected ? "Deselect all" : `Select all ${total} scrapped tools`}
                                             >
-                                                {isAllSelected ? (
+                                                {isSelectingAll ? (
+                                                    <Loader2 className="size-4 animate-spin text-primary" />
+                                                ) : isAllSelected ? (
                                                     <CheckSquare className="size-4 text-primary" />
                                                 ) : (
                                                     <Square className="size-4" />
