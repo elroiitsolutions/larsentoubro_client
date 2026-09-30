@@ -8,12 +8,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import NoAccessPage from "../NoAccessPage";
 
 type ImportStep = 'upload' | 'review' | 'processing' | 'result';
 
 export function ImportToolsPage() {
+    const { user } = useAuth();
     const { storeId } = useParams();
     const navigate = useNavigate();
+
+    if (user && user.role !== "Admin") {
+        return <NoAccessPage />;
+    }
     const location = useLocation();
     const currentBreadcrumbs = (location.state as any)?.breadcrumbs || [];
     const parentBreadcrumbs = currentBreadcrumbs.slice(0, -1);

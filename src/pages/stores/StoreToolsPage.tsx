@@ -817,18 +817,20 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         Scrap {selectedToolIds.size > 0 ? `Selected (${selectedToolIds.size})` : ""}
                     </Button> */}
 
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all"
-                        onClick={() => {
-                            const newBreadcrumbs = [...currentBreadcrumbs, { label: 'Import Tools', href: `/stores/${storeId}/tools/import` }];
-                            navigate(`/stores/${storeId}/tools/import`, { state: { breadcrumbs: newBreadcrumbs } });
-                        }}
-                    >
-                        <FileUp className="size-4 text-primary" />
-                        Bulk Import
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all"
+                            onClick={() => {
+                                const newBreadcrumbs = [...currentBreadcrumbs, { label: 'Import Tools', href: `/stores/${storeId}/tools/import` }];
+                                navigate(`/stores/${storeId}/tools/import`, { state: { breadcrumbs: newBreadcrumbs } });
+                            }}
+                        >
+                            <FileUp className="size-4 text-primary" />
+                            Bulk Import
+                        </Button>
+                    )}
 
                     {isAdmin && (
                         <Button

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import NoAccessPage from "../NoAccessPage";
+import { getDefaultAllowedPath } from "@/utils/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
@@ -121,6 +123,10 @@ export function DashboardPage() {
     };
 
     if (isRestricted) {
+        const targetPath = getDefaultAllowedPath(user);
+        if (targetPath && targetPath !== "/dashboard" && targetPath !== "/no-access") {
+            return <Navigate to={targetPath} replace />;
+        }
         return <NoAccessPage />;
     }
 
@@ -179,8 +185,6 @@ export function DashboardPage() {
             {/* 1. Main Summary Cards Grid */}
             <SummaryCardsGrid
                 data={dashboardData.summaryCards}
-                onCardClick={(statusVal) => handleFilterChange("status", statusVal)}
-                activeStatus={filters.status}
                 hierarchyData={dashboardData.hierarchyTree}
                 filters={filters}
                 onChangeFilter={handleFilterChange}
