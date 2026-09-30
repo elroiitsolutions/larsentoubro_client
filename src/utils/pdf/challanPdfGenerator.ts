@@ -161,7 +161,10 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
             const locText = `${locationStr} ${challan.workFrontLocation ? '| ' + challan.workFrontLocation : ''}`.trim();
             doc.text(locText, 112, 49, { maxWidth: 82 });
         }
-        doc.text(`Site Code: ${siteCodeStr}`, 112, 54, { maxWidth: 82 });
+        const siteAndTransfer = challan.transferFromDcNumber 
+            ? `Site: ${siteCodeStr} | Transfer from: ${formatDCNumber(challan.transferFromDcNumber)}` 
+            : `Site Code: ${siteCodeStr}`;
+        doc.text(siteAndTransfer, 112, 54, { maxWidth: 82 });
     }
 
     // Horizontal divider line across full box at Y: 58

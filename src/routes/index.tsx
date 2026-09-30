@@ -27,6 +27,8 @@ import { ToolViewConfigPage } from "@/pages/settings/ToolViewConfigPage"
 import { TrashPage } from "@/pages/stores/TrashPage"
 import { ScrapPage } from "@/pages/stores/ScrapPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
+import { NoAccessPage } from "@/pages/NoAccessPage"
+import { getDefaultAllowedPath } from "@/utils/navigation"
 
 function ProtectedRoute() {
     const { user, loading } = useAuth()
@@ -58,7 +60,7 @@ function AdminRoute() {
     }
 
     if (!user || user.role !== "Admin") {
-        return <Navigate to="/dashboard" replace />
+        return <Navigate to={getDefaultAllowedPath(user)} replace />
     }
 
     return <Outlet />
@@ -76,10 +78,7 @@ function PublicRoute() {
     }
 
     if (user) {
-        if (user.role === "Vendor") {
-            return <Navigate to="/stores" replace />
-        }
-        return <Navigate to="/dashboard" replace />
+        return <Navigate to={getDefaultAllowedPath(user)} replace />
     }
 
     return <Outlet />
@@ -87,10 +86,7 @@ function PublicRoute() {
 
 function IndexRedirect() {
     const { user } = useAuth()
-    if (user?.role === "Vendor") {
-        return <Navigate to="/stores" replace />
-    }
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={getDefaultAllowedPath(user)} replace />
 }
 
 function AppRoutes() {
@@ -110,6 +106,7 @@ function AppRoutes() {
                 <Route element={<ProtectedRoute />}>
                     <Route element={<SidebarLayout />}>
                         <Route index element={<IndexRedirect />} />
+                        <Route path="/no-access" element={<NoAccessPage />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/projects" element={<ProjectsPage />} />
                         <Route path="/projects/:projectId/stores" element={<StoresPage />} />

@@ -12,6 +12,7 @@ import {
     Download,
     Eye,
     ArrowRight,
+    ArrowRightLeft,
     CheckCircle2,
     Clock,
     Loader2,
@@ -178,6 +179,49 @@ export function ChallanHistoryPage() {
         setIsDetailModalOpen(true);
     };
 
+    const handleTransferChallan = (challan: ChallanRecord, e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigate("/challans/delivery/preview", {
+            state: {
+                isTransfer: true,
+                transferFromDcId: challan._id,
+                transferFromDcNumber: challan.challanNumber,
+                selectedTools: (challan.items || []).map((t: any, idx: number) => ({
+                    _id: t.tool?._id || t.tool,
+                    toolId: t.toolId || `TOOL-${idx}`,
+                    toolCode: t.toolCode || "",
+                    materialCode: t.toolCode || t.materialCode || `MAT-${1000 + idx}`,
+                    description: t.description || "Tool Item",
+                    quantity: Number(t.quantity || 1),
+                    unit: t.unit || "NOS",
+                    rate: Number(t.rate || 0),
+                    remarks: t.remarks || "",
+                    status: "Available"
+                })),
+                vendor: challan.vendor,
+                storeId: challan.store?._id || challan.store,
+                siteCode: "",
+                previousSiteCode: challan.siteCode || "",
+                subcontractorName: challan.subcontractorName || challan.vendor?.name,
+                locationChainage: challan.locationChainage || "",
+                workFrontLocation: challan.workFrontLocation || "",
+                trnCode: challan.trnCode || "M 25",
+                sendingCentreCode: challan.sendingCentreCode || "-",
+                mrNo: challan.mrNo || "-",
+                mrDate: challan.mrDate || "-",
+                stockType: challan.stockType || "-",
+                ewayBillNo: challan.ewayBillNo || "-",
+                gatePassNo: challan.gatePassNo || "-",
+                gatePassApprovedBy: challan.gatePassApprovedBy || "-",
+                consignorTaxNo: challan.consignorTaxNo || challan.vendor?.gstNumber || "-",
+                vehicleNo: challan.vehicleNo || "-",
+                lrNo: challan.lrNo || "-",
+                freightStatus: challan.freightStatus || "-",
+                remarks: `Site Transfer from ${challan.challanNumber}`
+            }
+        });
+    };
+
     const handleCreateReturnChallan = (challan: ChallanRecord, e: React.MouseEvent) => {
         e.stopPropagation();
         navigate(`/challans/return/preview/${challan._id}`, {
@@ -201,8 +245,8 @@ export function ChallanHistoryPage() {
 
     const statusOptions = [
         { label: "Active", value: "Active" },
-        { label: "Completed", value: "Completed" },
-        { label: "Cancelled", value: "Cancelled" }
+        { label: "Transfer", value: "Transfer" },
+        { label: "Completed", value: "Completed" }
     ];
 
     return (
@@ -375,32 +419,32 @@ export function ChallanHistoryPage() {
             </Card>
 
             {/* Challans Table */}
-            <Card>
-                <CardContent className="p-0 overflow-x-auto">
-                    <table className="min-w-full text-sm text-left whitespace-nowrap">
-                        <thead className="bg-muted text-xs uppercase text-muted-foreground font-semibold border-b">
+            <Card className="border border-border/70 shadow-xs overflow-hidden">
+                <CardContent className="p-0 overflow-hidden">
+                    <table className="w-full text-xs sm:text-sm text-left">
+                        <thead className="bg-muted/80 text-[11px] uppercase text-muted-foreground font-semibold border-b">
                             <tr>
-                                <th className="px-4 py-3.5 w-16 text-center">S.No</th>
-                                <th className="px-6 py-3.5">Challan No.</th>
-                                <th className="px-6 py-3.5">Type</th>
-                                <th className="px-6 py-3.5">Vendor</th>
-                                <th className="px-6 py-3.5">Issue Date</th>
-                                <th className="px-6 py-3.5 text-center">Items</th>
-                                <th className="px-6 py-3.5">Status</th>
-                                <th className="px-6 py-3.5 text-right">Actions</th>
+                                <th className="px-3 py-3 w-12 text-center">#</th>
+                                <th className="px-3 py-3">Challan No.</th>
+                                <th className="px-2.5 py-3 text-center">Type</th>
+                                <th className="px-3 py-3">Vendor / Recipient</th>
+                                <th className="px-3 py-3">Date</th>
+                                <th className="px-2.5 py-3 text-center">Items</th>
+                                <th className="px-3 py-3 text-center">Status</th>
+                                <th className="px-3 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center text-muted-foreground">
+                                    <td colSpan={8} className="px-4 py-16 text-center text-muted-foreground">
                                         <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
                                         <span>Loading challan records...</span>
                                     </td>
                                 </tr>
                             ) : challans.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-20 text-center">
+                                    <td colSpan={8} className="px-4 py-20 text-center">
                                         <FileText className="size-10 text-muted-foreground/40 mx-auto mb-3" />
                                         <h3 className="font-semibold text-base text-foreground">No challan records found</h3>
                                         <p className="text-xs text-muted-foreground mt-1">
@@ -418,50 +462,65 @@ export function ChallanHistoryPage() {
                                             onClick={() => handleOpenDetails(challan)}
                                             className="hover:bg-muted/30 cursor-pointer transition-colors"
                                         >
-                                            <td className="px-4 py-4 text-center font-mono font-semibold text-xs text-muted-foreground">
+                                            <td className="px-3 py-3.5 text-center font-mono font-semibold text-xs text-muted-foreground">
                                                 {sNo}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-3 py-3.5">
                                                 <div className="font-mono font-bold text-sm text-primary">
                                                     {challan.challanNumber}
                                                 </div>
-                                                {challan.referenceDcNumber && (
-                                                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                                                {challan.challanType === "Return" && challan.referenceDcNumber && (
+                                                    <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
                                                         Ref: {challan.referenceDcNumber}
                                                     </div>
                                                 )}
+                                                {challan.challanType === "Delivery" && challan.transferFromDcNumber && (
+                                                    <div className="text-[11px] text-blue-600 dark:text-blue-400 font-mono mt-0.5 font-medium flex items-center gap-1">
+                                                        <span>Transfer: {challan.transferFromDcNumber}</span>
+                                                    </div>
+                                                )}
+                                                {challan.transferredToDcNumber && (
+                                                    <div className="text-[11px] text-amber-600 dark:text-amber-400 font-mono mt-0.5 font-medium flex items-center gap-1">
+                                                        <span>Transferred to: {challan.transferredToDcNumber}</span>
+                                                    </div>
+                                                )}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-2.5 py-3.5 text-center">
                                                 <span className={getChallanTypeBadgeClass(challan.challanType)}>
                                                     {challan.challanType}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="font-semibold text-foreground flex items-center gap-1.5">
-                                                    <Building2 className="size-3.5 text-muted-foreground" />
-                                                    {challan.vendor?.name}
+                                            <td className="px-3 py-3.5 max-w-[200px]">
+                                                <div className="font-semibold text-foreground flex items-center gap-1.5 truncate">
+                                                    <Building2 className="size-3.5 text-muted-foreground shrink-0" />
+                                                    <span className="truncate">{challan.vendor?.name}</span>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground font-mono mt-0.5">
                                                     {challan.vendor?.vendorCode || "-"}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-foreground/80">
+                                            <td className="px-3 py-3.5 font-medium text-foreground/80 whitespace-nowrap text-xs">
                                                 {new Date(challan.challanDate).toLocaleDateString()}
                                             </td>
-                                            <td className="px-6 py-4 text-center font-bold text-foreground">
+                                            <td className="px-2.5 py-3.5 text-center font-bold text-foreground">
                                                 {challan.toolCount || (challan.items || []).length}
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className={getChallanStatusBadgeClass(challan.status)}>
-                                                    {challan.status}
-                                                </span>
+                                            <td className="px-3 py-3.5 text-center whitespace-nowrap">
+                                                {(() => {
+                                                    const displayStatus = challan.status === "Returned" ? "Completed" : challan.status;
+                                                    return (
+                                                        <span className={getChallanStatusBadgeClass(displayStatus)}>
+                                                            {displayStatus}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
+                                            <td className="px-3 py-3.5 text-right">
+                                                <div className="flex items-center justify-end gap-1.5 flex-wrap sm:flex-nowrap" onClick={e => e.stopPropagation()}>
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className="h-8 px-2.5 text-xs font-semibold"
+                                                        className="h-7 px-2 text-xs font-semibold"
                                                         onClick={() => handleOpenDetails(challan)}
                                                     >
                                                         <Eye className="size-3.5 mr-1 text-muted-foreground" />
@@ -471,7 +530,7 @@ export function ChallanHistoryPage() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        className="h-8 px-2.5 text-xs font-semibold"
+                                                        className="h-7 px-2 text-xs font-semibold"
                                                         onClick={e => handleDownloadPdf(challan, e)}
                                                         title="Download L&T Construction PDF"
                                                     >
@@ -480,14 +539,27 @@ export function ChallanHistoryPage() {
                                                     </Button>
 
                                                     {isDcActive && (
-                                                        <Button
-                                                            size="sm"
-                                                            className="h-8 px-3 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-sm flex items-center gap-1"
-                                                            onClick={e => handleCreateReturnChallan(challan, e)}
-                                                        >
-                                                            <span>Create RC</span>
-                                                            <ArrowRight className="size-3.5" />
-                                                        </Button>
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-7 px-2 text-xs font-semibold text-blue-600 border-blue-300 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/40 shadow-xs flex items-center gap-1"
+                                                                onClick={e => handleTransferChallan(challan, e)}
+                                                                title="Transfer tools to another site"
+                                                            >
+                                                                <ArrowRightLeft className="size-3" />
+                                                                <span>Transfer</span>
+                                                            </Button>
+
+                                                            <Button
+                                                                size="sm"
+                                                                className="h-7 px-2.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-sm flex items-center gap-1"
+                                                                onClick={e => handleCreateReturnChallan(challan, e)}
+                                                            >
+                                                                <span>Create RC</span>
+                                                                <ArrowRight className="size-3" />
+                                                            </Button>
+                                                        </>
                                                     )}
                                                 </div>
                                             </td>

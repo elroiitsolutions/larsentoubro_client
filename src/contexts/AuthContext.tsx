@@ -39,6 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (res.success && res.data) {
                 const u = res.data
                 const isVendorRole = u.role === 'Vendor' || Boolean(u.isVendor)
+                const pages = Array.isArray(u.allowedPages)
+                    ? u.allowedPages
+                    : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"])
+
+                localStorage.setItem("allowedPages", JSON.stringify(pages))
+
                 setUser({
                     username: u.name,
                     role: u.role || 'User',
@@ -46,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     email: u.email,
                     id: u._id,
                     isVendor: isVendorRole,
-                    allowedPages: u.allowedPages || (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]),
+                    allowedPages: pages,
                     projects: u.projects || [],
                     stores: u.stores || []
                 })
@@ -66,6 +72,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (storedToken && username && role && email && id) {
             const isVendorRole = role === 'Vendor'
+            const savedAllowedPages = localStorage.getItem("allowedPages")
+            let initialAllowed: string[]
+            try {
+                initialAllowed = savedAllowedPages
+                    ? JSON.parse(savedAllowedPages)
+                    : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"])
+            } catch {
+                initialAllowed = isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]
+            }
+
             setUser({
                 username,
                 role,
@@ -73,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email,
                 id,
                 isVendor: isVendorRole,
-                allowedPages: isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"],
+                allowedPages: initialAllowed,
                 projects: [],
                 stores: []
             })
@@ -90,9 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ) => {
         const isVendorRole = userData.role === 'Vendor' || Boolean(userData.isVendor)
         const userIdVal = userData.user_id || userData.vendorCode || userData._id || userData.id
+        const userAllowedPages = Array.isArray(userData.allowedPages)
+            ? userData.allowedPages
+            : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"])
 
         setCookie("token", jwtToken, 7)
         localStorage.setItem("token", jwtToken)
+        localStorage.setItem("allowedPages", JSON.stringify(userAllowedPages))
         setCookie("username", userData.name || userData.username, 7)
         setCookie("role", userData.role || 'User', 7)
         setCookie("user_id", userIdVal, 7)
@@ -106,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: userData.email,
             id: userData._id || userData.id,
             isVendor: isVendorRole,
-            allowedPages: userData.allowedPages || (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]),
+            allowedPages: userAllowedPages,
             projects: userData.projects || [],
             stores: userData.stores || []
         })
@@ -116,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = () => {
         eraseCookie("token")
         localStorage.removeItem("token")
+        localStorage.removeItem("allowedPages")
         eraseCookie("username")
         eraseCookie("role")
         eraseCookie("user_id")

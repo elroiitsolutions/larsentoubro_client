@@ -11,7 +11,7 @@ export function NotFoundPage() {
             <p className="text-muted-foreground text-sm max-w-xs">
                 The page you're looking for doesn't exist or has been moved.
             </p>
-            <Button onClick={() => navigate("/dashboard")}>Go to Dashboard</Button>
+            <Button onClick={() => navigate("/")}>Go to Home</Button>
         </div>
     )
 }

@@ -207,6 +207,21 @@ export function ReturnChallanPreviewPage() {
                 </div>
             </div>
 
+            {/* Transfer Notification Banner */}
+            {dc.transferFromDcNumber && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-blue-800 dark:text-blue-300">
+                    <div className="flex items-center gap-2">
+                        <RotateCcw className="size-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                        <span>
+                            This Delivery Challan was transferred from <strong className="font-mono font-bold">{dc.transferFromDcNumber}</strong>. Processing this Return Challan will mark both <strong className="font-mono">{dc.challanNumber}</strong> and source DC <strong className="font-mono">{dc.transferFromDcNumber}</strong> as <span className="font-semibold underline">Completed</span>.
+                        </span>
+                    </div>
+                    <span className="font-mono bg-blue-500/20 px-2.5 py-0.5 rounded font-bold shrink-0 self-start sm:self-center">
+                        Chain Resolution
+                    </span>
+                </div>
+            )}
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm">

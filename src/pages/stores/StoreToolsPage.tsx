@@ -34,7 +34,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, ChevronUp, Check } from "lucide-react"
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
 import storeService from "@/services/store.service"
@@ -203,6 +203,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     });
     const [deleting, setDeleting] = useState(false);
     const [markingPrinted, setMarkingPrinted] = useState(false);
+    const [unmarkingPrinted, setUnmarkingPrinted] = useState(false);
 
     const handleSingleDelete = (tool: any, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -223,8 +224,22 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         });
     };
 
+    const selectedToolsList = useMemo(() => {
+        return Array.from(selectedToolIds).map(id => selectedToolsMap[id] || tools.find(t => t._id === id)).filter(Boolean);
+    }, [selectedToolIds, selectedToolsMap, tools]);
+
+    const totalSelected = selectedToolIds.size;
+    const printedCount = useMemo(() => selectedToolsList.filter(t => t.isPrinted).length, [selectedToolsList]);
+    const unprintedCount = useMemo(() => selectedToolsList.filter(t => !t.isPrinted).length, [selectedToolsList]);
+
+    // "Mark as Printed" is only clickable if ALL selected tools are NOT printed (0 are printed)
+    const canMarkAsPrinted = totalSelected > 0 && printedCount === 0 && unprintedCount === totalSelected;
+
+    // "Unprint" is only clickable if ALL selected tools are PRINTED (0 are unprinted)
+    const canUnprint = totalSelected > 0 && unprintedCount === 0 && printedCount === totalSelected;
+
     const handleMarkPrinted = async () => {
-        if (selectedToolIds.size === 0) return;
+        if (selectedToolIds.size === 0 || !canMarkAsPrinted) return;
         setMarkingPrinted(true);
         try {
             const res = await toolService.markToolsAsPrinted(Array.from(selectedToolIds));
@@ -238,6 +253,28 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             toast.error(error?.response?.data?.message || "Failed to mark tools as printed");
         } finally {
             setMarkingPrinted(false);
+        }
+    };
+
+    const handleUnmarkPrinted = async (targetToolIds?: string[]) => {
+        const idsToUnmark = targetToolIds || Array.from(selectedToolIds);
+        if (idsToUnmark.length === 0) return;
+        if (!targetToolIds && !canUnprint) return;
+        setUnmarkingPrinted(true);
+        try {
+            const res = await toolService.unmarkToolsAsPrinted(idsToUnmark);
+            if (res.success) {
+                toast.success(res.message || `Unmarked ${idsToUnmark.length} tool(s) as Printed`);
+                if (!targetToolIds) {
+                    handleClearSelection();
+                }
+                fetchTools();
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.message || "Failed to unmark tools as printed");
+        } finally {
+            setUnmarkingPrinted(false);
         }
     };
 
@@ -276,6 +313,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("All");
     const [status, setStatus] = useState("All");
+    const [printStatus, setPrintStatus] = useState("All");
 
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [advancedFilters, setAdvancedFilters] = useState<Record<string, string>>({
@@ -315,19 +353,22 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     });
     const [draftCategory, setDraftCategory] = useState("All");
     const [draftStatus, setDraftStatus] = useState("All");
+    const [draftPrintStatus, setDraftPrintStatus] = useState("All");
 
     useEffect(() => {
         if (isFilterSheetOpen) {
             setDraftAdvancedFilters(advancedFilters);
             setDraftCategory(category);
             setDraftStatus(status);
+            setDraftPrintStatus(printStatus);
         }
-    }, [isFilterSheetOpen, advancedFilters, category, status]);
+    }, [isFilterSheetOpen, advancedFilters, category, status, printStatus]);
 
     const activeFilterCount =
         Object.values(advancedFilters).filter(val => val.trim() !== "").length +
         (category !== "All" ? 1 : 0) +
         (status !== "All" ? 1 : 0) +
+        (printStatus !== "All" ? 1 : 0) +
         (search.trim() !== "" ? 1 : 0);
 
     const resetAllFilters = () => {
@@ -351,9 +392,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         setSearch("");
         setCategory("All");
         setStatus("All");
+        setPrintStatus("All");
         setAdvancedFilters(emptyFilters);
         setDraftCategory("All");
         setDraftStatus("All");
+        setDraftPrintStatus("All");
         setDraftAdvancedFilters(emptyFilters);
         setPage(1);
         toast.success("Filters reset");
@@ -370,6 +413,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         setAdvancedFilters(draftAdvancedFilters);
         setCategory(draftCategory);
         setStatus(draftStatus);
+        setPrintStatus(draftPrintStatus);
         setPage(1);
         setIsFilterSheetOpen(false);
         toast.success("Filters applied");
@@ -441,7 +485,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         if (!storeId) return;
         setLoading(true);
         try {
-            const data = await toolService.getToolsByStore(storeId, {
+            const queryParams: Record<string, string> = {
                 page: page.toString(),
                 limit: limit.toString(),
                 search,
@@ -450,7 +494,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 sortBy,
                 sortOrder,
                 ...advancedFilters
-            });
+            };
+            if (printStatus && printStatus !== "All") {
+                queryParams.printStatus = printStatus;
+            }
+            const data = await toolService.getToolsByStore(storeId, queryParams);
             if (data?.success) {
                 setTools(data.data || []);
                 setTotal(data.total || 0);
@@ -483,7 +531,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         } finally {
             setLoading(false);
         }
-    }, [storeId, page, limit, search, category, status, sortBy, sortOrder, advancedFilters]);
+    }, [storeId, page, limit, search, category, status, printStatus, sortBy, sortOrder, advancedFilters]);
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -560,14 +608,18 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         }
         try {
             setIsSelectingAll(true);
-            const res = await toolService.getToolsByStore(storeId, {
+            const queryParams: Record<string, string> = {
                 search,
                 category,
                 status,
                 ...advancedFilters,
                 page: "1",
                 limit: "10000"
-            });
+            };
+            if (printStatus && printStatus !== "All") {
+                queryParams.printStatus = printStatus;
+            }
+            const res = await toolService.getToolsByStore(storeId, queryParams);
             const filteredTools = res.data || [];
             const nextIds = new Set<string>();
             const nextMap: Record<string, any> = {};
@@ -611,7 +663,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         if (!storeId) return;
         setExporting(true);
         try {
-            const blob = await toolService.exportTools(storeId, {
+            const queryParams: Record<string, string> = {
                 search,
                 category,
                 status,
@@ -620,7 +672,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 exportScope,
                 exportType,
                 ...advancedFilters
-            });
+            };
+            if (printStatus && printStatus !== "All") {
+                queryParams.printStatus = printStatus;
+            }
+            const blob = await toolService.exportTools(storeId, queryParams);
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
@@ -761,18 +817,20 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         Scrap {selectedToolIds.size > 0 ? `Selected (${selectedToolIds.size})` : ""}
                     </Button> */}
 
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all"
-                        onClick={() => {
-                            const newBreadcrumbs = [...currentBreadcrumbs, { label: 'Import Tools', href: `/stores/${storeId}/tools/import` }];
-                            navigate(`/stores/${storeId}/tools/import`, { state: { breadcrumbs: newBreadcrumbs } });
-                        }}
-                    >
-                        <FileUp className="size-4 text-primary" />
-                        Bulk Import
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all"
+                            onClick={() => {
+                                const newBreadcrumbs = [...currentBreadcrumbs, { label: 'Import Tools', href: `/stores/${storeId}/tools/import` }];
+                                navigate(`/stores/${storeId}/tools/import`, { state: { breadcrumbs: newBreadcrumbs } });
+                            }}
+                        >
+                            <FileUp className="size-4 text-primary" />
+                            Bulk Import
+                        </Button>
+                    )}
 
                     {isAdmin && (
                         <Button
@@ -883,6 +941,18 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                         placeholder="All Statuses"
                                                         searchPlaceholder="Search status..."
                                                         allLabel="All Statuses"
+                                                        allValue="All"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Print Status</label>
+                                                    <SearchableSelect
+                                                        value={draftPrintStatus}
+                                                        onValueChange={(val) => setDraftPrintStatus(val)}
+                                                        options={["Printed", "Not Printed"]}
+                                                        placeholder="All Print Statuses"
+                                                        searchPlaceholder="Search print status..."
+                                                        allLabel="All Print Statuses"
                                                         allValue="All"
                                                     />
                                                 </div>
@@ -1305,13 +1375,49 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-9 text-xs font-medium rounded-xl text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center justify-center gap-1.5"
+                                    className={`h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                        canMarkAsPrinted
+                                            ? "text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
+                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                    }`}
                                     onClick={handleMarkPrinted}
-                                    disabled={markingPrinted}
-                                    title="Mark as Printed"
+                                    disabled={markingPrinted || !canMarkAsPrinted}
+                                    title={
+                                        !canMarkAsPrinted
+                                            ? printedCount > 0 && unprintedCount > 0
+                                                ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                : printedCount > 0
+                                                    ? "Disabled: All selected tools are already printed"
+                                                    : "Select not printed tools to mark as printed"
+                                            : `Mark ${selectedToolIds.size} tool(s) as Printed`
+                                    }
                                 >
-                                    {markingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <Printer className="size-3.5 text-emerald-600 shrink-0" />}
+                                    {markingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <Printer className="size-3.5 shrink-0" />}
                                     <span className="truncate">Mark as Printed ({selectedToolIds.size})</span>
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={`h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                        canUnprint
+                                            ? "text-amber-700 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                    }`}
+                                    onClick={() => handleUnmarkPrinted()}
+                                    disabled={unmarkingPrinted || !canUnprint}
+                                    title={
+                                        !canUnprint
+                                            ? printedCount > 0 && unprintedCount > 0
+                                                ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                : unprintedCount > 0
+                                                    ? "Disabled: Selected tools are already not printed"
+                                                    : "Select printed tools to unprint"
+                                            : `Unprint ${selectedToolIds.size} tool(s) (Reset to Not Printed)`
+                                    }
+                                >
+                                    {unmarkingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RotateCcw className="size-3.5 shrink-0" />}
+                                    <span className="truncate">Unprint ({selectedToolIds.size})</span>
                                 </Button>
 
                                 <Button
