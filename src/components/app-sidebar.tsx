@@ -26,6 +26,7 @@ import {
   ArchiveIcon,
   Building2,
   FileText,
+  QrCode,
 } from "lucide-react"
 
 import logoUrl from "@/assets/logo.png"
@@ -39,6 +40,13 @@ const data = {
     avatar: "",
   },
   navMain: [
+    {
+      title: "Scanner",
+      url: "/qr-scanner",
+      icon: <QrCode />,
+      isActive: false,
+      items: [],
+    },
     {
       title: "Dashboard",
       url: "/dashboard",
@@ -108,11 +116,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { setOpen } = useSidebar()
 
   const filteredNavMain = React.useMemo(() => {
+    if (user?.role === "Guest") {
+      return [
+        {
+          title: "Scanner",
+          url: "/qr-scanner",
+          icon: <QrCode />,
+          isActive: true,
+          items: [],
+        }
+      ]
+    }
     if (user?.role === "Admin") {
       return data.navMain
     }
     if (user?.role === "Vendor") {
-      return data.navMain.filter((item) => item.url === "/stores")
+      return data.navMain.filter((item) => item.url === "/stores" || item.url === "/qr-scanner")
     }
     const adminOnlyUrls = [
       "/profiles",
@@ -124,6 +143,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const allowed = user?.allowedPages || [];
     return data.navMain.filter((item) => {
       if (adminOnlyUrls.includes(item.url)) return false;
+      if (item.url === "/qr-scanner") return true;
       if (item.url === "/dashboard") return allowed.includes("/dashboard");
       if (item.url === "/projects") return allowed.includes("/projects");
       if (item.url === "/stores") return allowed.includes("/stores");

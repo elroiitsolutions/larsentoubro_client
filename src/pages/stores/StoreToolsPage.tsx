@@ -66,6 +66,7 @@ const TOOL_COLUMNS = [
     { key: "purchaserName", label: "Purchaser Name" },
     { key: "supplierCode", label: "Supplier Code" },
     { key: "dateOfSupply", label: "Date of Supply" },
+    { key: "validation", label: "Validation" },
     { key: "toolType", label: "Tool Type" },
     { key: "metalType", label: "Metal Type" },
     { key: "toolVariant", label: "Tool Variant" },
@@ -73,7 +74,6 @@ const TOOL_COLUMNS = [
     { key: "jobCode", label: "Job Code" },
     { key: "jobDescription", label: "Job Description" },
     { key: "currentSite", label: "Current Site" },
-    { key: "validation", label: "Validation" },
     { key: "toolCode", label: "Item Code" }
 ];
 
@@ -84,8 +84,17 @@ const renderFieldValue = (tool: any, key: string) => {
     if (key === 'currentSite') {
         val = tool.storeName || (tool.currentSite && typeof tool.currentSite === 'object' ? (tool.currentSite.name || tool.currentSite.location) : tool.currentSite);
     } else if (key === 'validation') {
-        const rawVal = tool.validityPeriod || tool.validation;
-        val = (rawVal && rawVal !== 'N/A') ? rawVal : (tool.customFields?.validation || tool.customFields?.validityPeriod || rawVal);
+        const rawVal = tool.validityPeriod || tool.validation || tool.customFields?.validation || tool.customFields?.validityPeriod;
+        if (rawVal && rawVal !== 'N/A' && rawVal !== '-' && String(rawVal).trim() !== '') {
+            val = rawVal;
+        } else {
+            const purchaserStr = (tool.purchaserName || tool.customFields?.purchaserName || '').trim().toLowerCase();
+            if (purchaserStr === 'third party inspection' || purchaserStr.includes('third party inspection')) {
+                val = '1 Year';
+            } else {
+                val = '3 Years';
+            }
+        }
     } else if (key === 'toolCode') {
         val = tool.toolCode || tool.itemCode || tool.customFields?.toolCode || tool.customFields?.itemCode;
     } else {

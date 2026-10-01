@@ -351,6 +351,30 @@ export const toolService = {
         const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, payload);
         return response.data;
     },
+
+    /**
+     * Looks up tool validity and sanitized details using QR code or Tool ID.
+     */
+    lookupToolValidity: async (code: string): Promise<{
+        success: boolean;
+        data?: {
+            toolId: string;
+            description: string;
+            project: string;
+            store: string;
+            expiryDate: string;
+            validityStatus: 'VALID' | 'EXPIRED' | 'INVALID_EXPIRY';
+            validityLabel: string;
+            isValid: boolean;
+            status: string;
+        };
+        status?: string;
+        message?: string;
+    }> => {
+        const url = `/api/tools/lookup-validity?code=${encodeURIComponent(code)}`;
+        const response = await api.get(url);
+        return response.data;
+    },
 };
 
 export default toolService;

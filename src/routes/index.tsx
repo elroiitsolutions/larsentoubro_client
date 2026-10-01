@@ -28,6 +28,7 @@ import { TrashPage } from "@/pages/stores/TrashPage"
 import { ScrapPage } from "@/pages/stores/ScrapPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 import { NoAccessPage } from "@/pages/NoAccessPage"
+import { QRScannerPage } from "@/pages/guest/QRScannerPage"
 import { getDefaultAllowedPath } from "@/utils/navigation"
 
 function ProtectedRoute() {
@@ -46,6 +47,17 @@ function ProtectedRoute() {
     }
 
     return <Outlet />
+}
+
+function GuestRouteGuard() {
+    const { user } = useAuth()
+    const location = useLocation()
+
+    if (user?.role === "Guest" && location.pathname !== "/qr-scanner") {
+        return <Navigate to="/qr-scanner" replace />
+    }
+
+    return <SidebarLayout />
 }
 
 function AdminRoute() {
@@ -102,10 +114,11 @@ function AppRoutes() {
                     <Route path="/login" element={<LoginPage />} />
                 </Route>
 
-                {/* Protected routes */}
+                {/* Protected routes - Requires JWT Authentication */}
                 <Route element={<ProtectedRoute />}>
-                    <Route element={<SidebarLayout />}>
+                    <Route element={<GuestRouteGuard />}>
                         <Route index element={<IndexRedirect />} />
+                        <Route path="/qr-scanner" element={<QRScannerPage />} />
                         <Route path="/no-access" element={<NoAccessPage />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/projects" element={<ProjectsPage />} />

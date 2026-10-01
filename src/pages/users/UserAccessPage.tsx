@@ -27,7 +27,8 @@ import {
     PhoneIcon,
     BadgeCheckIcon,
     XIcon,
-    KeyIcon
+    KeyIcon,
+    QrCode
 } from "lucide-react"
 import projectService from "@/services/project.service"
 import storeService from "@/services/store.service"
@@ -36,6 +37,7 @@ import type { UserRecord } from "@/services/user.service"
 import { toast } from "sonner"
 
 const AVAILABLE_PAGES = [
+    { title: "QR Scanner", url: "/qr-scanner", icon: QrCode, desc: "Scan tool QR codes & verify validity" },
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon, desc: "Overview analytics & KPIs" },
     { title: "Projects", url: "/projects", icon: FolderOpenIcon, desc: "Project directory & status" },
     { title: "Stores", url: "/stores", icon: StoreIcon, desc: "Store inventory & management" },

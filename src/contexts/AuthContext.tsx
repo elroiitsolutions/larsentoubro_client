@@ -38,10 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await userService.getCurrentUser()
             if (res.success && res.data) {
                 const u = res.data
+                const isGuestRole = u.role === 'Guest'
                 const isVendorRole = u.role === 'Vendor' || Boolean(u.isVendor)
                 const pages = Array.isArray(u.allowedPages)
                     ? u.allowedPages
-                    : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"])
+                    : (isGuestRole ? ["/qr-scanner"] : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]))
 
                 localStorage.setItem("allowedPages", JSON.stringify(pages))
 
@@ -71,15 +72,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const id = getCookie("id")
 
         if (storedToken && username && role && email && id) {
+            const isGuestRole = role === 'Guest'
             const isVendorRole = role === 'Vendor'
             const savedAllowedPages = localStorage.getItem("allowedPages")
             let initialAllowed: string[]
             try {
                 initialAllowed = savedAllowedPages
                     ? JSON.parse(savedAllowedPages)
-                    : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"])
+                    : (isGuestRole ? ["/qr-scanner"] : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]))
             } catch {
-                initialAllowed = isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]
+                initialAllowed = isGuestRole ? ["/qr-scanner"] : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"])
             }
 
             setUser({
@@ -104,11 +106,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         jwtToken: string,
         userData: any
     ) => {
+        const isGuestRole = userData.role === 'Guest'
         const isVendorRole = userData.role === 'Vendor' || Boolean(userData.isVendor)
         const userIdVal = userData.user_id || userData.vendorCode || userData._id || userData.id
         const userAllowedPages = Array.isArray(userData.allowedPages)
             ? userData.allowedPages
-            : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"])
+            : (isGuestRole ? ["/qr-scanner"] : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]))
 
         setCookie("token", jwtToken, 7)
         localStorage.setItem("token", jwtToken)

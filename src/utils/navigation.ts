@@ -3,6 +3,7 @@
  */
 export function getDefaultAllowedPath(user: any): string {
     if (!user) return "/login";
+    if (user.role === "Guest") return "/qr-scanner";
     if (user.role === "Admin") return "/dashboard";
     if (user.role === "Vendor") return "/stores";
 
