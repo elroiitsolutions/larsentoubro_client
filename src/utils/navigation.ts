@@ -21,7 +21,7 @@ export function getDefaultAllowedPath(user: any): string {
     if (allowed.includes("/challans") || allowed.includes("/challans/history")) return "/challans/history";
     if (allowed.includes("/scrap") || allowed.includes("/tools/scrap")) return "/tools/scrap";
     if (allowed.includes("/reports")) return "/reports";
-    if (allowed.includes("/users")) return "/users";
+    if (allowed.includes("/profiles")) return "/profiles";
     if (allowed.includes("/settings")) return "/settings";
 
     // If any custom path exists, navigate there

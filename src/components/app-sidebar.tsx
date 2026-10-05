@@ -134,7 +134,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return data.navMain.filter((item) => item.url === "/stores" || item.url === "/qr-scanner")
     }
     const adminOnlyUrls = [
-      "/profiles",
       "/tools/trash",
       "/users",
       "/admin/approvals",
@@ -147,6 +146,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       if (item.url === "/dashboard") return allowed.includes("/dashboard");
       if (item.url === "/projects") return allowed.includes("/projects");
       if (item.url === "/stores") return allowed.includes("/stores");
+      if (item.url === "/profiles") return allowed.includes("/profiles");
       if (item.url === "/challans/history") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/challans");
       if (item.url === "/tools/scrap") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/scrap");
       return true;

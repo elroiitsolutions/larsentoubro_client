@@ -36,6 +36,7 @@ export function DeliveryChallanPreviewPage() {
     const initialTools = state?.selectedTools || [];
     const initialVendor = state?.vendor || { name: "Selected Subcontractor", vendorCode: "V-001" };
     const storeId = state?.storeId;
+    const isScrapDC = Boolean(state?.isScrapDC || initialVendor?.profileType === "ScrapDealer");
 
     // Header & Company Titles (Static Non-Editable)
     const companyName = "LARSEN & TOUBRO LIMITED, CONSTRUCTION";
@@ -191,7 +192,8 @@ export function DeliveryChallanPreviewPage() {
 
         return {
             subcontractorName,
-            siteCode: siteCode?.trim() || "",
+            siteCode: isScrapDC ? "" : (siteCode?.trim() || ""),
+            isScrapDC,
             indentNo,
             vendorCode,
         vendorId: initialVendor._id,
@@ -245,7 +247,7 @@ export function DeliveryChallanPreviewPage() {
     const handleConfirmCreate = async () => {
         try {
             const cleanSiteCode = typeof siteCode === 'string' ? siteCode.trim() : '';
-            if (!cleanSiteCode) {
+            if (!isScrapDC && !cleanSiteCode) {
                 setSiteCodeError("Site Code No. is required");
                 toast.error("Site Code is mandatory! Please enter a valid Site Code No. before creating the Delivery Challan.");
                 return;
@@ -262,7 +264,7 @@ export function DeliveryChallanPreviewPage() {
             setCreating(true);
             const payload = getChallanPayload(false);
             let res;
-            if (state?.isScrapDC || initialVendor?.profileType === "ScrapDealer") {
+            if (isScrapDC) {
                 const scrapDealerId = initialVendor?._id || initialVendor?.id || payload.vendorId || payload.vendor?._id;
                 res = await challanService.createScrapDeliveryChallan({
                     ...payload,
@@ -392,22 +394,24 @@ export function DeliveryChallanPreviewPage() {
                     </div>
                     <span className="text-[11px] sm:text-xs text-muted-foreground">Manual Challan Slip Alignments</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
-                    <div>
-                        <label className="text-xs font-bold text-muted-foreground block mb-1">
-                            Site Code No. <span className="text-rose-500 font-bold">* (Required)</span>
-                        </label>
-                        <Input 
-                            value={siteCode} 
-                            onChange={e => {
-                                setSiteCode(e.target.value);
-                                if (siteCodeError) setSiteCodeError("");
-                            }} 
-                            placeholder="e.g. sc-01, Site#101, SC/2026-A" 
-                            className={`h-8 text-xs font-semibold ${siteCodeError ? "border-rose-500 ring-2 ring-rose-400 bg-rose-50/50 dark:bg-rose-950/20" : ""}`} 
-                        />
-                        {siteCodeError && <p className="text-[11px] text-rose-500 font-medium mt-1">{siteCodeError}</p>}
-                    </div>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 ${isScrapDC ? "lg:grid-cols-2" : "lg:grid-cols-3"} gap-2.5 sm:gap-3`}>
+                    {!isScrapDC && (
+                        <div>
+                            <label className="text-xs font-bold text-muted-foreground block mb-1">
+                                Site Code No. <span className="text-rose-500 font-bold">* (Required)</span>
+                            </label>
+                            <Input 
+                                value={siteCode} 
+                                onChange={e => {
+                                    setSiteCode(e.target.value);
+                                    if (siteCodeError) setSiteCodeError("");
+                                }} 
+                                placeholder="e.g. sc-01, Site#101, SC/2026-A" 
+                                className={`h-8 text-xs font-semibold ${siteCodeError ? "border-rose-500 ring-2 ring-rose-400 bg-rose-50/50 dark:bg-rose-950/20" : ""}`} 
+                            />
+                            {siteCodeError && <p className="text-[11px] text-rose-500 font-medium mt-1">{siteCodeError}</p>}
+                        </div>
+                    )}
                     {/* <div>
                         <label className="text-xs font-bold text-muted-foreground block mb-1">Indent No.</label>
                         <Input value={indentNo} onChange={e => setIndentNo(e.target.value)} placeholder="e.g. IND-001" className="h-8 text-xs font-semibold font-mono" />
@@ -497,23 +501,25 @@ export function DeliveryChallanPreviewPage() {
                                 placeholder="Work Location Address"
                                 className="text-xs h-7 border-slate-400 bg-white"
                             />
-                            <div className="pt-1 flex items-center justify-between text-[11px] gap-2">
-                                <span className="font-bold shrink-0 text-black flex items-center gap-1">
-                                    SITE CODE NO. <span className="text-rose-600 font-extrabold">*</span>
-                                </span>
-                                <div className="flex flex-col items-end">
-                                    <Input 
-                                        value={siteCode}
-                                        onChange={e => {
-                                            setSiteCode(e.target.value);
-                                            if (siteCodeError) setSiteCodeError("");
-                                        }}
-                                        placeholder="Required *"
-                                        className={`h-6 font-mono font-bold text-xs text-right border-slate-400 bg-white w-28 sm:w-32 ${siteCodeError ? "border-rose-500 ring-2 ring-rose-400 bg-rose-50" : ""}`}
-                                    />
-                                    {siteCodeError && <span className="text-[9px] text-rose-600 font-bold mt-0.5">Required</span>}
+                            {!isScrapDC && (
+                                <div className="pt-1 flex items-center justify-between text-[11px] gap-2">
+                                    <span className="font-bold shrink-0 text-black flex items-center gap-1">
+                                        SITE CODE NO. <span className="text-rose-600 font-extrabold">*</span>
+                                    </span>
+                                    <div className="flex flex-col items-end">
+                                        <Input 
+                                            value={siteCode}
+                                            onChange={e => {
+                                                setSiteCode(e.target.value);
+                                                if (siteCodeError) setSiteCodeError("");
+                                            }}
+                                            placeholder="Required *"
+                                            className={`h-6 font-mono font-bold text-xs text-right border-slate-400 bg-white w-28 sm:w-32 ${siteCodeError ? "border-rose-500 ring-2 ring-rose-400 bg-rose-50" : ""}`}
+                                        />
+                                        {siteCodeError && <span className="text-[9px] text-rose-600 font-bold mt-0.5">Required</span>}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
 

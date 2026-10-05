@@ -3,6 +3,7 @@ import { getCookie, setCookie, eraseCookie } from "@/lib/cookie"
 import userService from "@/services/user.service"
 
 export interface User {
+    name?: string
     username: string
     role: string
     user_id: string
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 localStorage.setItem("allowedPages", JSON.stringify(pages))
 
                 setUser({
+                    name: u.name,
                     username: u.name,
                     role: u.role || 'User',
                     user_id: u.user_id || u.vendorCode || u._id,
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             setUser({
+                name: username,
                 username,
                 role,
                 user_id: userId || id,
@@ -123,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setCookie("id", userData._id || userData.id, 7)
 
         setUser({
+            name: userData.name || userData.username,
             username: userData.name || userData.username,
             role: userData.role || 'User',
             user_id: userIdVal,

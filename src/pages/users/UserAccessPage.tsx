@@ -28,7 +28,8 @@ import {
     BadgeCheckIcon,
     XIcon,
     KeyIcon,
-    QrCode
+    QrCode,
+    Building2
 } from "lucide-react"
 import projectService from "@/services/project.service"
 import storeService from "@/services/store.service"
@@ -42,6 +43,7 @@ const AVAILABLE_PAGES = [
     { title: "Projects", url: "/projects", icon: FolderOpenIcon, desc: "Project directory & status" },
     { title: "Stores", url: "/stores", icon: StoreIcon, desc: "Store inventory & management" },
     { title: "Tools", url: "/tools", icon: StoreIcon, desc: "Tool tracking & inventory" },
+    { title: "Profile Management", url: "/profiles", icon: Building2, desc: "Vendors, Subcontractors & Scrap" },
     { title: "Users Management", url: "/users", icon: UsersIcon, desc: "Team list & access control" },
     { title: "Settings & Forms", url: "/settings", icon: Settings2Icon, desc: "System config & form builder" },
 ]
@@ -565,7 +567,7 @@ export function UserAccessPage() {
                             </div>
                         </div>
                     ) : null}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-2.5">
                         {AVAILABLE_PAGES.map((page) => {
                             const isChecked = userRecord?.role === "Admin"
                                 ? true
