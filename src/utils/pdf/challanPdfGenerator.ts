@@ -161,10 +161,21 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
             const locText = `${locationStr} ${challan.workFrontLocation ? '| ' + challan.workFrontLocation : ''}`.trim();
             doc.text(locText, 112, 49, { maxWidth: 82 });
         }
-        const siteAndTransfer = challan.transferFromDcNumber 
-            ? `Site: ${siteCodeStr} | Transfer from: ${formatDCNumber(challan.transferFromDcNumber)}` 
-            : `Site Code: ${siteCodeStr}`;
-        doc.text(siteAndTransfer, 112, 54, { maxWidth: 82 });
+        const isScrapChallan = Boolean(
+            challan.isScrapDC || 
+            challan.challanType === 'Scrap' || 
+            challan.vendor?.profileType === 'ScrapDealer' || 
+            (challan.vendor?.vendorCode && String(challan.vendor.vendorCode).startsWith('SCR-')) ||
+            (challan.remarks && typeof challan.remarks === 'string' && challan.remarks.toLowerCase().includes('scrap')) ||
+            (challan.notes && typeof challan.notes === 'string' && challan.notes.toLowerCase().includes('scrap'))
+        );
+
+        if (!isScrapChallan) {
+            const siteAndTransfer = challan.transferFromDcNumber 
+                ? `Site: ${siteCodeStr} | Transfer from: ${formatDCNumber(challan.transferFromDcNumber)}` 
+                : `Site Code: ${siteCodeStr}`;
+            doc.text(siteAndTransfer, 112, 54, { maxWidth: 82 });
+        }
     }
 
     // Horizontal divider line across full box at Y: 58

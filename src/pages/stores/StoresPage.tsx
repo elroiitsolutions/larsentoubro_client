@@ -130,7 +130,7 @@ export function StoresPage() {
         <div className="flex flex-col gap-6 w-full mx-auto p-2 pb-10">
             <div className="flex items-center justify-between pt-2">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">Stores {projectId ? `for ${projectId.substring(0, 6)}` : ""}</h1>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Stores</h1>
                     <p className="text-muted-foreground mt-1 text-sm">Inventory and location overview.</p>
                 </div>
                 {(!user || user.role === "Admin") && (

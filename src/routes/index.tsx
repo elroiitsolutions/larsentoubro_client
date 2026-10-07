@@ -137,17 +137,18 @@ function AppRoutes() {
                         <Route path="/reports" element={<ToolsReportPage />} />
                         <Route path="/reports/tools" element={<ToolsReportPage />} />
 
+                        <Route path="/profiles" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
+                        <Route path="/vendors" element={<ProfileManagementPage />} />
+
                         {/* Admin-only Protected Routes */}
                         <Route element={<AdminRoute />}>
                             <Route path="/tools/trash" element={<TrashPage />} />
                             <Route path="/trash" element={<TrashPage />} />
                             <Route path="/users" element={<UsersPage />} />
                             <Route path="/users/:id/access" element={<UserAccessPage />} />
-                            <Route path="/profiles" element={<ProfileManagementPage />} />
-                            <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
-                            <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
-                            <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
-                            <Route path="/vendors" element={<ProfileManagementPage />} />
                             <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
                             <Route path="/settings" element={<SettingsPage />} />
                             <Route path="/settings/forms" element={<SettingsFormManagementPage />} />

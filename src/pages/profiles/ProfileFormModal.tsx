@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 import profileService, { type ProfileRecord, type ProfileType, type KeyPersonnelContact } from "@/services/profile.service"
 import formService from "@/services/form.service"
+import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 
 interface ProfileFormModalProps {
@@ -85,6 +86,7 @@ export function ProfileFormModal({
     editingProfile,
     onSuccess,
 }: ProfileFormModalProps) {
+    const { user: currentUser } = useAuth()
     const isEdit = Boolean(editingProfile)
     const [activeTab, setActiveTab] = React.useState<"details" | "documents">("details")
 
@@ -300,7 +302,15 @@ export function ProfileFormModal({
                 aadhaarNumber: aadhaarNumber.trim(),
                 licenseNumber: licenseNumber.trim(),
                 status,
-                customFields
+                customFields,
+                ...(!isEdit && {
+                    createdBy: {
+                        _id: currentUser?.id || (currentUser as any)?._id,
+                        name: currentUser?.name || currentUser?.username || 'Admin',
+                        email: currentUser?.email || '',
+                        role: currentUser?.role || 'Admin'
+                    }
+                })
             }
 
             let res

@@ -22,7 +22,8 @@ import {
     ShieldAlert,
     RefreshCcw,
     Layers,
-    FileCheck
+    FileCheck,
+    UserCheck
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import profileService, { type ProfileRecord, type ProfileType } from "@/services/profile.service"
@@ -55,7 +56,7 @@ export function ProfileManagementPage() {
     const isRestricted = Boolean(
         currentUser &&
         currentUser.role !== "Admin" &&
-        (!currentUser.allowedPages || (!currentUser.allowedPages.includes("/users") && !currentUser.allowedPages.includes("/profiles") && !currentUser.allowedPages.includes("/stores")))
+        (!currentUser.allowedPages || !currentUser.allowedPages.includes("/profiles"))
     )
 
     const handleTabChange = (type: ProfileType) => {
@@ -104,7 +105,32 @@ export function ProfileManagementPage() {
         }
     }
 
-    const filteredProfiles = profiles.filter((p) => {
+    const isProfileVisible = React.useCallback((p: ProfileRecord) => {
+        if (!currentUser) return true
+        if (currentUser.role === "Admin") return true
+
+        // Profiles created by Admin or legacy profiles without createdBy are visible to all users
+        if (!p.createdBy || p.createdBy.role === "Admin" || !p.createdBy.role) {
+            return true
+        }
+
+        // Profile created by a user: only visible to THAT user
+        const isSelf = Boolean(
+            (p.createdBy._id && (p.createdBy._id === currentUser.id || p.createdBy._id === (currentUser as any)?._id)) ||
+            (p.createdBy.email && currentUser.email && p.createdBy.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+            (p.createdBy.name && (
+                (currentUser.name && p.createdBy.name.toLowerCase() === currentUser.name.toLowerCase()) ||
+                (currentUser.username && p.createdBy.name.toLowerCase() === currentUser.username.toLowerCase())
+            ))
+        )
+        return isSelf
+    }, [currentUser])
+
+    const visibleProfiles = React.useMemo(() => {
+        return profiles.filter(isProfileVisible)
+    }, [profiles, isProfileVisible])
+
+    const filteredProfiles = visibleProfiles.filter((p) => {
         const term = searchTerm.toLowerCase()
         return (
             p.name.toLowerCase().includes(term) ||
@@ -114,12 +140,13 @@ export function ProfileManagementPage() {
             (p.contactEmail || "").toLowerCase().includes(term) ||
             (p.gstNumber || "").toLowerCase().includes(term) ||
             (p.panNumber || "").toLowerCase().includes(term) ||
-            (p.licenseNumber || "").toLowerCase().includes(term)
+            (p.licenseNumber || "").toLowerCase().includes(term) ||
+            (p.createdBy?.name || "").toLowerCase().includes(term)
         )
     })
 
-    const taxRecordsCount = profiles.filter(p => p.gstNumber || p.panNumber || p.licenseNumber).length
-    const totalDocsCount = profiles.reduce((sum, p) => sum + (p.documents?.length || 0), 0)
+    const taxRecordsCount = visibleProfiles.filter(p => p.gstNumber || p.panNumber || p.licenseNumber).length
+    const totalDocsCount = visibleProfiles.reduce((sum, p) => sum + (p.documents?.length || 0), 0)
 
     const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
 
@@ -308,7 +335,7 @@ export function ProfileManagementPage() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto w-full">
-                            <table className="w-full text-sm min-w-[700px]">
+                            <table className="w-full text-sm min-w-[850px]">
                                 <thead>
                                     <tr className="border-b border-border/50 bg-muted/10">
                                         <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Name & Code</th>
@@ -316,6 +343,7 @@ export function ProfileManagementPage() {
                                         <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Phone & Email</th>
                                         <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Tax & Licenses</th>
                                         <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Documents</th>
+                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Created By</th>
                                         <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -401,6 +429,32 @@ export function ProfileManagementPage() {
                                                     </button>
                                                 </td>
 
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                                                                <UserCheck className="size-3.5 text-primary shrink-0" />
+                                                                {p.createdBy?.name || "Admin"}
+                                                            </span>
+                                                            <span
+                                                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-none border ${
+                                                                    (p.createdBy?.role || "Admin").toLowerCase() === "admin"
+                                                                        ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                                                                        : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                                                                }`}
+                                                            >
+                                                                {p.createdBy?.role || "Admin"}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                                                            <span>Created:</span>
+                                                            <span className="font-mono text-foreground/80 font-semibold">
+                                                                {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "-"}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-1.5">
                                                         <Button
@@ -415,15 +469,26 @@ export function ProfileManagementPage() {
                                                             <EditIcon className="size-3.5" />
                                                             <span>Edit</span>
                                                         </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setDeletingProfile({ id: p._id, name: p.name })}
-                                                            className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-                                                            title="Delete Profile"
-                                                        >
-                                                            <TrashIcon className="size-4" />
-                                                        </Button>
+                                                        {(currentUser?.role === "Admin" || Boolean(
+                                                            p.createdBy && (
+                                                                (p.createdBy._id && (p.createdBy._id === currentUser?.id || p.createdBy._id === (currentUser as any)?._id)) ||
+                                                                (p.createdBy.email && currentUser?.email && p.createdBy.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+                                                                (p.createdBy.name && (
+                                                                    (currentUser?.name && p.createdBy.name.toLowerCase() === currentUser.name.toLowerCase()) ||
+                                                                    (currentUser?.username && p.createdBy.name.toLowerCase() === currentUser.username.toLowerCase())
+                                                                ))
+                                                            )
+                                                        )) && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setDeletingProfile({ id: p._id, name: p.name })}
+                                                                className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                                                title="Delete Profile"
+                                                            >
+                                                                <TrashIcon className="size-4" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
