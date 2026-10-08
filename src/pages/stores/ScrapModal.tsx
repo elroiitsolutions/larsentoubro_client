@@ -26,6 +26,7 @@ import {
     Loader2,
     FileText} from "lucide-react";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -139,6 +140,10 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
         }
         if (selectedTools.length === 0) {
             toast.error("Please select at least one tool to scrap");
+            return;
+        }
+
+        if (selectedTools.some((t: any) => !t.isPrinted)) {
             return;
         }
 
@@ -312,13 +317,21 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
                         </div>
                     ) : (
                         <Select value={selectedDealerId || ""} onValueChange={(val: any) => handleDealerChange(val)}>
-                            <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all shadow-xs cursor-pointer">
-                                <SelectValue placeholder={`-- Select Scrap Dealer (${scrapDealers.length} Available) --`} />
+                            <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all shadow-xs cursor-pointer truncate">
+                                <SelectValue placeholder={`-- Select Scrap Dealer (${scrapDealers.length} Available) --`}>
+                                    {(val: any) => {
+                                        if (!val) return null;
+                                        const d = scrapDealers.find(item => item._id === val) || (selectedDealerDetails?._id === val ? selectedDealerDetails : null);
+                                        return d 
+                                            ? `${d.name} (${d.code})${d.gstNumber ? ` - GST: ${d.gstNumber}` : ""}`
+                                            : val;
+                                    }}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {scrapDealers.map(d => (
                                     <SelectItem key={d._id} value={d._id}>
-                                        {d.name} ({d.code}){d.licenseNumber ? ` - Lic: ${d.licenseNumber}` : d.gstNumber ? ` - GST: ${d.gstNumber}` : ""}
+                                        {d.name} ({d.code}){d.gstNumber ? ` - GST: ${d.gstNumber}` : ""}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -341,20 +354,12 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
                                             {selectedDealerDetails.status || "Active"}
                                         </span>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-muted-foreground mt-1">
-                                        {selectedDealerDetails.licenseNumber && (
-                                            <span className="flex items-center gap-1">
-                                                <FileText className="size-3 text-amber-600" />
-                                                Lic: <strong className="text-foreground">{selectedDealerDetails.licenseNumber}</strong>
-                                            </span>
-                                        )}
-                                        {selectedDealerDetails.gstNumber && (
-                                            <span className="flex items-center gap-1">
-                                                <Hash className="size-3 text-amber-600" />
-                                                GST: <strong className="text-foreground">{selectedDealerDetails.gstNumber}</strong>
-                                            </span>
-                                        )}
-                                    </div>
+                                    {selectedDealerDetails.gstNumber && (
+                                        <p className="text-xs font-mono text-muted-foreground mt-1 flex items-center gap-1">
+                                            <Hash className="size-3 text-amber-600" />
+                                            GST: <strong className="text-foreground">{selectedDealerDetails.gstNumber}</strong>
+                                        </p>
+                                    )}
                                 </div>
                                 {detailsLoading && (
                                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -471,14 +476,38 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
                         >
                             Cancel
                         </Button>
-                        <Button
-                            disabled={!selectedDealerDetails || selectedTools.length === 0}
-                            onClick={handleProceedToScrapDC}
-                            className="bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-1.5 shadow-md h-9 px-4 cursor-pointer font-semibold text-xs"
-                        >
-                            <span>Create Scrap DC ({selectedTools.length} Tools)</span>
-                            <ArrowRight className="size-4" />
-                        </Button>
+                        <TooltipProvider delay={100}>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <span
+                                        className="inline-block"
+                                        title={
+                                            !selectedDealerDetails
+                                                ? "Please select a destination Scrap Dealer profile first"
+                                                : selectedTools.some((t: any) => !t.isPrinted)
+                                                    ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
+                                                    : `Create Scrap DC with ${selectedTools.length} tools`
+                                        }
+                                    >
+                                        <Button
+                                            disabled={!selectedDealerDetails || selectedTools.length === 0 || selectedTools.some((t: any) => !t.isPrinted)}
+                                            onClick={handleProceedToScrapDC}
+                                            className="bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-1.5 shadow-md h-9 px-4 cursor-pointer font-semibold text-xs"
+                                        >
+                                            <span>Create Scrap DC ({selectedTools.length} Tools)</span>
+                                            <ArrowRight className="size-4" />
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                {(!selectedDealerDetails || selectedTools.some((t: any) => !t.isPrinted)) && (
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                        {!selectedDealerDetails
+                                            ? "Please select a destination Scrap Dealer profile first"
+                                            : "Disabled: All selected tools must be marked as Printed before moving to Scrap"}
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </DialogFooter>
             </DialogContent>

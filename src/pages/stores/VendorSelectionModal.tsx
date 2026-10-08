@@ -25,6 +25,7 @@ import {
     Loader2
 } from "lucide-react";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -163,6 +164,9 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
         }
         if (selectedTools.some((t: any) => t.status === "Missing")) {
             toast.error("Cannot create Delivery Challan: One or more selected tools are Missing");
+            return;
+        }
+        if (selectedTools.some((t: any) => !t.isPrinted)) {
             return;
         }
         onOpenChange(false);
@@ -497,14 +501,38 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                         >
                             Cancel
                         </Button>
-                        <Button
-                            disabled={!selectedProfileDetails || selectedTools.length === 0}
-                            onClick={handleProceedToPreview}
-                            className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-1.5 shadow-md h-9 px-4 order-1 sm:order-2"
-                        >
-                            <span>Proceed to Preview ({selectedTools.length} Tools)</span>
-                            <ArrowRight className="size-4" />
-                        </Button>
+                        <TooltipProvider delay={100}>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <span
+                                        className="inline-block"
+                                        title={
+                                            !selectedProfileDetails
+                                                ? "Please select a destination recipient profile first"
+                                                : selectedTools.some((t: any) => !t.isPrinted)
+                                                    ? "Disabled: All selected tools must be marked as Printed before creating a Delivery Challan"
+                                                    : `Proceed to Preview with ${selectedTools.length} tools`
+                                        }
+                                    >
+                                        <Button
+                                            disabled={!selectedProfileDetails || selectedTools.length === 0 || selectedTools.some((t: any) => !t.isPrinted)}
+                                            onClick={handleProceedToPreview}
+                                            className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-1.5 shadow-md h-9 px-4 order-1 sm:order-2"
+                                        >
+                                            <span>Proceed to Preview ({selectedTools.length} Tools)</span>
+                                            <ArrowRight className="size-4" />
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                {(!selectedProfileDetails || selectedTools.some((t: any) => !t.isPrinted)) && (
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                        {!selectedProfileDetails
+                                            ? "Please select a destination recipient profile first"
+                                            : "Disabled: All selected tools must be marked as Printed before creating a Delivery Challan"}
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </DialogFooter>
             </DialogContent>

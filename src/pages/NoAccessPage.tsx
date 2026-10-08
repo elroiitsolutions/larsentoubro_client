@@ -1,9 +1,14 @@
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { ShieldAlertIcon, LockIcon, ArrowLeftIcon } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { getDefaultAllowedPath } from "@/utils/navigation"
 
 export function NoAccessPage() {
     const navigate = useNavigate()
+    const { user } = useAuth()
+    const returnPath = getDefaultAllowedPath(user)
+    const isDashboard = returnPath === "/dashboard"
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6 text-center p-6 mx-auto max-w-lg">
@@ -21,11 +26,11 @@ export function NoAccessPage() {
             </div>
             <div className="flex items-center gap-3 pt-2">
                 <Button
-                    onClick={() => navigate("/dashboard")}
+                    onClick={() => navigate(returnPath === "/no-access" ? "/login" : returnPath)}
                     className="h-11 rounded-xl px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm gap-2 cursor-pointer"
                 >
                     <ArrowLeftIcon className="size-4" />
-                    Return to Dashboard
+                    {isDashboard ? "Return to Dashboard" : "Return to Home"}
                 </Button>
             </div>
         </div>

@@ -24,8 +24,6 @@ interface Props {
 
 export const SummaryCardsGrid: React.FC<Props> = ({
     data,
-    onCardClick,
-    activeStatus,
     hierarchyData,
     filters,
     onChangeFilter
@@ -184,23 +182,17 @@ export const SummaryCardsGrid: React.FC<Props> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {cards.map((card) => {
                     const Icon = card.icon;
-                    const isSelected = activeStatus === card.filterVal || (card.key === "moving" && (activeStatus === "Moving" || activeStatus === "In Transit"));
 
                     return (
                         <Card
                             key={card.key}
-                            onClick={() => onCardClick && onCardClick(card.filterVal)}
-                            className={`relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg p-4 flex flex-col justify-between rounded-2xl border ${
-                                isSelected
-                                    ? `ring-2 ring-primary ${card.borderColor} shadow-md`
-                                    : `${card.borderColor} bg-card/60 backdrop-blur-sm`
-                            } bg-gradient-to-br ${card.gradient}`}
+                            className={`relative overflow-hidden cursor-default transition-all duration-200 p-4 flex flex-col justify-between rounded-2xl border ${card.borderColor} bg-card/60 backdrop-blur-sm bg-gradient-to-br ${card.gradient} shadow-xs select-none`}
                         >
                             <div className="flex items-start justify-between">
                                 <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">
                                     {card.title}
                                 </span>
-                                <div className={`p-2 rounded-xl ${card.bgColor} ${card.textColor} transition-transform duration-300 group-hover:scale-110`}>
+                                <div className={`p-2 rounded-xl ${card.bgColor} ${card.textColor}`}>
                                     <Icon className="size-4" />
                                 </div>
                             </div>

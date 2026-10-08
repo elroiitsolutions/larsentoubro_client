@@ -19,7 +19,8 @@ import {
     AlertCircle,
     Download,
     MapPin,
-    Layers
+    Layers,
+    ArrowRightLeft
 } from "lucide-react";
 import challanService from "@/services/challan.service";
 import { generateDeliveryChallanPDF, formatDateDDMMYYYY, formatDCNumber } from "@/utils/pdf/challanPdfGenerator";
@@ -35,6 +36,7 @@ export function DeliveryChallanPreviewPage() {
     const initialTools = state?.selectedTools || [];
     const initialVendor = state?.vendor || { name: "Selected Subcontractor", vendorCode: "V-001" };
     const storeId = state?.storeId;
+    const isScrapDC = Boolean(state?.isScrapDC || initialVendor?.profileType === "ScrapDealer");
 
     // Header & Company Titles (Static Non-Editable)
     const companyName = "LARSEN & TOUBRO LIMITED, CONSTRUCTION";
@@ -51,7 +53,8 @@ export function DeliveryChallanPreviewPage() {
     const vendorCode = initialVendor.vendorCode || "-";
     const [subcontractorName, setSubcontractorName] = useState(initialVendor.name || "-");
     const [consigneeAddress, setConsigneeAddress] = useState(initialVendor.address || "-");
-    const [siteCode, setSiteCode] = useState(state?.siteCode || "-");
+    const [siteCode, setSiteCode] = useState(state?.siteCode && state?.siteCode !== "-" ? state.siteCode : "");
+    const [siteCodeError, setSiteCodeError] = useState("");
     const [indentNo, setIndentNo] = useState(state?.indentNo || "-");
     const [consigneeGstNo, setConsigneeGstNo] = useState(initialVendor.gstNumber || "-");
 
@@ -189,7 +192,8 @@ export function DeliveryChallanPreviewPage() {
 
         return {
             subcontractorName,
-            siteCode,
+            siteCode: isScrapDC ? "" : (siteCode?.trim() || ""),
+            isScrapDC,
             indentNo,
             vendorCode,
         vendorId: initialVendor._id,
@@ -220,6 +224,8 @@ export function DeliveryChallanPreviewPage() {
         receiptDate,
         docReferenceCode,
         remarks,
+        transferFromDcId: state?.transferFromDcId || null,
+        transferFromDcNumber: state?.transferFromDcNumber || "",
         items: challanItems
     };
 };
@@ -240,7 +246,14 @@ export function DeliveryChallanPreviewPage() {
 
     const handleConfirmCreate = async () => {
         try {
-            if (initialTools.some((t: any) => t.status === "Moving")) {
+            const cleanSiteCode = typeof siteCode === 'string' ? siteCode.trim() : '';
+            if (!isScrapDC && !cleanSiteCode) {
+                setSiteCodeError("Site Code No. is required");
+                toast.error("Site Code is mandatory! Please enter a valid Site Code No. before creating the Delivery Challan.");
+                return;
+            }
+
+            if (!state?.isTransfer && initialTools.some((t: any) => t.status === "Moving")) {
                 toast.error("Cannot create Delivery Challan: One or more tools are already Moving");
                 return;
             }
@@ -248,10 +261,13 @@ export function DeliveryChallanPreviewPage() {
                 toast.error("Cannot create Delivery Challan: One or more tools are marked as Missing");
                 return;
             }
+            if (initialTools.some((t: any) => !t.isPrinted)) {
+                return;
+            }
             setCreating(true);
             const payload = getChallanPayload(false);
             let res;
-            if (state?.isScrapDC || initialVendor?.profileType === "ScrapDealer") {
+            if (isScrapDC) {
                 const scrapDealerId = initialVendor?._id || initialVendor?.id || payload.vendorId || payload.vendor?._id;
                 res = await challanService.createScrapDeliveryChallan({
                     ...payload,
@@ -262,7 +278,10 @@ export function DeliveryChallanPreviewPage() {
             }
 
             if (res.success && res.data) {
-                toast.success(`Delivery Challan ${formatDCNumber(res.data.challanNumber)} created successfully! Automatically downloading PDF...`);
+                const successMsg = state?.isTransfer
+                    ? `Transfer Delivery Challan ${formatDCNumber(res.data.challanNumber)} created! Source DC ${state.transferFromDcNumber} marked as Transfer.`
+                    : `Delivery Challan ${formatDCNumber(res.data.challanNumber)} created successfully!`;
+                toast.success(`${successMsg} Automatically downloading PDF...`);
 
                 try {
                     const pdfPayload = getChallanPayload(true);
@@ -298,10 +317,12 @@ export function DeliveryChallanPreviewPage() {
                     <div className="min-w-0">
                         <h1 className="text-base sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
                             <FileText className="size-5 sm:size-6 text-primary shrink-0" />
-                            <span>Official Delivery Challan Document Canvas</span>
+                            <span>{state?.isTransfer ? "Site Transfer Delivery Challan Canvas" : "Official Delivery Challan Document Canvas"}</span>
                         </h1>
                         <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-2 sm:line-clamp-none">
-                            Subcontractor details, Location chainage, Material codes, Returnable stamp, and Receiver details editor.
+                            {state?.isTransfer
+                                ? `Transfer tools to a new site front. Enter destination site details below. Original DC ${state.transferFromDcNumber} will be marked as Transfer.`
+                                : "Subcontractor details, Location chainage, Material codes, Returnable stamp, and Receiver details editor."}
                         </p>
                     </div>
                 </div>
@@ -318,13 +339,18 @@ export function DeliveryChallanPreviewPage() {
                     </Button>
                     <Button
                         onClick={handleConfirmCreate}
-                        disabled={creating}
+                        disabled={creating || initialTools.some((t: any) => !t.isPrinted)}
                         className="rounded-xl h-9 sm:h-10 px-5 sm:px-6 font-bold shadow-md flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer w-full sm:w-auto text-xs sm:text-sm"
                     >
                         {creating ? (
                             <>
                                 <Loader2 className="size-4 animate-spin" />
-                                <span>Creating Challan...</span>
+                                <span>{state?.isTransfer ? "Transferring Tools..." : "Creating Challan..."}</span>
+                            </>
+                        ) : state?.isTransfer ? (
+                            <>
+                                <ArrowRightLeft className="size-4" />
+                                <span>Confirm & Transfer Tools</span>
                             </>
                         ) : (
                             <>
@@ -336,6 +362,32 @@ export function DeliveryChallanPreviewPage() {
                 </div>
             </div>
 
+            {/* Transfer Alert Banner */}
+            {state?.isTransfer && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-800 dark:text-blue-300 shadow-xs">
+                    <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0">
+                            <ArrowRightLeft className="size-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold flex items-center gap-2">
+                                <span>Site Tool Transfer</span>
+                                <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider">
+                                    Direct Transfer
+                                </span>
+                            </p>
+                            <p className="text-xs text-muted-foreground dark:text-blue-300/80 mt-0.5">
+                                Transferring {initialTools.length} tool(s) from <strong className="font-mono text-foreground dark:text-blue-200">{state.transferFromDcNumber}</strong> to another site. Update the destination Site Code / Location Front below.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="text-xs font-mono bg-background/80 dark:bg-card border border-blue-500/30 px-3 py-1.5 rounded-xl shrink-0 self-start sm:self-center">
+                        <span className="text-muted-foreground mr-1">Source DC:</span>
+                        <strong className="text-primary">{state.transferFromDcNumber}</strong>
+                    </div>
+                </div>
+            )}
+
             {/* Location & Receiver Details Input Card */}
             <Card className="border border-border/60 shadow-2xs rounded-2xl bg-card p-3.5 sm:p-4 space-y-3 sm:space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b pb-2.5 sm:pb-3">
@@ -345,11 +397,24 @@ export function DeliveryChallanPreviewPage() {
                     </div>
                     <span className="text-[11px] sm:text-xs text-muted-foreground">Manual Challan Slip Alignments</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
-                    <div>
-                        <label className="text-xs font-bold text-muted-foreground block mb-1">Site Code</label>
-                        <Input value={siteCode} onChange={e => setSiteCode(e.target.value)} className="h-8 text-xs font-semibold" />
-                    </div>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 ${isScrapDC ? "lg:grid-cols-2" : "lg:grid-cols-3"} gap-2.5 sm:gap-3`}>
+                    {!isScrapDC && (
+                        <div>
+                            <label className="text-xs font-bold text-muted-foreground block mb-1">
+                                Site Code No. <span className="text-rose-500 font-bold">* (Required)</span>
+                            </label>
+                            <Input 
+                                value={siteCode} 
+                                onChange={e => {
+                                    setSiteCode(e.target.value);
+                                    if (siteCodeError) setSiteCodeError("");
+                                }} 
+                                placeholder="e.g. sc-01, Site#101, SC/2026-A" 
+                                className={`h-8 text-xs font-semibold ${siteCodeError ? "border-rose-500 ring-2 ring-rose-400 bg-rose-50/50 dark:bg-rose-950/20" : ""}`} 
+                            />
+                            {siteCodeError && <p className="text-[11px] text-rose-500 font-medium mt-1">{siteCodeError}</p>}
+                        </div>
+                    )}
                     {/* <div>
                         <label className="text-xs font-bold text-muted-foreground block mb-1">Indent No.</label>
                         <Input value={indentNo} onChange={e => setIndentNo(e.target.value)} placeholder="e.g. IND-001" className="h-8 text-xs font-semibold font-mono" />
@@ -439,14 +504,25 @@ export function DeliveryChallanPreviewPage() {
                                 placeholder="Work Location Address"
                                 className="text-xs h-7 border-slate-400 bg-white"
                             />
-                            <div className="pt-1 flex items-center justify-between text-[11px] gap-2">
-                                <span className="font-bold shrink-0">SITE CODE NO.</span>
-                                <Input 
-                                    value={siteCode}
-                                    onChange={e => setSiteCode(e.target.value)}
-                                    className="h-6 font-mono font-bold text-xs text-right border-slate-400 bg-white w-28"
-                                />
-                            </div>
+                            {!isScrapDC && (
+                                <div className="pt-1 flex items-center justify-between text-[11px] gap-2">
+                                    <span className="font-bold shrink-0 text-black flex items-center gap-1">
+                                        SITE CODE NO. <span className="text-rose-600 font-extrabold">*</span>
+                                    </span>
+                                    <div className="flex flex-col items-end">
+                                        <Input 
+                                            value={siteCode}
+                                            onChange={e => {
+                                                setSiteCode(e.target.value);
+                                                if (siteCodeError) setSiteCodeError("");
+                                            }}
+                                            placeholder="Required *"
+                                            className={`h-6 font-mono font-bold text-xs text-right border-slate-400 bg-white w-28 sm:w-32 ${siteCodeError ? "border-rose-500 ring-2 ring-rose-400 bg-rose-50" : ""}`}
+                                        />
+                                        {siteCodeError && <span className="text-[9px] text-rose-600 font-bold mt-0.5">Required</span>}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

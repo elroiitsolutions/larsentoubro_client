@@ -27,6 +27,9 @@ import { ToolViewConfigPage } from "@/pages/settings/ToolViewConfigPage"
 import { TrashPage } from "@/pages/stores/TrashPage"
 import { ScrapPage } from "@/pages/stores/ScrapPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
+import { NoAccessPage } from "@/pages/NoAccessPage"
+import { QRScannerPage } from "@/pages/guest/QRScannerPage"
+import { getDefaultAllowedPath } from "@/utils/navigation"
 
 function ProtectedRoute() {
     const { user, loading } = useAuth()
@@ -46,6 +49,17 @@ function ProtectedRoute() {
     return <Outlet />
 }
 
+function GuestRouteGuard() {
+    const { user } = useAuth()
+    const location = useLocation()
+
+    if (user?.role === "Guest" && location.pathname !== "/qr-scanner") {
+        return <Navigate to="/qr-scanner" replace />
+    }
+
+    return <SidebarLayout />
+}
+
 function AdminRoute() {
     const { user, loading } = useAuth()
 
@@ -58,7 +72,7 @@ function AdminRoute() {
     }
 
     if (!user || user.role !== "Admin") {
-        return <Navigate to="/dashboard" replace />
+        return <Navigate to={getDefaultAllowedPath(user)} replace />
     }
 
     return <Outlet />
@@ -76,10 +90,7 @@ function PublicRoute() {
     }
 
     if (user) {
-        if (user.role === "Vendor") {
-            return <Navigate to="/stores" replace />
-        }
-        return <Navigate to="/dashboard" replace />
+        return <Navigate to={getDefaultAllowedPath(user)} replace />
     }
 
     return <Outlet />
@@ -87,10 +98,7 @@ function PublicRoute() {
 
 function IndexRedirect() {
     const { user } = useAuth()
-    if (user?.role === "Vendor") {
-        return <Navigate to="/stores" replace />
-    }
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={getDefaultAllowedPath(user)} replace />
 }
 
 function AppRoutes() {
@@ -106,10 +114,12 @@ function AppRoutes() {
                     <Route path="/login" element={<LoginPage />} />
                 </Route>
 
-                {/* Protected routes */}
+                {/* Protected routes - Requires JWT Authentication */}
                 <Route element={<ProtectedRoute />}>
-                    <Route element={<SidebarLayout />}>
+                    <Route element={<GuestRouteGuard />}>
                         <Route index element={<IndexRedirect />} />
+                        <Route path="/qr-scanner" element={<QRScannerPage />} />
+                        <Route path="/no-access" element={<NoAccessPage />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/projects" element={<ProjectsPage />} />
                         <Route path="/projects/:projectId/stores" element={<StoresPage />} />
@@ -127,17 +137,18 @@ function AppRoutes() {
                         <Route path="/reports" element={<ToolsReportPage />} />
                         <Route path="/reports/tools" element={<ToolsReportPage />} />
 
+                        <Route path="/profiles" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
+                        <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
+                        <Route path="/vendors" element={<ProfileManagementPage />} />
+
                         {/* Admin-only Protected Routes */}
                         <Route element={<AdminRoute />}>
                             <Route path="/tools/trash" element={<TrashPage />} />
                             <Route path="/trash" element={<TrashPage />} />
                             <Route path="/users" element={<UsersPage />} />
                             <Route path="/users/:id/access" element={<UserAccessPage />} />
-                            <Route path="/profiles" element={<ProfileManagementPage />} />
-                            <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
-                            <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
-                            <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
-                            <Route path="/vendors" element={<ProfileManagementPage />} />
                             <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
                             <Route path="/settings" element={<SettingsPage />} />
                             <Route path="/settings/forms" element={<SettingsFormManagementPage />} />

@@ -102,8 +102,8 @@ export function UserFormModal({
 
             if (!isEdit) {
                 payload.allowedPages = role === "Admin"
-                    ? ["/dashboard", "/projects", "/stores", "/tools", "/users", "/settings"]
-                    : ["/dashboard", "/projects", "/stores"]
+                    ? ["/qr-scanner", "/dashboard", "/projects", "/stores", "/tools", "/users", "/settings"]
+                    : ["/qr-scanner", "/dashboard", "/projects", "/stores"]
                 payload.projects = []
                 payload.stores = []
             }

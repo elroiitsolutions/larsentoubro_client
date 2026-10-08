@@ -28,6 +28,14 @@ export const authService = {
         const response = await api.post<LoginResponse>("/api/users/login", data);
         return response.data;
     },
+
+    /**
+     * Authenticates as Guest User with restricted access to QR Scanner only.
+     */
+    guestLogin: async (): Promise<LoginResponse> => {
+        const response = await api.post<LoginResponse>("/api/users/guest-login");
+        return response.data;
+    },
 };
 
 export default authService;

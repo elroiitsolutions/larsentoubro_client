@@ -34,6 +34,25 @@ export function LoginForm({
   const [eye, setEye] = React.useState(false)
   const [pendingReq, setPendingReq] = React.useState<{ requestId: string; email: string } | null>(null)
 
+  const handleGuestLogin = async () => {
+    setError(null)
+    setLoading(true)
+
+    try {
+      const data = await authService.guestLogin()
+      if (!data.success) {
+        throw new Error(data.message || "Failed to log in as Guest")
+      }
+      toast.success("Logged in as Guest User!")
+      login(data.token, data.user)
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err.message || "Failed to log in as Guest"
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -92,7 +111,7 @@ export function LoginForm({
         <CardHeader>
           <CardTitle>Login to your account</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Enter your email below to login or continue as a Guest
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -153,9 +172,22 @@ export function LoginForm({
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? "Logging in..." : "Login"}
                 </Button>
-                <Button variant="outline" type="button" disabled className="w-full mt-2">
-                  Login with Google
+                
+                <div className="relative my-2 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                  <span className="relative bg-card px-2 text-[10px] uppercase font-bold text-muted-foreground">Or access as Guest</span>
+                </div>
+
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleGuestLogin} 
+                  disabled={loading} 
+                  className="w-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 hover:text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold border-emerald-500/30 cursor-pointer"
+                >
+                  Continue as Guest User
                 </Button>
+
                 <FieldDescription className="text-center mt-4 text-xs">
                   Don&apos;t have an account? Contact your administrator.
                 </FieldDescription>

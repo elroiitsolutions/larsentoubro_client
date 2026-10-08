@@ -3,6 +3,7 @@ import { getCookie, setCookie, eraseCookie } from "@/lib/cookie"
 import userService from "@/services/user.service"
 
 export interface User {
+    name?: string
     username: string
     role: string
     user_id: string
@@ -38,15 +39,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await userService.getCurrentUser()
             if (res.success && res.data) {
                 const u = res.data
+                const isGuestRole = u.role === 'Guest'
                 const isVendorRole = u.role === 'Vendor' || Boolean(u.isVendor)
+                const pages = Array.isArray(u.allowedPages)
+                    ? u.allowedPages
+                    : (isGuestRole ? ["/qr-scanner"] : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]))
+
+                localStorage.setItem("allowedPages", JSON.stringify(pages))
+
                 setUser({
+                    name: u.name,
                     username: u.name,
                     role: u.role || 'User',
                     user_id: u.user_id || u.vendorCode || u._id,
                     email: u.email,
                     id: u._id,
                     isVendor: isVendorRole,
-                    allowedPages: u.allowedPages || (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]),
+                    allowedPages: pages,
                     projects: u.projects || [],
                     stores: u.stores || []
                 })
@@ -65,15 +74,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const id = getCookie("id")
 
         if (storedToken && username && role && email && id) {
+            const isGuestRole = role === 'Guest'
             const isVendorRole = role === 'Vendor'
+            const savedAllowedPages = localStorage.getItem("allowedPages")
+            let initialAllowed: string[]
+            try {
+                initialAllowed = savedAllowedPages
+                    ? JSON.parse(savedAllowedPages)
+                    : (isGuestRole ? ["/qr-scanner"] : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]))
+            } catch {
+                initialAllowed = isGuestRole ? ["/qr-scanner"] : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"])
+            }
+
             setUser({
+                name: username,
                 username,
                 role,
                 user_id: userId || id,
                 email,
                 id,
                 isVendor: isVendorRole,
-                allowedPages: isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"],
+                allowedPages: initialAllowed,
                 projects: [],
                 stores: []
             })
@@ -88,11 +109,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         jwtToken: string,
         userData: any
     ) => {
+        const isGuestRole = userData.role === 'Guest'
         const isVendorRole = userData.role === 'Vendor' || Boolean(userData.isVendor)
         const userIdVal = userData.user_id || userData.vendorCode || userData._id || userData.id
+        const userAllowedPages = Array.isArray(userData.allowedPages)
+            ? userData.allowedPages
+            : (isGuestRole ? ["/qr-scanner"] : (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]))
 
         setCookie("token", jwtToken, 7)
         localStorage.setItem("token", jwtToken)
+        localStorage.setItem("allowedPages", JSON.stringify(userAllowedPages))
         setCookie("username", userData.name || userData.username, 7)
         setCookie("role", userData.role || 'User', 7)
         setCookie("user_id", userIdVal, 7)
@@ -100,13 +126,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setCookie("id", userData._id || userData.id, 7)
 
         setUser({
+            name: userData.name || userData.username,
             username: userData.name || userData.username,
             role: userData.role || 'User',
             user_id: userIdVal,
             email: userData.email,
             id: userData._id || userData.id,
             isVendor: isVendorRole,
-            allowedPages: userData.allowedPages || (isVendorRole ? ["/projects", "/stores", "/tools"] : ["/dashboard", "/projects", "/stores"]),
+            allowedPages: userAllowedPages,
             projects: userData.projects || [],
             stores: userData.stores || []
         })
@@ -116,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = () => {
         eraseCookie("token")
         localStorage.removeItem("token")
+        localStorage.removeItem("allowedPages")
         eraseCookie("username")
         eraseCookie("role")
         eraseCookie("user_id")

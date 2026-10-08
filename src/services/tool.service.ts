@@ -168,6 +168,15 @@ export const toolService = {
     },
 
     /**
+     * Unmarks selected tools as Printed (resets to Not Printed).
+     */
+    unmarkToolsAsPrinted: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const url = `/api/tools/unmark-printed`;
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
      * Retrieves scrapped printed tools from Scrap section.
      */
     getScrappedTools: async (queryParams?: Record<string, string>): Promise<ToolListResponse> => {
@@ -294,6 +303,15 @@ export const toolService = {
     },
 
     /**
+     * Fetches created tools for an import job, including base64 QR Code data URLs.
+     */
+    getImportedJobTools: async (storeId: string, jobId: string): Promise<{ success: boolean; data: any[] }> => {
+        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/imported-tools`;
+        const response = await api.get<{ success: boolean; data: any[] }>(url);
+        return response.data;
+    },
+
+    /**
      * Creates an EventSource for SSE progress streaming of an import job.
      * Returns the EventSource instance; caller must manage cleanup.
      */
@@ -340,6 +358,30 @@ export const toolService = {
     }): Promise<{ success: boolean; message?: string; data?: any }> => {
         const url = `/api/stores/${payload.sourceStoreId}/tools/transfer`;
         const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, payload);
+        return response.data;
+    },
+
+    /**
+     * Looks up tool validity and sanitized details using QR code or Tool ID.
+     */
+    lookupToolValidity: async (code: string): Promise<{
+        success: boolean;
+        data?: {
+            toolId: string;
+            description: string;
+            project: string;
+            store: string;
+            expiryDate: string;
+            validityStatus: 'VALID' | 'EXPIRED' | 'INVALID_EXPIRY';
+            validityLabel: string;
+            isValid: boolean;
+            status: string;
+        };
+        status?: string;
+        message?: string;
+    }> => {
+        const url = `/api/tools/lookup-validity?code=${encodeURIComponent(code)}`;
+        const response = await api.get(url);
         return response.data;
     },
 };

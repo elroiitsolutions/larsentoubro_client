@@ -26,9 +26,12 @@ import {
   ArchiveIcon,
   Building2,
   FileText,
+  QrCode,
 } from "lucide-react"
 
 import logoUrl from "@/assets/logo.png"
+
+import { getDefaultAllowedPath } from "@/utils/navigation"
 
 const data = {
   user: {
@@ -37,6 +40,13 @@ const data = {
     avatar: "",
   },
   navMain: [
+    {
+      title: "Scanner",
+      url: "/qr-scanner",
+      icon: <QrCode />,
+      isActive: false,
+      items: [],
+    },
     {
       title: "Dashboard",
       url: "/dashboard",
@@ -106,20 +116,41 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { setOpen } = useSidebar()
 
   const filteredNavMain = React.useMemo(() => {
+    if (user?.role === "Guest") {
+      return [
+        {
+          title: "Scanner",
+          url: "/qr-scanner",
+          icon: <QrCode />,
+          isActive: true,
+          items: [],
+        }
+      ]
+    }
     if (user?.role === "Admin") {
       return data.navMain
     }
     if (user?.role === "Vendor") {
-      return data.navMain.filter((item) => item.url === "/stores")
+      return data.navMain.filter((item) => item.url === "/stores" || item.url === "/qr-scanner")
     }
     const adminOnlyUrls = [
-      "/profiles",
       "/tools/trash",
       "/users",
       "/admin/approvals",
       "/settings"
     ];
-    return data.navMain.filter((item) => !adminOnlyUrls.includes(item.url))
+    const allowed = user?.allowedPages || [];
+    return data.navMain.filter((item) => {
+      if (adminOnlyUrls.includes(item.url)) return false;
+      if (item.url === "/qr-scanner") return true;
+      if (item.url === "/dashboard") return allowed.includes("/dashboard");
+      if (item.url === "/projects") return allowed.includes("/projects");
+      if (item.url === "/stores") return allowed.includes("/stores");
+      if (item.url === "/profiles") return allowed.includes("/profiles");
+      if (item.url === "/challans/history") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/challans");
+      if (item.url === "/tools/scrap") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/scrap");
+      return true;
+    });
   }, [user])
 
   const currentUserData = React.useMemo(() => {
@@ -130,6 +161,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       avatar: "",
     }
   }, [user])
+
+  const homePath = React.useMemo(() => getDefaultAllowedPath(user), [user]);
 
   return (
     <Sidebar
@@ -142,7 +175,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<NavLink to="/dashboard" />}>
+            <SidebarMenuButton size="lg" render={<NavLink to={homePath} />}>
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white p-1">
                 <img src={logoUrl} alt="L&T Logo" className="w-full h-full object-contain" />
               </div>

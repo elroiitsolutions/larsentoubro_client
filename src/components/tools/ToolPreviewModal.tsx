@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import QRCode from "qrcode";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +25,22 @@ export function ToolPreviewModal({
     const [tool, setTool] = useState<any>(initialData || null);
     const [loading, setLoading] = useState<boolean>(!initialData);
     const [error, setError] = useState<boolean>(false);
+    const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+
+    useEffect(() => {
+        if (tool || toolId) {
+            const idToUse = tool?.toolId || tool?.toolCode || toolId || '';
+            const link = tool?.qrLink || `https://lntqr.com/vt/${idToUse}`;
+            QRCode.toDataURL(link, { 
+                margin: 1, 
+                width: 180, 
+                errorCorrectionLevel: 'H',
+                color: { light: '#00000000' }
+            })
+                .then(url => setQrCodeDataUrl(url))
+                .catch(err => console.error("QR Code rendering error:", err));
+        }
+    }, [tool, toolId]);
 
     useEffect(() => {
         if (!isOpen || !toolId) {
@@ -182,13 +199,11 @@ export function ToolPreviewModal({
                                 </div>
 
                                 {/* QR Code Graphic Box */}
-                                <div className="shrink-0 size-16 rounded-xl border border-border/80 bg-background p-1.5 shadow-sm flex items-center justify-center flex-col text-center">
-                                    {tool?.qrLink ? (
-                                        <QrCode className="size-full text-foreground/90" />
+                                <div className="shrink-0 size-16 rounded-xl border border-border/60 bg-transparent p-0 flex items-center justify-center">
+                                    {qrCodeDataUrl ? (
+                                        <img src={qrCodeDataUrl} alt={toolCode} className="size-full object-contain" />
                                     ) : (
-                                        <div className="size-full bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
-                                            <QrCode className="size-10 text-slate-700 dark:text-slate-200" />
-                                        </div>
+                                        <QrCode className="size-8 text-muted-foreground" />
                                     )}
                                 </div>
                             </div>

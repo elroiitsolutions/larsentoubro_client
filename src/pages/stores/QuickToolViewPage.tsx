@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import QRCode from "qrcode";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
 import { StoreToolsPage } from "./StoreToolsPage";
@@ -7,7 +8,11 @@ import { toast } from "sonner";
 import {
     Loader2,
     X,
-    Tag
+    Tag,
+    CheckCircle2,
+    XCircle,
+    AlertTriangle,
+    QrCode
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +27,7 @@ export function QuickToolViewPage() {
     const [tool, setTool] = useState<any>(initialTool || null);
     const [loading, setLoading] = useState(!initialTool);
     const [viewSchema, setViewSchema] = useState<any>(null);
+    const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
     const fromStoreId = (location.state as any)?.fromStoreId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
 
@@ -62,6 +68,21 @@ export function QuickToolViewPage() {
             fetchQuickToolData();
         }
     }, [toolId]);
+
+    useEffect(() => {
+        if (tool) {
+            const targetId = tool.toolId || tool.toolCode || toolId || '';
+            const link = tool.qrLink || `https://lntqr.com/vt/${targetId}`;
+            QRCode.toDataURL(link, { 
+                margin: 1, 
+                width: 200, 
+                errorCorrectionLevel: 'H',
+                color: { light: '#00000000' } // Transparent background
+            })
+                .then(url => setQrCodeDataUrl(url))
+                .catch(err => console.error("QR Code generation error:", err));
+        }
+    }, [tool, toolId]);
 
     // Helper to check if field is visible per Admin settings
     const isFieldVisible = (fieldName: string) => {
@@ -129,29 +150,57 @@ export function QuickToolViewPage() {
     const isAvailable = tool?.status === 'Available' || tool?.status === 'Usable';
     const isMoving = tool?.status === 'Moving' || tool?.status === 'In Use';
 
-    // Helper to calculate expiration date dynamically
-    const getValidUntilDate = (supplyDateStr: string, validityStr: string) => {
-        if (!supplyDateStr || supplyDateStr === '-' || !validityStr || validityStr === '-') return '-';
-        
-        let date = new Date(supplyDateStr);
-        if (isNaN(date.getTime()) && supplyDateStr.includes('/')) {
-            const parts = supplyDateStr.split('/');
+    const parseDateHelper = (dateStr: any): Date | null => {
+        if (!dateStr || dateStr === '-' || dateStr === 'N/A') return null;
+
+        let str = String(dateStr).trim();
+
+        // Handle raw Excel serial numbers like "46165"
+        if (!isNaN(Number(str)) && Number(str) > 30000 && Number(str) < 100000 && !str.includes('/') && !str.includes('-')) {
+            const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+            const dateObj = new Date(excelEpoch.getTime() + Number(str) * 86400000);
+            if (!isNaN(dateObj.getTime())) return dateObj;
+        }
+
+        // Standard ISO format (YYYY-MM-DD)
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+            const parsed = new Date(str);
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+
+        if (str.includes('/')) {
+            const parts = str.split('/');
             if (parts.length === 3) {
-                date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                if (isNaN(date.getTime())) {
-                    date = new Date(`${parts[2]}-${parts[0]}-${parts[1]}`);
+                const p0 = parseInt(parts[0], 10);
+                const p1 = parseInt(parts[1], 10);
+                const p2 = parseInt(parts[2], 10);
+
+                if (!isNaN(p0) && !isNaN(p1) && !isNaN(p2)) {
+                    if (p2 >= 1970 && p2 <= 2100) {
+                        if (p1 > 12) {
+                            // MM/DD/YYYY (p1 is day, p0 is month)
+                            const d = new Date(p2, p0 - 1, p1);
+                            if (!isNaN(d.getTime())) return d;
+                        }
+                        if (p0 > 12) {
+                            // DD/MM/YYYY (p0 is day, p1 is month)
+                            const d = new Date(p2, p1 - 1, p0);
+                            if (!isNaN(d.getTime())) return d;
+                        }
+                        // Default MM/DD/YYYY
+                        const d = new Date(p2, p0 - 1, p1);
+                        if (!isNaN(d.getTime())) return d;
+                    }
                 }
             }
         }
-        
-        if (isNaN(date.getTime())) return '-';
-        
-        const yearsMatch = validityStr.match(/(\d+)/);
-        if (!yearsMatch) return '-';
-        
-        const years = parseInt(yearsMatch[1], 10);
-        date.setFullYear(date.getFullYear() + years);
-        return date.toLocaleDateString();
+
+        const fallback = new Date(str);
+        if (!isNaN(fallback.getTime())) {
+            return fallback;
+        }
+
+        return null;
     };
 
     // Helper to format spec values cleanly
@@ -180,12 +229,44 @@ export function QuickToolViewPage() {
     const purchaserContactVal = getFieldValue('purchaserContact') || '-';
     
     const dateOfSupplyVal = getFieldValue('dateOfSupply') || '-';
-    const rawValidity = getFieldValue('validityPeriod');
-    const resolvedValidity = (rawValidity && rawValidity !== 'N/A')
-        ? rawValidity
-        : (tool?.customFields?.validation || tool?.customFields?.validityPeriod || rawValidity);
-    const validityPeriodVal = resolvedValidity ? (String(resolvedValidity).toLowerCase().includes('year') ? resolvedValidity : `${resolvedValidity} Years`) : '-';
-    const validUntilVal = getValidUntilDate(dateOfSupplyVal, validityPeriodVal);
+
+    // 1. Resolve raw validity period & purchaser fallback
+    const rawValidity = getFieldValue('validityPeriod', ['validation', 'validity', 'validity_period']) || tool?.validation || tool?.validityPeriod;
+    const purchaserStr = String(purchaserNameVal || tool?.purchaserName || '').trim();
+    const isThirdParty = purchaserStr.toLowerCase().includes('third party inspection');
+
+    let resolvedYears = 3;
+    let validityPeriodVal = '3 Years';
+
+    if (rawValidity && rawValidity !== 'N/A' && rawValidity !== '-' && String(rawValidity).trim() !== '') {
+        const yearsMatch = String(rawValidity).match(/(\d+)/);
+        if (yearsMatch) {
+            resolvedYears = parseInt(yearsMatch[1], 10);
+            validityPeriodVal = String(rawValidity).toLowerCase().includes('year') ? String(rawValidity) : `${rawValidity} Years`;
+        } else if (isThirdParty) {
+            resolvedYears = 1;
+            validityPeriodVal = '1 Year';
+        }
+    } else {
+        if (isThirdParty) {
+            resolvedYears = 1;
+            validityPeriodVal = '1 Year';
+        } else {
+            resolvedYears = 3;
+            validityPeriodVal = '3 Years';
+        }
+    }
+
+    // 2. Resolve start date & valid until date
+    const startDateObj = parseDateHelper(tool?.validationStartDate || tool?.customFields?.validationStartDate || dateOfSupplyVal || tool?.createdAt);
+
+    let validUntilDate: Date | null = parseDateHelper(tool?.nextInspectionDueDate || tool?.customFields?.nextInspectionDueDate);
+    if (!validUntilDate && startDateObj) {
+        validUntilDate = new Date(startDateObj);
+        validUntilDate.setFullYear(validUntilDate.getFullYear() + resolvedYears);
+    }
+
+    const validUntilVal = validUntilDate ? validUntilDate.toLocaleDateString() : '-';
 
     const jobCodeVal = getFieldValue('jobCode') || '-';
     const jobDescriptionVal = getFieldValue('jobDescription', ['job_description']) || '-';
@@ -197,6 +278,42 @@ export function QuickToolViewPage() {
     const lastInspectionDateVal = tool?.lastInspectionDate
         ? new Date(tool.lastInspectionDate).toLocaleDateString()
         : '-';
+
+    const validityStatusInfo = (() => {
+        if (!validUntilDate || isNaN(validUntilDate.getTime())) {
+            return {
+                status: 'INVALID_EXPIRY',
+                label: 'NO EXPIRY DATE',
+                badgeText: 'Unspecified',
+                color: 'amber',
+                desc: 'Expiry date is missing or not configured for this tool.'
+            };
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const checkDate = new Date(validUntilDate);
+        checkDate.setHours(0, 0, 0, 0);
+
+        if (checkDate >= today) {
+            return {
+                status: 'VALID',
+                label: 'VALID',
+                badgeText: 'Tool Approved',
+                color: 'emerald',
+                desc: 'Tool is within valid operational inspection period.'
+            };
+        }
+
+        return {
+            status: 'EXPIRED',
+            label: 'EXPIRED',
+            badgeText: 'Action Required',
+            color: 'rose',
+            desc: 'Tool expiry date has passed. Re-inspection required.'
+        };
+    })();
 
     const modalContent = (
         <div 
@@ -231,38 +348,89 @@ export function QuickToolViewPage() {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {/* Header: Title & Badges */}
-                        <div className="space-y-1.5 pr-6">
-                            {isFieldVisible('description') && (
-                                <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground leading-snug break-words">
-                                    {tool.description}
-                                </h2>
-                            )}
-
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                {/* Tool Code Badge */}
-                                {isFieldVisible('toolCode') && toolIdVal !== '-' && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 text-primary border border-primary/20 font-mono text-[11px] font-bold">
-                                        <Tag className="size-3" />
-                                        <span>{toolIdVal}</span>
-                                    </span>
+                        {/* Header: Title, Badges & Top-Right QR Code */}
+                        <div className="flex items-start justify-between gap-3 pr-7">
+                            <div className="space-y-1.5 min-w-0 flex-1">
+                                {isFieldVisible('description') && (
+                                    <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground leading-snug break-words">
+                                        {tool.description}
+                                    </h2>
                                 )}
 
-                                {/* Status Pill Badge */}
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold border ${
-                                    isAvailable 
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' 
-                                        : isMoving 
-                                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
-                                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
-                                }`}>
-                                    <span className={`size-1.5 rounded-full ${
-                                        isAvailable ? 'bg-emerald-500 animate-pulse' : isMoving ? 'bg-amber-500' : 'bg-rose-500'
-                                    }`} />
-                                    <span>{tool.status || 'Usable'}</span>
-                                </span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    {/* Tool Code Badge */}
+                                    {isFieldVisible('toolCode') && toolIdVal !== '-' && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 text-primary border border-primary/20 font-mono text-[11px] font-bold">
+                                            <Tag className="size-3" />
+                                            <span>{toolIdVal}</span>
+                                        </span>
+                                    )}
+
+                                    {/* Status Pill Badge */}
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold border ${
+                                        isAvailable 
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' 
+                                            : isMoving 
+                                            ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+                                            : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
+                                    }`}>
+                                        <span className={`size-1.5 rounded-full ${
+                                            isAvailable ? 'bg-emerald-500 animate-pulse' : isMoving ? 'bg-amber-500' : 'bg-rose-500'
+                                        }`} />
+                                        <span>{tool.status || 'Usable'}</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Top-Right QR Code Graphic Box */}
+                            <div className="shrink-0">
+                                <div className="size-16 rounded-xl border border-border/60 bg-transparent p-0 flex items-center justify-center">
+                                    {qrCodeDataUrl ? (
+                                        <img src={qrCodeDataUrl} alt={toolIdVal} className="size-full object-contain" />
+                                    ) : (
+                                        <QrCode className="size-7 text-muted-foreground" />
+                                    )}
+                                </div>
                             </div>
                         </div>
+
+                        {/* Validity Status Banner */}
+                        {validityStatusInfo && (
+                            <div className={`rounded-2xl p-2.5 flex items-center gap-2.5 border text-xs ${
+                                validityStatusInfo.status === 'VALID'
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                                    : validityStatusInfo.status === 'EXPIRED'
+                                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
+                                    : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                            }`}>
+                                <div className={`size-7 rounded-full flex items-center justify-center shrink-0 ${
+                                    validityStatusInfo.status === 'VALID'
+                                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                        : validityStatusInfo.status === 'EXPIRED'
+                                        ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400'
+                                        : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                                }`}>
+                                    {validityStatusInfo.status === 'VALID' ? (
+                                        <CheckCircle2 className="size-4" />
+                                    ) : validityStatusInfo.status === 'EXPIRED' ? (
+                                        <XCircle className="size-4" />
+                                    ) : (
+                                        <AlertTriangle className="size-4" />
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-extrabold tracking-wide uppercase text-[11px]">{validityStatusInfo.label}</span>
+                                        <span className="px-1.5 py-0.2 rounded-md text-[9px] font-bold bg-background/60 border border-border/50">
+                                            {validityStatusInfo.badgeText}
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] font-medium opacity-90 truncate">
+                                        {validityStatusInfo.desc}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Specs Section: Compact 3-Column Grid */}
                         {(isFieldVisible('makeYear') || isFieldVisible('capacity') || isFieldVisible('safeWorkingLoad') || isFieldVisible('toolVariant') || isFieldVisible('toolType') || isFieldVisible('metalType')) && (

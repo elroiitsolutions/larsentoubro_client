@@ -81,12 +81,12 @@ export const getChallanStatusBadgeClass = (status: string): string => {
     switch (status) {
         case 'Active':
             return 'bg-blue-500/15 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 ring-1 ring-blue-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
+        case 'Transfer':
+            return 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 ring-1 ring-amber-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
         case 'Completed':
-            return 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
-        case 'Cancelled':
-            return 'bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400 ring-1 ring-rose-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
+        case 'Returned':
         default:
-            return 'bg-slate-500/15 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400 ring-1 ring-slate-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
+            return 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
     }
 };
 
