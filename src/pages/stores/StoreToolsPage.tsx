@@ -44,6 +44,7 @@ import { ToolFormModal } from "./ToolFormModal"
 import { VendorSelectionModal } from "./VendorSelectionModal"
 import { BulkEditToolsModal } from "./BulkEditToolsModal"
 import { ToolTransferModal } from "./ToolTransferModal"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { ScrapModal } from "./ScrapModal"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
@@ -247,6 +248,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     // "Unprint" is only clickable if ALL selected tools are PRINTED (0 are unprinted)
     const canUnprint = totalSelected > 0 && unprintedCount === 0 && printedCount === totalSelected;
 
+    // Subcontractor DC, Transfer, and Scrap flows require ALL selected tools to be marked as Printed
+    const areAllSelectedPrinted = totalSelected > 0 && unprintedCount === 0 && printedCount === totalSelected;
+
     const handleMarkPrinted = async () => {
         if (selectedToolIds.size === 0 || !canMarkAsPrinted) return;
         setMarkingPrinted(true);
@@ -447,15 +451,20 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     }, [storeId]);
 
     const getOptionsForField = useCallback((field: string, defaultOptions?: string[]): string[] => {
+        if (field === 'validityPeriod' || field === 'validation' || field === 'validity') {
+            return ["1 Year", "3 Years"];
+        }
+        if (field === 'status') {
+            return ["Available", "In Use", "Moving", "Missing", "Maintenance", "Damaged", "Expired"];
+        }
+        if (field === 'printStatus') {
+            return ["Printed", "Not Printed"];
+        }
         const backendOpts = filterOptions[field] || [];
         const stateOpts = Array.from(
             new Set(
                 tools
                     .map((t: any) => {
-                        if (field === 'validityPeriod') {
-                            const raw = t.validityPeriod || t.validation;
-                            return (raw && raw !== 'N/A') ? raw : (t.customFields?.validation || t.customFields?.validityPeriod || raw);
-                        }
                         return t[field] ?? t.customFields?.[field];
                     })
                     .filter((v: any) => v !== null && v !== undefined && String(v).trim() !== "")
@@ -468,21 +477,42 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         return combined;
     }, [filterOptions, tools]);
 
-    const renderFilterSelect = (label: string, field: string, placeholder: string) => {
+    const renderFilterInput = (label: string, field: string, placeholder?: string) => {
+        const value = draftAdvancedFilters[field] ? draftAdvancedFilters[field] : "";
         const options = getOptionsForField(field);
-        const currentValue = draftAdvancedFilters[field] ? draftAdvancedFilters[field] : "All";
+        const datalistId = `datalist-filter-${field}`;
+
         return (
             <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-                <SearchableSelect
-                    value={currentValue}
-                    onValueChange={(val) => handleDraftAdvancedFilterChange(field, val === "All" ? "" : val)}
-                    options={options}
-                    placeholder={placeholder}
-                    searchPlaceholder={`Search ${label.toLowerCase()}...`}
-                    allLabel="All"
-                    allValue="All"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-muted-foreground block">{label}</label>
+                    {value.trim() !== "" && (
+                        <button
+                            type="button"
+                            onClick={() => handleDraftAdvancedFilterChange(field, "")}
+                            className="text-[10px] text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+                <div className="relative">
+                    <Input
+                        type="text"
+                        value={value}
+                        onChange={(e) => handleDraftAdvancedFilterChange(field, e.target.value)}
+                        placeholder={placeholder || `Search or enter ${label.toLowerCase()}...`}
+                        list={datalistId}
+                        className="h-9 text-xs rounded-xl bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all"
+                    />
+                    {options.length > 0 && (
+                        <datalist id={datalistId}>
+                            {options.map((opt: string) => (
+                                <option key={opt} value={opt} />
+                            ))}
+                        </datalist>
+                    )}
+                </div>
             </div>
         );
     };
@@ -919,7 +949,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                 Advanced Dataset Filters
                                             </SheetTitle>
                                             <SheetDescription className="text-sm text-muted-foreground">
-                                                Filter tool records across all fields in the dataset using dropdown selections.
+                                                Filter tool records across all dataset fields using searchable text inputs and auto-matched database values.
                                             </SheetDescription>
                                         </SheetHeader>
 
@@ -927,43 +957,93 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         <div className="space-y-3">
                                             <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">General</h4>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {renderFilterSelect("Tool ID", "toolId", "All Tool IDs")}
-                                                {renderFilterSelect("Validation", "validityPeriod", "All Validations")}
+                                                {renderFilterInput("Tool ID", "toolId", "e.g. SSSSCP0050825UE0081")}
+                                                {renderFilterInput("Validation", "validityPeriod", "e.g. 1 Year, 3 Years...")}
                                                 <div>
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category / Tool Type</label>
-                                                    <SearchableSelect
-                                                        value={draftCategory}
-                                                        onValueChange={(val) => setDraftCategory(val)}
-                                                        options={getOptionsForField('toolType')}
-                                                        placeholder="All Types"
-                                                        searchPlaceholder="Search tool type..."
-                                                        allLabel="All Types"
-                                                        allValue="All"
-                                                    />
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <label className="text-xs font-medium text-muted-foreground block">Category / Tool Type</label>
+                                                        {draftCategory !== "All" && draftCategory.trim() !== "" && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDraftCategory("All")}
+                                                                className="text-[10px] text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer"
+                                                            >
+                                                                Clear
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="relative">
+                                                        <Input
+                                                            type="text"
+                                                            value={draftCategory === "All" ? "" : draftCategory}
+                                                            onChange={(e) => setDraftCategory(e.target.value)}
+                                                            placeholder="Search or enter category/type..."
+                                                            list="datalist-category"
+                                                            className="h-9 text-xs rounded-xl bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all"
+                                                        />
+                                                        <datalist id="datalist-category">
+                                                            {getOptionsForField('toolType').map((opt: string) => (
+                                                                <option key={opt} value={opt} />
+                                                            ))}
+                                                        </datalist>
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Status</label>
-                                                    <SearchableSelect
-                                                        value={draftStatus}
-                                                        onValueChange={(val) => setDraftStatus(val)}
-                                                        options={getOptionsForField('status')}
-                                                        placeholder="All Statuses"
-                                                        searchPlaceholder="Search status..."
-                                                        allLabel="All Statuses"
-                                                        allValue="All"
-                                                    />
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <label className="text-xs font-medium text-muted-foreground block">Status</label>
+                                                        {draftStatus !== "All" && draftStatus.trim() !== "" && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDraftStatus("All")}
+                                                                className="text-[10px] text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer"
+                                                            >
+                                                                Clear
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="relative">
+                                                        <Input
+                                                            type="text"
+                                                            value={draftStatus === "All" ? "" : draftStatus}
+                                                            onChange={(e) => setDraftStatus(e.target.value)}
+                                                            placeholder="Search or enter status..."
+                                                            list="datalist-status"
+                                                            className="h-9 text-xs rounded-xl bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all"
+                                                        />
+                                                        <datalist id="datalist-status">
+                                                            {getOptionsForField('status').map((opt: string) => (
+                                                                <option key={opt} value={opt} />
+                                                            ))}
+                                                        </datalist>
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Print Status</label>
-                                                    <SearchableSelect
-                                                        value={draftPrintStatus}
-                                                        onValueChange={(val) => setDraftPrintStatus(val)}
-                                                        options={["Printed", "Not Printed"]}
-                                                        placeholder="All Print Statuses"
-                                                        searchPlaceholder="Search print status..."
-                                                        allLabel="All Print Statuses"
-                                                        allValue="All"
-                                                    />
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <label className="text-xs font-medium text-muted-foreground block">Print Status</label>
+                                                        {draftPrintStatus !== "All" && draftPrintStatus.trim() !== "" && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDraftPrintStatus("All")}
+                                                                className="text-[10px] text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer"
+                                                            >
+                                                                Clear
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="relative">
+                                                        <Input
+                                                            type="text"
+                                                            value={draftPrintStatus === "All" ? "" : draftPrintStatus}
+                                                            onChange={(e) => setDraftPrintStatus(e.target.value)}
+                                                            placeholder="Search or enter print status..."
+                                                            list="datalist-print-status"
+                                                            className="h-9 text-xs rounded-xl bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all"
+                                                        />
+                                                        <datalist id="datalist-print-status">
+                                                            <option value="Printed" />
+                                                            <option value="Not Printed" />
+                                                        </datalist>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -974,11 +1054,16 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                 <h4 className="text-xs font-bold uppercase tracking-wider text-primary/80">Tool Details</h4>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                     {formSchema.fields
-                                                        .filter((f: any) => !f.disabled && f.type !== 'file' && f.type !== 'checkbox')
+                                                        .filter((f: any) => 
+                                                            !f.disabled && 
+                                                            f.type !== 'file' && 
+                                                            f.type !== 'checkbox' &&
+                                                            !['toolId', 'toolCode', 'validityPeriod', 'validation', 'validity', 'toolType', 'category', 'status', 'printStatus', 'isPrinted'].includes(f.name)
+                                                        )
                                                         .sort((a: any, b: any) => a.order - b.order)
                                                         .map((field: any) => (
                                                             <div key={field.id}>
-                                                                {renderFilterSelect(field.label, field.name, `All ${field.label}`)}
+                                                                {renderFilterInput(field.label, field.name, `Filter by ${field.label.toLowerCase()}...`)}
                                                             </div>
                                                         ))}
                                                 </div>
@@ -1348,100 +1433,211 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
                             {/* Primary Action: Delivery Challan / Sub Contractor */}
                             {Object.values(selectedToolsMap).some(t => t.status === "Moving") ? (
-                                <Button
-                                    size="sm"
-                                    disabled
-                                    className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-                                >
-                                    <Truck className="size-4 opacity-50" />
-                                    <span>Already Moving</span>
-                                </Button>
+                                <TooltipProvider delay={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span className="w-full block cursor-not-allowed" title="Cannot create Delivery Challan: Selected tool(s) are already Moving">
+                                                <Button
+                                                    size="sm"
+                                                    disabled
+                                                    className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                                                >
+                                                    <Truck className="size-4 opacity-50" />
+                                                    <span>Already Moving</span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                            Cannot create Delivery Challan: Selected tool(s) are already Moving
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             ) : Object.values(selectedToolsMap).some(t => t.status === "Missing") ? (
-                                <Button
-                                    size="sm"
-                                    disabled
-                                    className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-                                >
-                                    <Truck className="size-4 opacity-50" />
-                                    <span>Tool is Missing</span>
-                                </Button>
+                                <TooltipProvider delay={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span className="w-full block cursor-not-allowed" title="Cannot create Delivery Challan: Selected tool(s) are marked as Missing">
+                                                <Button
+                                                    size="sm"
+                                                    disabled
+                                                    className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                                                >
+                                                    <Truck className="size-4 opacity-50" />
+                                                    <span>Tool is Missing</span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                            Cannot create Delivery Challan: Selected tool(s) are marked as Missing
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             ) : (
-                                <Button
-                                    size="sm"
-                                    className="w-full h-10 text-xs rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center justify-center gap-2 font-semibold"
-                                    onClick={() => {
-                                        setIsVendorModalOpen(true);
-                                        setIsBulkActionsOpen(false);
-                                    }}
-                                >
-                                    <Truck className="size-4" />
-                                    <span>Sub Contractor</span>
-                                </Button>
+                                <TooltipProvider delay={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span
+                                                className={`w-full block ${!areAllSelectedPrinted ? "cursor-not-allowed" : ""}`}
+                                                title={
+                                                    !areAllSelectedPrinted
+                                                        ? "Disabled: All selected tools must be marked as Printed before creating a Delivery Challan"
+                                                        : `Create Subcontractor DC (${selectedToolIds.size} tools)`
+                                                }
+                                            >
+                                                <Button
+                                                    size="sm"
+                                                    disabled={!areAllSelectedPrinted}
+                                                    className={`w-full h-10 text-xs rounded-xl flex items-center justify-center gap-2 font-semibold transition-all ${
+                                                        areAllSelectedPrinted
+                                                            ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md cursor-pointer"
+                                                            : "bg-muted text-muted-foreground shadow-none cursor-not-allowed opacity-50 border border-border/60"
+                                                    }`}
+                                                    onClick={() => {
+                                                        if (!areAllSelectedPrinted) return;
+                                                        setIsVendorModalOpen(true);
+                                                        setIsBulkActionsOpen(false);
+                                                    }}
+                                                >
+                                                    <Truck className="size-4" />
+                                                    <span>Sub Contractor</span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                            {!areAllSelectedPrinted
+                                                ? "Disabled: All selected tools must be marked as Printed before creating a Delivery Challan"
+                                                : `Create Subcontractor DC (${selectedToolIds.size} tools)`}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             )}
 
                             {/* Grid of Action Buttons */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className={`h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                                        canMarkAsPrinted
-                                            ? "text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
-                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
-                                    }`}
-                                    onClick={handleMarkPrinted}
-                                    disabled={markingPrinted || !canMarkAsPrinted}
-                                    title={
-                                        !canMarkAsPrinted
-                                            ? printedCount > 0 && unprintedCount > 0
-                                                ? "Disabled: Selection contains mixed printed and not printed tools"
-                                                : printedCount > 0
-                                                    ? "Disabled: All selected tools are already printed"
-                                                    : "Select not printed tools to mark as printed"
-                                            : `Mark ${selectedToolIds.size} tool(s) as Printed`
-                                    }
-                                >
-                                    {markingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <Printer className="size-3.5 shrink-0" />}
-                                    <span className="truncate">Mark as Printed ({selectedToolIds.size})</span>
-                                </Button>
+                                <TooltipProvider delay={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span
+                                                className={`w-full block ${!canMarkAsPrinted ? "cursor-not-allowed" : ""}`}
+                                                title={
+                                                    !canMarkAsPrinted
+                                                        ? printedCount > 0 && unprintedCount > 0
+                                                            ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                            : printedCount > 0
+                                                                ? "Disabled: All selected tools are already printed"
+                                                                : "Select not printed tools to mark as printed"
+                                                        : `Mark ${selectedToolIds.size} tool(s) as Printed`
+                                                }
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                        canMarkAsPrinted
+                                                            ? "text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
+                                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                    }`}
+                                                    onClick={handleMarkPrinted}
+                                                    disabled={markingPrinted || !canMarkAsPrinted}
+                                                >
+                                                    {markingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <Printer className="size-3.5 shrink-0" />}
+                                                    <span className="truncate">Mark as Printed ({selectedToolIds.size})</span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                            {!canMarkAsPrinted
+                                                ? printedCount > 0 && unprintedCount > 0
+                                                    ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                    : printedCount > 0
+                                                        ? "Disabled: All selected tools are already printed"
+                                                        : "Select not printed tools to mark as printed"
+                                                : `Mark ${selectedToolIds.size} tool(s) as Printed`}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className={`h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                                        canUnprint
-                                            ? "text-amber-700 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
-                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
-                                    }`}
-                                    onClick={() => handleUnmarkPrinted()}
-                                    disabled={unmarkingPrinted || !canUnprint}
-                                    title={
-                                        !canUnprint
-                                            ? printedCount > 0 && unprintedCount > 0
-                                                ? "Disabled: Selection contains mixed printed and not printed tools"
-                                                : unprintedCount > 0
-                                                    ? "Disabled: Selected tools are already not printed"
-                                                    : "Select printed tools to unprint"
-                                            : `Unprint ${selectedToolIds.size} tool(s) (Reset to Not Printed)`
-                                    }
-                                >
-                                    {unmarkingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RotateCcw className="size-3.5 shrink-0" />}
-                                    <span className="truncate">Unprint ({selectedToolIds.size})</span>
-                                </Button>
+                                <TooltipProvider delay={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span
+                                                className={`w-full block ${!canUnprint ? "cursor-not-allowed" : ""}`}
+                                                title={
+                                                    !canUnprint
+                                                        ? printedCount > 0 && unprintedCount > 0
+                                                            ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                            : unprintedCount > 0
+                                                                ? "Disabled: Selected tools are already not printed"
+                                                                : "Select printed tools to unprint"
+                                                        : `Unprint ${selectedToolIds.size} tool(s) (Reset to Not Printed)`
+                                                }
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                        canUnprint
+                                                            ? "text-amber-700 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+                                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                    }`}
+                                                    onClick={() => handleUnmarkPrinted()}
+                                                    disabled={unmarkingPrinted || !canUnprint}
+                                                >
+                                                    {unmarkingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RotateCcw className="size-3.5 shrink-0" />}
+                                                    <span className="truncate">Unprint ({selectedToolIds.size})</span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                            {!canUnprint
+                                                ? printedCount > 0 && unprintedCount > 0
+                                                    ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                    : unprintedCount > 0
+                                                        ? "Disabled: Selected tools are already not printed"
+                                                        : "Select printed tools to unprint"
+                                                : `Unprint ${selectedToolIds.size} tool(s) (Reset to Not Printed)`}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 text-xs font-medium rounded-xl text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 flex items-center justify-center gap-1.5"
-                                    onClick={() => {
-                                        setIsTransferModalOpen(true);
-                                        setIsBulkActionsOpen(false);
-                                    }}
-                                    title="Transfer Tools"
-                                >
-                                    <ArrowRightLeft className="size-3.5 shrink-0" />
-                                    <span className="truncate">Transfer ({selectedToolIds.size})</span>
-                                </Button>
+                                <TooltipProvider delay={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span
+                                                className={`w-full block ${!areAllSelectedPrinted ? "cursor-not-allowed" : ""}`}
+                                                title={
+                                                    !areAllSelectedPrinted
+                                                        ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
+                                                        : `Transfer ${selectedToolIds.size} tool(s)`
+                                                }
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={!areAllSelectedPrinted}
+                                                    className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                        areAllSelectedPrinted
+                                                            ? "text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 cursor-pointer"
+                                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                    }`}
+                                                    onClick={() => {
+                                                        if (!areAllSelectedPrinted) return;
+                                                        setIsTransferModalOpen(true);
+                                                        setIsBulkActionsOpen(false);
+                                                    }}
+                                                >
+                                                    <ArrowRightLeft className="size-3.5 shrink-0" />
+                                                    <span className="truncate">Transfer ({selectedToolIds.size})</span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                            {!areAllSelectedPrinted
+                                                ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
+                                                : `Transfer ${selectedToolIds.size} tool(s)`}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
                                 {isAdmin && (
                                     <Button
@@ -1459,19 +1655,44 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     </Button>
                                 )}
 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 text-xs font-medium rounded-xl text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center justify-center gap-1.5"
-                                    onClick={() => {
-                                        setIsScrapModalOpen(true);
-                                        setIsBulkActionsOpen(false);
-                                    }}
-                                    title="Scrap Selected"
-                                >
-                                    <Archive className="size-3.5 text-amber-600 shrink-0" />
-                                    <span className="truncate">Scrap Selected ({selectedToolIds.size})</span>
-                                </Button>
+                                <TooltipProvider delay={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <span
+                                                className={`w-full block ${!areAllSelectedPrinted ? "cursor-not-allowed" : ""}`}
+                                                title={
+                                                    !areAllSelectedPrinted
+                                                        ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
+                                                        : `Scrap ${selectedToolIds.size} selected tool(s)`
+                                                }
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={!areAllSelectedPrinted}
+                                                    className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                        areAllSelectedPrinted
+                                                            ? "text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+                                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                    }`}
+                                                    onClick={() => {
+                                                        if (!areAllSelectedPrinted) return;
+                                                        setIsScrapModalOpen(true);
+                                                        setIsBulkActionsOpen(false);
+                                                    }}
+                                                >
+                                                    <Archive className="size-3.5 text-amber-600 shrink-0" />
+                                                    <span className="truncate">Scrap Selected ({selectedToolIds.size})</span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                            {!areAllSelectedPrinted
+                                                ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
+                                                : `Scrap ${selectedToolIds.size} selected tool(s)`}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
                                 {isAdmin && (
                                     <Button

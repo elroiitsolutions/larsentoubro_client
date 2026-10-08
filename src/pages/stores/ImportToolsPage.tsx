@@ -4,12 +4,13 @@ import toolService from "@/services/tool.service";
 import { toast } from "sonner";
 import { 
     FileUp, FileDown, Loader2, UploadCloud, AlertCircle, 
-    CheckCircle2, ArrowRight, RefreshCw, ChevronLeft, ChevronRight
+    CheckCircle2, ArrowRight, RefreshCw, ChevronLeft, ChevronRight, QrCode
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import NoAccessPage from "../NoAccessPage";
+import { BulkQrCodeGrid } from "@/components/tools/BulkQrCodeGrid";
 
 type ImportStep = 'upload' | 'review' | 'processing' | 'result';
 
@@ -292,11 +293,11 @@ export function ImportToolsPage() {
                             <CardTitle className="text-2xl mb-2">Import Completed Successfully</CardTitle>
                             <CardDescription className="text-base">Your inventory has been updated.</CardDescription>
                         </CardHeader>
-                        <div className="flex-1 overflow-auto p-8 max-w-4xl mx-auto w-full">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="flex-1 overflow-auto p-8 max-w-6xl mx-auto w-full space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-xl border border-emerald-200 dark:border-emerald-900 flex items-center gap-5 shadow-sm">
                                     <div className="p-3 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg"><CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-500" /></div>
-                                    <div><p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mb-1">Imported</p><p className="text-4xl font-bold text-emerald-900 dark:text-emerald-400">{result.successCount}</p></div>
+                                    <div><p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mb-1">Imported Tools</p><p className="text-4xl font-bold text-emerald-900 dark:text-emerald-400">{result.successCount}</p></div>
                                 </div>
                                 <div className="bg-rose-50 dark:bg-rose-950/20 p-6 rounded-xl border border-rose-200 dark:border-rose-900 flex items-center gap-5 shadow-sm">
                                     <div className="p-3 bg-rose-100 dark:bg-rose-900/50 rounded-lg"><AlertCircle className="size-8 text-rose-600 dark:text-rose-500" /></div>
@@ -315,6 +316,11 @@ export function ImportToolsPage() {
                                         ))}
                                     </div>
                                 </div>
+                            )}
+
+                            {/* Generated QR Codes Section */}
+                            {result.successCount > 0 && jobId && storeId && (
+                                <BulkQrCodeGrid storeId={storeId} jobId={jobId} />
                             )}
                         </div>
                         <div className="p-6 border-t bg-muted/20 flex justify-end gap-3 shrink-0 mt-auto">

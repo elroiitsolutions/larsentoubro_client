@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import toolService from "@/services/tool.service";
 import jsqr from "jsqr";
@@ -37,6 +38,7 @@ interface ToolValidityData {
 
 export function QRScannerPage() {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const [isScanning, setIsScanning] = useState<boolean>(true);
     const [cameraActive, setCameraActive] = useState<boolean>(false);
     const [cameraError, setCameraError] = useState<string | null>(null);
@@ -57,6 +59,23 @@ export function QRScannerPage() {
     // Process a scanned or typed QR code string
     const processScannedCode = useCallback(async (code: string) => {
         if (!code || loading) return;
+
+        let extractedToolId = code.trim();
+        if (extractedToolId.includes('/vt/')) {
+            extractedToolId = extractedToolId.split('/vt/').pop()?.split('?')[0] || extractedToolId;
+        } else if (extractedToolId.includes('/')) {
+            extractedToolId = extractedToolId.split('/').pop()?.split('?')[0] || extractedToolId;
+        }
+        extractedToolId = decodeURIComponent(extractedToolId).trim();
+
+        // After login (User/Admin): redirect directly to /vt/:toolId page
+        if (user && user.role !== "Guest") {
+            setIsScanning(false);
+            navigate(`/vt/${encodeURIComponent(extractedToolId)}`);
+            return;
+        }
+
+        // Before login (Guest user): retain existing guest scanner popup behavior
         setLoading(true);
         setLookupError(null);
         setLookupResult(null);
@@ -65,7 +84,7 @@ export function QRScannerPage() {
         setIsScanning(false);
 
         try {
-            const res = await toolService.lookupToolValidity(code);
+            const res = await toolService.lookupToolValidity(extractedToolId);
             if (res.success && res.data) {
                 setLookupResult(res.data);
                 setModalOpen(true);
@@ -80,7 +99,7 @@ export function QRScannerPage() {
         } finally {
             setLoading(false);
         }
-    }, [loading]);
+    }, [loading, user, navigate]);
 
     // Live Video Frame Loop for QR detection using jsQR
     const scanFrame = useCallback(() => {

@@ -24,8 +24,6 @@ interface Props {
 
 export const SummaryCardsGrid: React.FC<Props> = ({
     data,
-    onCardClick,
-    activeStatus,
     hierarchyData,
     filters,
     onChangeFilter

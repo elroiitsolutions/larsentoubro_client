@@ -261,6 +261,9 @@ export function DeliveryChallanPreviewPage() {
                 toast.error("Cannot create Delivery Challan: One or more tools are marked as Missing");
                 return;
             }
+            if (initialTools.some((t: any) => !t.isPrinted)) {
+                return;
+            }
             setCreating(true);
             const payload = getChallanPayload(false);
             let res;
@@ -336,7 +339,7 @@ export function DeliveryChallanPreviewPage() {
                     </Button>
                     <Button
                         onClick={handleConfirmCreate}
-                        disabled={creating}
+                        disabled={creating || initialTools.some((t: any) => !t.isPrinted)}
                         className="rounded-xl h-9 sm:h-10 px-5 sm:px-6 font-bold shadow-md flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer w-full sm:w-auto text-xs sm:text-sm"
                     >
                         {creating ? (

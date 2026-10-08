@@ -16,6 +16,7 @@ import type { ToolRecord } from "@/services/tool.service";
 import storeService from "@/services/store.service";
 import type { StoreRecord } from "@/services/store.service";
 import { toast } from "sonner";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2, ArrowRightLeft, Store, Building2, Wrench, AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface ToolTransferModalProps {
@@ -95,6 +96,10 @@ export function ToolTransferModal({
 
         if (selectedToolIds.length === 0) {
             toast.error("No tools selected for transfer.");
+            return;
+        }
+
+        if (selectedTools.some((t: any) => !t.isPrinted)) {
             return;
         }
 
@@ -263,24 +268,48 @@ export function ToolTransferModal({
                     >
                         Cancel
                     </Button>
-                    <Button
-                        type="button"
-                        onClick={handleTransfer}
-                        disabled={loading || fetchingStores || !destinationStoreId || destinationStores.length === 0}
-                        className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md gap-2"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="size-4 animate-spin" />
-                                Transferring...
-                            </>
-                        ) : (
-                            <>
-                                <ArrowRightLeft className="size-4" />
-                                Transfer {selectedToolIds.length} {selectedToolIds.length === 1 ? "Tool" : "Tools"}
-                            </>
-                        )}
-                    </Button>
+                    <TooltipProvider delay={100}>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <span
+                                    className="inline-block"
+                                    title={
+                                        !destinationStoreId
+                                            ? "Please select a destination store"
+                                            : selectedTools.some((t: any) => !t.isPrinted)
+                                                ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
+                                                : `Transfer ${selectedToolIds.length} tools`
+                                    }
+                                >
+                                    <Button
+                                        type="button"
+                                        onClick={handleTransfer}
+                                        disabled={loading || fetchingStores || !destinationStoreId || destinationStores.length === 0 || selectedTools.some((t: any) => !t.isPrinted)}
+                                        className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md gap-2"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="size-4 animate-spin" />
+                                                Transferring...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ArrowRightLeft className="size-4" />
+                                                Transfer {selectedToolIds.length} {selectedToolIds.length === 1 ? "Tool" : "Tools"}
+                                            </>
+                                        )}
+                                    </Button>
+                                </span>
+                            </TooltipTrigger>
+                            {(!destinationStoreId || selectedTools.some((t: any) => !t.isPrinted)) && (
+                                <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                    {!destinationStoreId
+                                        ? "Please select a destination store"
+                                        : "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"}
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

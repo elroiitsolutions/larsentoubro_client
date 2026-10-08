@@ -26,6 +26,7 @@ import {
     Loader2,
     FileText} from "lucide-react";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -139,6 +140,10 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
         }
         if (selectedTools.length === 0) {
             toast.error("Please select at least one tool to scrap");
+            return;
+        }
+
+        if (selectedTools.some((t: any) => !t.isPrinted)) {
             return;
         }
 
@@ -471,14 +476,38 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
                         >
                             Cancel
                         </Button>
-                        <Button
-                            disabled={!selectedDealerDetails || selectedTools.length === 0}
-                            onClick={handleProceedToScrapDC}
-                            className="bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-1.5 shadow-md h-9 px-4 cursor-pointer font-semibold text-xs"
-                        >
-                            <span>Create Scrap DC ({selectedTools.length} Tools)</span>
-                            <ArrowRight className="size-4" />
-                        </Button>
+                        <TooltipProvider delay={100}>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <span
+                                        className="inline-block"
+                                        title={
+                                            !selectedDealerDetails
+                                                ? "Please select a destination Scrap Dealer profile first"
+                                                : selectedTools.some((t: any) => !t.isPrinted)
+                                                    ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
+                                                    : `Create Scrap DC with ${selectedTools.length} tools`
+                                        }
+                                    >
+                                        <Button
+                                            disabled={!selectedDealerDetails || selectedTools.length === 0 || selectedTools.some((t: any) => !t.isPrinted)}
+                                            onClick={handleProceedToScrapDC}
+                                            className="bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-1.5 shadow-md h-9 px-4 cursor-pointer font-semibold text-xs"
+                                        >
+                                            <span>Create Scrap DC ({selectedTools.length} Tools)</span>
+                                            <ArrowRight className="size-4" />
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                {(!selectedDealerDetails || selectedTools.some((t: any) => !t.isPrinted)) && (
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                        {!selectedDealerDetails
+                                            ? "Please select a destination Scrap Dealer profile first"
+                                            : "Disabled: All selected tools must be marked as Printed before moving to Scrap"}
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </DialogFooter>
             </DialogContent>

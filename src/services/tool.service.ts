@@ -303,6 +303,15 @@ export const toolService = {
     },
 
     /**
+     * Fetches created tools for an import job, including base64 QR Code data URLs.
+     */
+    getImportedJobTools: async (storeId: string, jobId: string): Promise<{ success: boolean; data: any[] }> => {
+        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/imported-tools`;
+        const response = await api.get<{ success: boolean; data: any[] }>(url);
+        return response.data;
+    },
+
+    /**
      * Creates an EventSource for SSE progress streaming of an import job.
      * Returns the EventSource instance; caller must manage cleanup.
      */
