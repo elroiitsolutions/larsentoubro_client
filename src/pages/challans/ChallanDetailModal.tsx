@@ -109,6 +109,11 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                         <p className="text-xs text-foreground mt-1">
                             <strong>Challan Date:</strong> {new Date(challan.challanDate).toLocaleDateString()}
                         </p>
+                        {challan.indentNo && challan.indentNo !== '-' && (
+                            <p className="text-xs text-foreground mt-0.5">
+                                <strong>Indent No:</strong> <span className="font-mono font-bold text-foreground">{challan.indentNo}</span>
+                            </p>
+                        )}
                         {isReturn && challan.referenceDcNumber && (
                             <p className="text-xs text-foreground mt-0.5 truncate">
                                 <strong>Reference DC:</strong> <span className="font-mono text-primary font-bold">{challan.referenceDcNumber}</span>

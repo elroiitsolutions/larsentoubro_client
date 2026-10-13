@@ -29,6 +29,7 @@ export interface ChallanRecord {
     store?: any;
     challanDate: string;
     deliveryDate?: string;
+    indentNo?: string;
     siteCode?: string;
     subcontractorName?: string;
     locationChainage?: string;

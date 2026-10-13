@@ -26,7 +26,7 @@ import challanService from "@/services/challan.service";
 import { generateDeliveryChallanPDF, formatDateDDMMYYYY, formatDCNumber } from "@/utils/pdf/challanPdfGenerator";
 import { calculateChallanSummary } from "@/utils/challan/challanCalculations";
 import { toast } from "sonner";
-import logoUrl from "@/assets/logo.png";
+import logoUrl from "@/assets/logo.png"; 
 
 export function DeliveryChallanPreviewPage() {
     const location = useLocation();
@@ -233,8 +233,9 @@ export function DeliveryChallanPreviewPage() {
     const handleDownloadDraft = async () => {
         try {
             const draftData = {
-                challanNumber: "DC-26-001",
-                ...getChallanPayload(true)
+                challanNumber: state?.challanNumber || "DC-26-001",
+                ...getChallanPayload(true),
+                indentNo: indentNo
             };
             await generateDeliveryChallanPDF(draftData, { download: true, fileName: "Delivery_Challan_Draft.pdf" });
             toast.success("Downloaded Delivery Challan PDF Draft");
@@ -285,7 +286,7 @@ export function DeliveryChallanPreviewPage() {
 
                 try {
                     const pdfPayload = getChallanPayload(true);
-                    await generateDeliveryChallanPDF({ ...pdfPayload, ...res.data, items: pdfPayload.items }, { download: true });
+                    await generateDeliveryChallanPDF({ ...pdfPayload, ...res.data, items: pdfPayload.items, indentNo: indentNo || res.data?.indentNo }, { download: true });
                 } catch (pdfErr) {
                     console.error("PDF generation error:", pdfErr);
                     toast.error("Challan created, but automatic PDF download failed.");

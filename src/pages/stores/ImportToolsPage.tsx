@@ -4,7 +4,7 @@ import toolService from "@/services/tool.service";
 import { toast } from "sonner";
 import { 
     FileUp, FileDown, Loader2, UploadCloud, AlertCircle, 
-    CheckCircle2, ArrowRight, RefreshCw, ChevronLeft, ChevronRight, QrCode
+    CheckCircle2, ArrowRight, RefreshCw, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
