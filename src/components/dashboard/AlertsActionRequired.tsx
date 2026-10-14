@@ -65,11 +65,21 @@ export const AlertsActionRequired: React.FC<Props> = ({ alerts, onAlertClick }) 
                             <div className="flex items-start gap-2.5">
                                 {getAlertIcon(alert.type)}
                                 <div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap items-center gap-1.5">
                                         <span className="font-bold text-xs">{alert.title}</span>
                                         {alert.toolId && (
                                             <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-background/60 border border-border/40 font-semibold">
                                                 {alert.toolId}
+                                            </span>
+                                        )}
+                                        {alert.project && (
+                                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20 font-medium">
+                                                {alert.project.projectCode || alert.project.name || 'Project'}
+                                            </span>
+                                        )}
+                                        {alert.store && (
+                                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground border border-border/50 font-medium">
+                                                {alert.store.name || 'Store'}
                                             </span>
                                         )}
                                     </div>

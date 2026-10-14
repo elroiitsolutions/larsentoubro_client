@@ -22,7 +22,8 @@ import {
     Loader2,
     ArrowRightIcon,
     ShieldCheckIcon,
-    KeyIcon
+    KeyIcon,
+    ClipboardCheck
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import userService from "@/services/user.service"
@@ -52,6 +53,7 @@ export function UserFormModal({
     const [password, setPassword] = React.useState("")
     const [role, setRole] = React.useState<"Admin" | "User">("User")
     const [status, setStatus] = React.useState<"Active" | "Inactive">("Active")
+    const [hasInspectionAccess, setHasInspectionAccess] = React.useState(false)
     const [saving, setSaving] = React.useState(false)
 
     React.useEffect(() => {
@@ -65,6 +67,7 @@ export function UserFormModal({
             setPassword("")
             setRole(editingUser.role === "Admin" ? "Admin" : "User")
             setStatus("Active")
+            setHasInspectionAccess(Boolean(editingUser.role === "Admin" || editingUser.hasInspectionAccess))
         } else {
             setName("")
             setEmail("")
@@ -73,6 +76,7 @@ export function UserFormModal({
             setPassword("")
             setRole("User")
             setStatus("Active")
+            setHasInspectionAccess(false)
         }
     }, [isOpen, editingUser])
 
@@ -98,6 +102,7 @@ export function UserFormModal({
                 phonenumber: phone.trim(),
                 role: role,
                 status: status,
+                hasInspectionAccess: role === "Admin" ? true : hasInspectionAccess,
             }
 
             if (!isEdit) {
@@ -281,6 +286,56 @@ export function UserFormModal({
                                             <span className="font-bold">User:</span> Standard access scope governed by assigned Projects, Stores, and Page Permissions.
                                         </p>
                                     )}
+                                </div>
+                            </div>
+
+                            {/* Inspection Access Option */}
+                            <div className="md:col-span-2">
+                                <div
+                                    onClick={() => {
+                                        if (role !== "Admin") {
+                                            setHasInspectionAccess(prev => !prev)
+                                        }
+                                    }}
+                                    className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                                        role === "Admin" ? "cursor-default opacity-95 bg-primary/5 border-primary/30" : "cursor-pointer hover:border-border"
+                                    } ${
+                                        (role === "Admin" || hasInspectionAccess)
+                                            ? "bg-emerald-500/10 border-emerald-500/30 text-foreground"
+                                            : "bg-muted/20 border-border/70 text-muted-foreground"
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`size-8 rounded-lg flex items-center justify-center border shrink-0 ${
+                                            (role === "Admin" || hasInspectionAccess)
+                                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                                                : "bg-muted border-border text-muted-foreground"
+                                        }`}>
+                                            <ClipboardCheck className="size-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                                <span>Tool Inspection Permission</span>
+                                                {(role === "Admin" || hasInspectionAccess) && (
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
+                                                        Active
+                                                    </span>
+                                                )}
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                                                {role === "Admin"
+                                                    ? "Admins automatically have full inspection privileges."
+                                                    : "Allows user to inspect tools and execute Pass / Fail / Repair / Scrap workflows."}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={role === "Admin" || hasInspectionAccess}
+                                        disabled={role === "Admin"}
+                                        onChange={(e) => setHasInspectionAccess(e.target.checked)}
+                                        className="size-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer disabled:opacity-50"
+                                    />
                                 </div>
                             </div>
 

@@ -12,6 +12,7 @@ import {
 import projectService from "@/services/project.service";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
+import profileService from "@/services/profile.service";
 import { toast } from "sonner";
 import { 
     PlusIcon, 
@@ -61,14 +62,26 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [projects, setProjects] = useState<any[]>([]);
+    const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [selectedSupplierName, setSelectedSupplierName] = useState<string>("");
     const [formSchema, setFormSchema] = useState<any>(null);
 
     useEffect(() => {
         if (open) {
             fetchProjects();
             fetchFormSchema();
+            fetchSuppliers();
         }
     }, [open]);
+
+    useEffect(() => {
+        if (tool) {
+            const initialPurchaser = tool.purchaserName || tool.customFields?.purchaserName || "";
+            if (initialPurchaser) {
+                setSelectedSupplierName(initialPurchaser);
+            }
+        }
+    }, [tool]);
 
     const fetchProjects = async () => {
         try {
@@ -78,6 +91,17 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
             }
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const fetchSuppliers = async () => {
+        try {
+            const res = await profileService.getProfiles({ profileType: 'Supplier', limit: 1000 });
+            if (res.success && res.data) {
+                setSuppliers(res.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch suppliers:", error);
         }
     };
 
@@ -100,8 +124,20 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
         const data = Object.fromEntries(formData.entries());
         data.currentSite = storeId; 
 
-        // Split data into core and customFields based on the schema fields?
-        // Actually, backend already does this! We just send all fields.
+        if (selectedSupplierName && !data.purchaserName) {
+            data.purchaserName = selectedSupplierName;
+        }
+
+        const matchedSup = suppliers.find(s => s.name === (data.purchaserName || selectedSupplierName));
+        if (matchedSup) {
+            if (!data.supplierCode && matchedSup.code) {
+                data.supplierCode = matchedSup.code;
+            }
+            if (!data.purchaserContact && (matchedSup.contactPhone || matchedSup.contactPerson)) {
+                data.purchaserContact = matchedSup.contactPhone || matchedSup.contactPerson;
+            }
+        }
+
         try {
             const isEdit = Boolean(tool && (tool._id || tool.toolId));
             const toolIdToUpdate = isEdit ? (tool._id || tool.toolId) : null;
@@ -162,6 +198,74 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
                  </HorizontalField>
              );
         }
+
+        const isSupplierField = 
+            field.name === 'purchaserName' || 
+            field.name === 'supplierName' || 
+            field.name === 'supplier' || 
+            (field.label && (field.label.toLowerCase().includes('supplier') || field.label.toLowerCase().includes('purchaser')));
+
+        if (isSupplierField) {
+            const currentVal = selectedSupplierName || defaultValue || "";
+
+            return (
+                <HorizontalField key={field.id} label={field.label || "Supplier Name"} required={isRequired} hint={field.helperText || "Select from created suppliers"}>
+                    <div className="relative">
+                        <Select 
+                            name={field.name} 
+                            value={currentVal} 
+                            onValueChange={(val) => {
+                                setSelectedSupplierName(val);
+                                const matchedSup = suppliers.find(s => s.name === val);
+                                if (matchedSup) {
+                                    const supplierCodeInput = document.querySelector('input[name="supplierCode"]') as HTMLInputElement;
+                                    if (supplierCodeInput && matchedSup.code) {
+                                        supplierCodeInput.value = matchedSup.code;
+                                    }
+                                    const purchaserContactInput = document.querySelector('input[name="purchaserContact"]') as HTMLInputElement;
+                                    if (purchaserContactInput && (matchedSup.contactPhone || matchedSup.contactPerson)) {
+                                        purchaserContactInput.value = matchedSup.contactPhone || matchedSup.contactPerson;
+                                    }
+                                }
+                            }}
+                        >
+                            <SelectTrigger className="flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer font-medium">
+                                <SelectValue placeholder="Select Supplier Name...">
+                                    {(val: any) => {
+                                        if (!val) return null;
+                                        const sup = suppliers.find(s => s.name === val);
+                                        return sup ? `${sup.name} (${sup.code})` : val;
+                                    }}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60 overflow-y-auto">
+                                {suppliers.length === 0 ? (
+                                    <div className="p-3 text-xs text-muted-foreground text-center">
+                                        No suppliers created yet. Go to Suppliers (Purchaser Name) to create one.
+                                    </div>
+                                ) : (
+                                    suppliers.map((sup) => (
+                                        <SelectItem key={sup._id} value={sup.name}>
+                                            <div className="flex items-center justify-between gap-2 w-full">
+                                                <span className="font-semibold">{sup.name}</span>
+                                                <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                                    {sup.code}
+                                                </span>
+                                            </div>
+                                        </SelectItem>
+                                    ))
+                                )}
+                                {defaultValue && !suppliers.some(s => s.name === defaultValue) && (
+                                    <SelectItem key="legacy-supplier" value={defaultValue}>
+                                        {defaultValue}
+                                    </SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </HorizontalField>
+            );
+        }
         
         if (field.type === 'select') {
             return (
@@ -207,7 +311,27 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
 
     const getFields = () => {
         if (!formSchema?.fields) return [];
-        return [...formSchema.fields].sort((a, b) => a.order - b.order);
+        const fields = [...formSchema.fields].sort((a, b) => a.order - b.order);
+
+        const hasSupplierField = fields.some(
+            f => f.name === 'purchaserName' || 
+                 f.name === 'supplierName' || 
+                 f.name === 'supplier' || 
+                 (f.label && (f.label.toLowerCase().includes('supplier') || f.label.toLowerCase().includes('purchaser')))
+        );
+
+        if (!hasSupplierField) {
+            fields.push({
+                id: 'purchaserName',
+                name: 'purchaserName',
+                label: 'Supplier Name (Purchaser Name)',
+                type: 'select',
+                helperText: 'Select supplier from registered profiles',
+                order: fields.length
+            });
+        }
+
+        return fields;
     };
 
     const allFields = getFields();

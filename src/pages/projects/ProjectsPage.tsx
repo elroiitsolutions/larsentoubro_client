@@ -129,7 +129,7 @@ export function ProjectsPage() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-border/50 bg-muted/10">
-                                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">ID</th>
+                                    {/* <th className="text-left px-4 py-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">ID</th> */}
                                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">Project Name</th>
                                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">Department</th>
                                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">Lead</th>
@@ -164,7 +164,7 @@ export function ProjectsPage() {
                                             onClick={() => navigate(`/projects/${p._id}/stores`)}
                                             className="border-b border-border/40 last:border-0 hover:bg-muted/40 cursor-pointer transition-colors group"
                                         >
-                                            <td className="px-4 py-3 font-mono text-xs text-muted-foreground/70">{p._id.substring(p._id.length - 6)}</td>
+                                            {/* <td className="px-4 py-3 font-mono text-xs text-muted-foreground/70">{p._id.substring(p._id.length - 6)}</td> */}
                                             <td className="px-4 py-3 font-semibold text-foreground/90 group-hover:text-primary transition-colors">{p.name}</td>
                                             <td className="px-4 py-3 text-muted-foreground">{p.department}</td>
                                             <td className="px-4 py-3 font-medium">{p.lead}</td>

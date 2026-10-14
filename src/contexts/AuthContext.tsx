@@ -11,6 +11,7 @@ export interface User {
     id: string
     isVendor?: boolean
     allowedPages?: string[]
+    hasInspectionAccess?: boolean
     projects?: any[]
     stores?: any[]
 }
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     id: u._id,
                     isVendor: isVendorRole,
                     allowedPages: pages,
+                    hasInspectionAccess: Boolean(u.role === 'Admin' || u.hasInspectionAccess),
                     projects: u.projects || [],
                     stores: u.stores || []
                 })
@@ -95,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 id,
                 isVendor: isVendorRole,
                 allowedPages: initialAllowed,
+                hasInspectionAccess: role === 'Admin',
                 projects: [],
                 stores: []
             })
@@ -134,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: userData._id || userData.id,
             isVendor: isVendorRole,
             allowedPages: userAllowedPages,
+            hasInspectionAccess: Boolean(userData.role === 'Admin' || userData.hasInspectionAccess),
             projects: userData.projects || [],
             stores: userData.stores || []
         })

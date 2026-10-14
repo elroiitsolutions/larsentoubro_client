@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import toolService from "@/services/tool.service";
+import profileService from "@/services/profile.service";
 import { toast } from "sonner";
 import { Loader2, Edit3, AlertTriangle, CheckCircle2, ArrowLeft } from "lucide-react";
 
@@ -45,6 +46,19 @@ export function BulkEditToolsModal({
 }: BulkEditToolsModalProps) {
     const [loading, setLoading] = useState(false);
     const [isConfirmStep, setIsConfirmStep] = useState(false);
+    const [supplierProfiles, setSupplierProfiles] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (open) {
+            profileService.getProfiles({ profileType: 'Supplier', limit: 1000 })
+                .then(res => {
+                    if (res.success && res.data) {
+                        setSupplierProfiles(res.data);
+                    }
+                })
+                .catch(err => console.error("Error fetching suppliers in bulk edit:", err));
+        }
+    }, [open]);
 
     const [formValues, setFormValues] = useState<Record<string, string>>({
         validityPeriod: "",
@@ -193,14 +207,33 @@ export function BulkEditToolsModal({
                             </div>
 
                             <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Purchaser Name</Label>
-                                <Input
-                                    type="text"
-                                    placeholder="e.g. L&T Logistics"
-                                    value={formValues.purchaserName}
-                                    onChange={(e) => handleChange("purchaserName", e.target.value)}
-                                    className="rounded-xl"
-                                />
+                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Purchaser Name (Supplier)</Label>
+                                {supplierProfiles.length > 0 ? (
+                                    <SearchableSelect
+                                        value={formValues.purchaserName || "All"}
+                                        onValueChange={(val) => {
+                                            const actualVal = val === "All" ? "" : val;
+                                            handleChange("purchaserName", actualVal);
+                                            const matched = supplierProfiles.find(s => s.name === actualVal);
+                                            if (matched && matched.code) {
+                                                handleChange("supplierCode", matched.code);
+                                            }
+                                        }}
+                                        options={supplierProfiles.map(s => s.name)}
+                                        placeholder="Select Purchaser / Supplier"
+                                        searchPlaceholder="Search supplier..."
+                                        allLabel="Do Not Change Purchaser"
+                                        allValue="All"
+                                    />
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        placeholder="e.g. L&T Logistics"
+                                        value={formValues.purchaserName}
+                                        onChange={(e) => handleChange("purchaserName", e.target.value)}
+                                        className="rounded-xl"
+                                    />
+                                )}
                             </div>
 
                             <div>

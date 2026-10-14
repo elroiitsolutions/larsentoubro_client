@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import {
     Edit,
     ArrowLeft,
     Trash2,
+    ClipboardCheck,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -38,14 +39,26 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { ToolFormModal } from "./ToolFormModal";
+import { ToolInspectionModal } from "./ToolInspectionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ToolDetailsPage() {
     const { storeId: paramStoreId, toolId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
     const isAdmin = user?.role === "Admin";
+    const canInspect = Boolean(user && (user.role === 'Admin' || user.hasInspectionAccess));
+
+    const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
+
+    const queryStoreId = searchParams.get('storeId');
+    const queryProjectId = searchParams.get('projectId');
+
+    const effectiveStoreId = paramStoreId || queryStoreId || (location.state as any)?.fromStoreId || (location.state as any)?.storeId;
+    const effectiveProjectId = queryProjectId || (location.state as any)?.projectId || (location.state as any)?.fromProjectId;
 
     const [tool, setTool] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -78,11 +91,11 @@ export function ToolDetailsPage() {
         const fetchToolData = async () => {
             try {
                 const [toolRes, schemaRes] = await Promise.allSettled([
-                    toolService.getToolById(toolId || ''),
+                    toolService.getToolById(toolId || '', effectiveStoreId, effectiveProjectId),
                     formService.getFormBySlug('tool-details-view')
                 ]);
 
-                if (toolRes.status === 'fulfilled' && toolRes.value.success) {
+                if (toolRes.status === 'fulfilled' && toolRes.value.success && toolRes.value.data) {
                     setTool(toolRes.value.data);
                 } else {
                     toast.error("Failed to fetch tool details");
@@ -102,7 +115,7 @@ export function ToolDetailsPage() {
         if (toolId) {
             fetchToolData();
         }
-    }, [toolId]);
+    }, [toolId, effectiveStoreId, effectiveProjectId]);
 
     const handleCopyId = () => {
         const idToCopy = tool?.toolCode || tool?.toolId;
@@ -150,8 +163,6 @@ export function ToolDetailsPage() {
         if (!target) return true;
         return !target.disabled;
     };
-
-    const isAvailable = tool.status === 'Available';
 
     // Comprehensive field extraction looking at root properties, customFields Map/Object, and key aliases
     const getFieldValue = (key: string, aliases: string[] = []) => {
@@ -244,8 +255,16 @@ export function ToolDetailsPage() {
                     <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
                         {tool.description}
                     </h1>
-                    <span className={`shrink-0 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors shadow-2xs ${isAvailable ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'}`}>
-                        {isAvailable ? <CheckCircle2 className="size-3.5 mr-1.5" /> : <XCircle className="size-3.5 mr-1.5" />}
+                    <span className={`shrink-0 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors shadow-2xs ${
+                        tool.status === 'Available' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' :
+                        tool.status === 'Repair' ? 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30 font-bold' :
+                        tool.status === 'Moving' ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30 animate-pulse' :
+                        tool.status === 'In Use' ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30' :
+                        'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'
+                    }`}>
+                        {tool.status === 'Available' ? <CheckCircle2 className="size-3.5 mr-1.5" /> :
+                         tool.status === 'Repair' ? <Wrench className="size-3.5 mr-1.5" /> :
+                         <XCircle className="size-3.5 mr-1.5" />}
                         {tool.status}
                     </span>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/60 text-xs font-mono text-muted-foreground">
@@ -270,6 +289,27 @@ export function ToolDetailsPage() {
 
                 {/* Quick Action Buttons */}
                 <div className="flex items-center gap-2">
+                    {canInspect && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={tool.status === 'Repair' || tool.status === 'Moving' || tool.status === 'Scrapped'}
+                            className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all font-semibold cursor-pointer"
+                            onClick={() => setIsInspectionModalOpen(true)}
+                            title={
+                                tool.status === 'Repair'
+                                    ? "Inspection blocked: Tool is currently under Repair"
+                                    : tool.status === 'Moving'
+                                        ? "Inspection blocked: Tool is currently Moving"
+                                        : tool.status === 'Scrapped'
+                                            ? "Inspection blocked: Tool is already Scrapped"
+                                            : "Inspect Tool (Pass / Fail)"
+                            }
+                        >
+                            <ClipboardCheck className="size-3.5 text-emerald-600" />
+                            Inspect Tool
+                        </Button>
+                    )}
                     {isAdmin && (
                         <>
                             <ToolFormModal
@@ -490,8 +530,97 @@ export function ToolDetailsPage() {
                             )}
                         </div>
                     </div>
+
+                    {/* Section 4: Quality Inspection & Audit Records */}
+                    {(tool.inspectionResult || (tool.inspectionHistory && tool.inspectionHistory.length > 0)) && (
+                        <div className="space-y-3 pt-4 border-t border-border/50">
+                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                <ClipboardCheck className="size-3.5 text-primary" />
+                                Quality Inspection & Audit Records
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Latest Inspection</span>
+                                    <span className="text-sm font-bold mt-1">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                            tool.inspectionResult === 'Pass' 
+                                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' 
+                                                : 'bg-rose-500/15 text-rose-700 dark:text-rose-400'
+                                        }`}>
+                                            {tool.inspectionResult}
+                                        </span>
+                                    </span>
+                                </div>
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Action Taken</span>
+                                    <span className="text-xs font-bold text-foreground mt-1">
+                                        {tool.inspectionAction || (tool.status === 'Repair' ? 'Repair' : tool.status === 'Scrapped' ? 'Scrap' : 'Validated')}
+                                    </span>
+                                </div>
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Inspected Date</span>
+                                    <span className="text-xs font-semibold text-foreground/90 mt-1">
+                                        {tool.inspectedAt ? new Date(tool.inspectedAt).toLocaleDateString() : (tool.lastInspectionDate ? new Date(tool.lastInspectionDate).toLocaleDateString() : '-')}
+                                    </span>
+                                </div>
+                                <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Inspected By</span>
+                                    <span className="text-xs font-semibold text-foreground/90 truncate mt-1">
+                                        {typeof tool.inspectedBy === 'object' ? (tool.inspectedBy?.username || tool.inspectedBy?.name) : (tool.inspectedBy || '-')}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Inspection Audit Trail Table */}
+                            {tool.inspectionHistory && tool.inspectionHistory.length > 0 && (
+                                <div className="mt-3 overflow-x-auto rounded-xl border border-border/40">
+                                    <table className="min-w-full text-xs text-left">
+                                        <thead className="bg-muted/50 font-semibold text-muted-foreground border-b border-border/40">
+                                            <tr>
+                                                <th className="px-3 py-2">Date</th>
+                                                <th className="px-3 py-2">Result</th>
+                                                <th className="px-3 py-2">Action</th>
+                                                <th className="px-3 py-2">Validation</th>
+                                                <th className="px-3 py-2">Inspector</th>
+                                                <th className="px-3 py-2">Remarks</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/30">
+                                            {tool.inspectionHistory.map((item: any, idx: number) => (
+                                                <tr key={idx} className="hover:bg-muted/20">
+                                                    <td className="px-3 py-2 whitespace-nowrap">
+                                                        {item.inspectedAt ? new Date(item.inspectedAt).toLocaleDateString() : '-'}
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${
+                                                            item.result === 'Pass' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
+                                                        }`}>
+                                                            {item.result}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-3 py-2">{item.action || '-'}</td>
+                                                    <td className="px-3 py-2">{item.validation || '-'}</td>
+                                                    <td className="px-3 py-2">{item.inspectedByName || (typeof item.inspectedBy === 'object' ? item.inspectedBy?.username : item.inspectedBy) || '-'}</td>
+                                                    <td className="px-3 py-2 text-muted-foreground">{item.remarks || '-'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
+
+            <ToolInspectionModal
+                open={isInspectionModalOpen}
+                onOpenChange={setIsInspectionModalOpen}
+                selectedTools={tool ? [tool] : []}
+                onSuccess={() => {
+                    window.location.reload();
+                }}
+            />
 
             <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !deleting && setShowDeleteConfirm(open)}>
                 <AlertDialogContent className="rounded-2xl max-w-md">

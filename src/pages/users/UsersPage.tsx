@@ -19,7 +19,8 @@ import {
     FolderOpenIcon,
     StoreIcon,
     LayoutDashboardIcon,
-    Building2
+    Building2,
+    ClipboardCheck
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
@@ -239,17 +240,48 @@ export function UsersPage() {
                                                 <td className="px-6 py-4 font-medium text-muted-foreground">{u.email}</td>
                                                 <td className="px-6 py-4 font-medium text-muted-foreground">{u.phonenumber}</td>
                                                 <td className="px-6 py-4">
-                                                    {isAdmin ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
-                                                            <ShieldAlertIcon className="size-3.5" />
-                                                            All Pages (Admin)
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-lg">
-                                                            <LayoutDashboardIcon className="size-3" />
-                                                            {pageCount} {pageCount === 1 ? "Page" : "Pages"} Allowed
-                                                        </span>
-                                                    )}
+                                                    <div className="flex flex-col gap-1.5 items-start">
+                                                        {isAdmin ? (
+                                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                                                                <ShieldAlertIcon className="size-3.5" />
+                                                                All Pages (Admin)
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-lg">
+                                                                <LayoutDashboardIcon className="size-3" />
+                                                                {pageCount} {pageCount === 1 ? "Page" : "Pages"} Allowed
+                                                            </span>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            disabled={isAdmin}
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                if (isAdmin) return;
+                                                                try {
+                                                                    const nextVal = !u.hasInspectionAccess;
+                                                                    const res = await userService.updateUser(u._id, { hasInspectionAccess: nextVal });
+                                                                    if (res.success) {
+                                                                        toast.success(`Inspection access ${nextVal ? "granted to" : "revoked from"} ${u.name}`);
+                                                                        fetchUsers();
+                                                                    }
+                                                                } catch (err: any) {
+                                                                    toast.error("Failed to update inspection access");
+                                                                }
+                                                            }}
+                                                            title={isAdmin ? "Admins automatically have inspection access" : "Click to quickly toggle inspection access"}
+                                                            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
+                                                                isAdmin ? "cursor-default" : "cursor-pointer"
+                                                            } ${
+                                                                isAdmin || u.hasInspectionAccess
+                                                                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20"
+                                                                    : "text-muted-foreground bg-muted/60 border-border/50 hover:bg-muted hover:text-foreground"
+                                                            }`}
+                                                        >
+                                                            <ClipboardCheck className="size-3" />
+                                                            {isAdmin ? "Inspection: Granted" : u.hasInspectionAccess ? "Inspection: Granted" : "No Inspection (Click to Grant)"}
+                                                        </button>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     {isAdmin ? (

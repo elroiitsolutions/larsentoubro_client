@@ -5,19 +5,46 @@ export interface ChallanItemRecord {
     toolId: string;
     description?: string;
     toolCode?: string;
+    category?: string;
+    capacity?: string;
+    safeWorkingLoad?: string;
+    serialNumber?: string;
+    makeYear?: string;
     quantity: number;
     unit: string;
     rate?: number;
     remarks?: string;
-    returnStatus: 'Sent' | 'Returned' | 'Missing';
+    returnStatus: 'Sent' | 'Returned' | 'Missing' | 'Pending';
+    returnedAt?: string | Date;
+    returnChallanNumber?: string;
+    returnChallanId?: string;
 }
 
 export interface ChallanRecord {
     _id: string;
     challanNumber: string;
-    challanType: 'Delivery' | 'Return';
-    status: 'Active' | 'Completed' | 'Cancelled' | 'Transfer' | 'Returned';
-    vendor: {
+    challanType: 'Delivery' | 'Return' | 'Transfer' | 'Scrap';
+    status: 'Active' | 'Completed' | 'Cancelled' | 'Transfer' | 'Returned' | 'Pending';
+    isScrapDC?: boolean;
+    isStoreTransfer?: boolean;
+    project?: {
+        _id?: string;
+        name: string;
+        projectCode?: string;
+    };
+    sourceStore?: {
+        _id?: string;
+        name: string;
+        storeCode?: string;
+        location?: string;
+    };
+    destinationStore?: {
+        _id?: string;
+        name: string;
+        storeCode?: string;
+        location?: string;
+    };
+    vendor?: {
         _id?: string;
         name: string;
         vendorCode?: string;

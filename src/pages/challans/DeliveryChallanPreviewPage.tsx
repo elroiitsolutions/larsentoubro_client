@@ -233,9 +233,9 @@ export function DeliveryChallanPreviewPage() {
     const handleDownloadDraft = async () => {
         try {
             const draftData = {
-                challanNumber: state?.challanNumber || "DC-26-001",
+                challanNumber: isScrapDC ? "SDC-26-001" : "DC-26-001",
                 ...getChallanPayload(true),
-                indentNo: indentNo
+                 indentNo: indentNo
             };
             await generateDeliveryChallanPDF(draftData, { download: true, fileName: "Delivery_Challan_Draft.pdf" });
             toast.success("Downloaded Delivery Challan PDF Draft");
@@ -293,7 +293,9 @@ export function DeliveryChallanPreviewPage() {
                 }
 
                 setTimeout(() => {
-                    if (storeId) {
+                    if (isScrapDC) {
+                        navigate("/tools/scrap");
+                    } else if (storeId) {
                         navigate(`/stores/${storeId}/tools`);
                     } else {
                         navigate("/challans/history");

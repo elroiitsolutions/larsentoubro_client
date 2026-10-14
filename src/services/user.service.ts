@@ -10,6 +10,7 @@ export interface UserRecord {
     isVendor?: boolean;
     vendorCode?: string;
     allowedPages?: string[];
+    hasInspectionAccess?: boolean;
     projects?: any[];
     stores?: any[];
     createdAt?: string;

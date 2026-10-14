@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
@@ -18,9 +18,13 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function QuickToolViewPage() {
-    const { toolId } = useParams();
+    const { toolId, storeId: paramStoreId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
+
+    const queryStoreId = searchParams.get('storeId');
+    const queryProjectId = searchParams.get('projectId');
 
     const initialTool = (location.state as any)?.initialTool;
     const isModalOnly = Boolean((location.state as any)?.backgroundLocation);
@@ -30,7 +34,8 @@ export function QuickToolViewPage() {
     const [viewSchema, setViewSchema] = useState<any>(null);
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
-    const fromStoreId = (location.state as any)?.fromStoreId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
+    const fromStoreId = paramStoreId || queryStoreId || (location.state as any)?.fromStoreId || (location.state as any)?.storeId || initialTool?.currentSite?._id || (typeof initialTool?.currentSite === 'string' ? initialTool?.currentSite : undefined);
+    const fromProjectId = queryProjectId || (location.state as any)?.projectId || (location.state as any)?.fromProjectId || initialTool?.project?._id || (typeof initialTool?.project === 'string' ? initialTool?.project : undefined);
 
     const handleClose = () => {
         if (fromStoreId && typeof fromStoreId === 'string') {
@@ -44,11 +49,11 @@ export function QuickToolViewPage() {
         const fetchQuickToolData = async () => {
             try {
                 const [toolRes, schemaRes] = await Promise.allSettled([
-                    toolService.getToolById(toolId || ''),
+                    toolService.getToolById(toolId || '', fromStoreId, fromProjectId),
                     formService.getFormBySlug('tool-quick-view')
                 ]);
 
-                if (toolRes.status === 'fulfilled' && toolRes.value.success) {
+                if (toolRes.status === 'fulfilled' && toolRes.value.success && toolRes.value.data) {
                     setTool(toolRes.value.data);
                 } else if (!initialTool) {
                     toast.error("Failed to fetch tool information");
@@ -68,7 +73,7 @@ export function QuickToolViewPage() {
         if (toolId) {
             fetchQuickToolData();
         }
-    }, [toolId]);
+    }, [toolId, fromStoreId, fromProjectId]);
 
     useEffect(() => {
         if (tool) {
@@ -438,7 +443,7 @@ export function QuickToolViewPage() {
                         </div>
 
                         {/* Validity Status Banner */}
-                        {validityStatusInfo && (
+                        {isFieldVisible('validityStatus') && validityStatusInfo && (
                             <div className={`rounded-2xl p-2.5 flex items-center gap-2.5 border text-xs ${
                                 validityStatusInfo.status === 'VALID'
                                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'

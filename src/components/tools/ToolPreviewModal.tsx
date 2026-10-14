@@ -10,6 +10,8 @@ import toolService from "@/services/tool.service";
 
 interface ToolPreviewModalProps {
     toolId: string | null;
+    storeId?: string;
+    projectId?: string;
     isOpen: boolean;
     onClose: () => void;
     initialData?: any;
@@ -17,6 +19,8 @@ interface ToolPreviewModalProps {
 
 export function ToolPreviewModal({
     toolId,
+    storeId,
+    projectId,
     isOpen,
     onClose,
     initialData
@@ -88,13 +92,16 @@ export function ToolPreviewModal({
             return;
         }
 
-        // Otherwise fetch fresh data by toolId
+        // Otherwise fetch fresh data by toolId with store & project scope
         let isMounted = true;
         setLoading(true);
         setError(false);
 
+        const targetStoreId = storeId || initialData?.currentSite?._id || (typeof initialData?.currentSite === 'string' ? initialData?.currentSite : undefined);
+        const targetProjectId = projectId || initialData?.project?._id || (typeof initialData?.project === 'string' ? initialData?.project : undefined);
+
         toolService
-            .getToolById(toolId)
+            .getToolById(toolId, targetStoreId, targetProjectId)
             .then((res) => {
                 if (isMounted) {
                     if (res && res.success && res.data) {
@@ -119,13 +126,21 @@ export function ToolPreviewModal({
         return () => {
             isMounted = false;
         };
-    }, [toolId, isOpen, initialData]);
+    }, [toolId, isOpen, initialData, storeId, projectId]);
 
     const handleNavigateFullDetails = () => {
         const idToUse = tool?.toolId || tool?.toolCode || tool?._id || toolId;
         onClose();
         if (idToUse) {
-            navigate(`/tooldetails/${encodeURIComponent(idToUse)}`);
+            const effectiveStoreId = storeId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
+            const effectiveProjectId = projectId || tool?.project?._id || (typeof tool?.project === 'string' ? tool?.project : undefined);
+            navigate(`/tooldetails/${encodeURIComponent(idToUse)}`, {
+                state: {
+                    fromStoreId: effectiveStoreId,
+                    projectId: effectiveProjectId,
+                    initialTool: tool
+                }
+            });
         }
     };
 

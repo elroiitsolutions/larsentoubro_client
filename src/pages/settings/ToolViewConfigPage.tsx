@@ -65,18 +65,19 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
         { id: "safeWorkingLoad", name: "safeWorkingLoad", label: "Safe Working Load (SWL)", category: "specs", disabled: false, order: 5 },
         { id: "toolType", name: "toolType", label: "Tool Category", category: "specs", disabled: false, order: 6 },
         { id: "metalType", name: "metalType", label: "Material / Metal Type", category: "specs", disabled: false, order: 7 },
+        { id: "validityStatus", name: "validityStatus", label: "Validity Status Banner", category: "specs", disabled: false, order: 8 },
         
-        { id: "purchaserName", name: "purchaserName", label: "Supplier / Purchaser Name", category: "vendor", disabled: false, order: 8 },
-        { id: "supplierCode", name: "supplierCode", label: "Supplier Code", category: "vendor", disabled: false, order: 9 },
-        { id: "purchaserContact", name: "purchaserContact", label: "Purchaser Contact", category: "vendor", disabled: false, order: 10 },
-        { id: "dateOfSupply", name: "dateOfSupply", label: "Date of Supply / Receipt", category: "vendor", disabled: false, order: 11 },
-        { id: "validityPeriod", name: "validityPeriod", label: "Validation", category: "vendor", disabled: false, order: 12 },
+        { id: "purchaserName", name: "purchaserName", label: "Supplier / Purchaser Name", category: "vendor", disabled: false, order: 9 },
+        { id: "supplierCode", name: "supplierCode", label: "Supplier Code", category: "vendor", disabled: false, order: 10 },
+        { id: "purchaserContact", name: "purchaserContact", label: "Purchaser Contact", category: "vendor", disabled: false, order: 11 },
+        { id: "dateOfSupply", name: "dateOfSupply", label: "Date of Supply / Receipt", category: "vendor", disabled: false, order: 12 },
+        { id: "validityPeriod", name: "validityPeriod", label: "Validation", category: "vendor", disabled: false, order: 13 },
 
-        { id: "jobCode", name: "jobCode", label: "Job Number / Code", category: "allocation", disabled: false, order: 13 },
-        { id: "jobDescription", name: "jobDescription", label: "Job Description", category: "allocation", disabled: false, order: 14 },
-        { id: "currentSite", name: "currentSite", label: "Assigned Store", category: "allocation", disabled: false, order: 15 },
-        { id: "project", name: "project", label: "Assigned Project Site", category: "allocation", disabled: false, order: 16 },
-        { id: "subcontractorName", name: "subcontractorName", label: "Subcontractor Details", category: "allocation", disabled: false, order: 17 },
+        { id: "jobCode", name: "jobCode", label: "Job Number / Code", category: "allocation", disabled: false, order: 14 },
+        { id: "jobDescription", name: "jobDescription", label: "Job Description", category: "allocation", disabled: false, order: 15 },
+        { id: "currentSite", name: "currentSite", label: "Assigned Store", category: "allocation", disabled: false, order: 16 },
+        { id: "project", name: "project", label: "Assigned Project Site", category: "allocation", disabled: false, order: 17 },
+        { id: "subcontractorName", name: "subcontractorName", label: "Subcontractor Details", category: "allocation", disabled: false, order: 18 },
     ]
 
     const fetchSchema = async () => {

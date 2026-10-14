@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,15 +9,17 @@ import {
     Package,
     CheckCircle2,
     AlertTriangle,
-    ArrowRightLeft
+    ArrowRightLeft,
+    RotateCcw
 } from "lucide-react";
 import type { ChallanRecord } from "@/services/challan.service";
 import {
     getChallanStatusBadgeClass,
     getChallanTypeBadgeClass
 } from "@/utils/challan/challanCalculations";
-import { generateDeliveryChallanPDF, generateReturnChallanPDF } from "@/utils/pdf/challanPdfGenerator";
+import { generateDeliveryChallanPDF, generateReturnChallanPDF, generateTransferChallanPDF } from "@/utils/pdf/challanPdfGenerator";
 import challanService from "@/services/challan.service";
+import { ReturnToolSelectModal } from "./ReturnToolSelectModal";
 import { toast } from "sonner";
 import logoUrl from "@/assets/logo.png";
 
@@ -28,11 +31,16 @@ interface ChallanDetailModalProps {
 
 export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetailModalProps) {
     const navigate = useNavigate();
+    const [isReturnSelectModalOpen, setIsReturnSelectModalOpen] = useState(false);
     if (!challan) return null;
+
+    const isScrap = challan.isScrapDC || challan.challanType === "Scrap" || (challan.challanNumber && challan.challanNumber.startsWith("SDC-"));
 
     const handleDownloadPdf = async () => {
         try {
-            if (challan.challanType === "Delivery") {
+            if (challan.challanType === "Transfer" || challan.isStoreTransfer) {
+                await generateTransferChallanPDF(challan, { download: true });
+            } else if (challan.challanType === "Delivery" || isScrap) {
                 await generateDeliveryChallanPDF(challan, { download: true });
             } else {
                 await generateReturnChallanPDF(challan, { download: true });
@@ -45,6 +53,7 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
     };
 
     const isReturn = challan.challanType === "Return";
+    const isTransfer = challan.challanType === "Transfer" || challan.isStoreTransfer;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,8 +69,8 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                                     <DialogTitle className="text-xl sm:text-2xl font-black font-mono tracking-tight text-foreground whitespace-nowrap">
                                         {challan.challanNumber}
                                     </DialogTitle>
-                                    <span className={`${getChallanTypeBadgeClass(challan.challanType)} shrink-0`}>
-                                        {challan.challanType} Challan
+                                    <span className={`${getChallanTypeBadgeClass(isScrap ? "Scrap" : challan.challanType)} shrink-0`}>
+                                        {isScrap ? "Scrap" : isTransfer ? "Store Transfer" : challan.challanType} Challan
                                     </span>
                                     {(() => {
                                         const displayStatus = challan.status === "Returned" ? "Completed" : challan.status;
@@ -94,57 +103,92 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
 
                 {/* Metadata Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 bg-muted/30 p-3 sm:p-4 rounded-xl border border-border/60">
-                    <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                            <Building2 className="size-3.5 text-primary shrink-0" /> Consignee Vendor
-                        </p>
-                        <p className="font-bold text-sm text-foreground mt-1 truncate">{challan.vendor?.name}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{challan.vendor?.vendorCode || "-"}</p>
-                    </div>
-
-                    <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                            <Calendar className="size-3.5 text-primary shrink-0" /> Dates & Reference
-                        </p>
-                        <p className="text-xs text-foreground mt-1">
-                            <strong>Challan Date:</strong> {new Date(challan.challanDate).toLocaleDateString()}
-                        </p>
-                        {challan.indentNo && challan.indentNo !== '-' && (
-                            <p className="text-xs text-foreground mt-0.5">
-                                <strong>Indent No:</strong> <span className="font-mono font-bold text-foreground">{challan.indentNo}</span>
-                            </p>
-                        )}
-                        {isReturn && challan.referenceDcNumber && (
-                            <p className="text-xs text-foreground mt-0.5 truncate">
-                                <strong>Reference DC:</strong> <span className="font-mono text-primary font-bold">{challan.referenceDcNumber}</span>
-                            </p>
-                        )}
-                        {!isReturn && challan.transferFromDcNumber && (
-                            <p className="text-xs text-foreground mt-0.5 truncate">
-                                <strong>Transfer from DC:</strong> <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">{challan.transferFromDcNumber}</span>
-                            </p>
-                        )}
-                        {challan.transferredToDcNumber && (
-                            <p className="text-xs text-foreground mt-0.5 truncate">
-                                <strong>Transferred to DC:</strong> <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">{challan.transferredToDcNumber}</span>
-                            </p>
-                        )}
-                    </div>
-
-                    <div className="sm:col-span-2 md:col-span-1">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                            <Package className="size-3.5 text-primary shrink-0" /> Inventory Summary
-                        </p>
-                        <p className="text-xs text-foreground mt-1">
-                            <strong>Total Items:</strong> {challan.toolCount || (challan.items || []).length}
-                        </p>
-                        {isReturn && (
-                            <div className="flex items-center gap-3 mt-1 text-xs font-semibold">
-                                <span className="text-emerald-600">Returned: {challan.returnedCount || 0}</span>
-                                <span className="text-rose-600">Missing: {challan.missingCount || 0}</span>
+                    {isTransfer ? (
+                        <>
+                            <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                                    <Building2 className="size-3.5 text-primary shrink-0" /> Source Store
+                                </p>
+                                <p className="font-bold text-sm text-foreground mt-1 truncate">{challan.sourceStore?.name || "Source Store"}</p>
+                                <p className="font-mono text-xs text-muted-foreground">{challan.sourceStore?.location ? `Loc: ${challan.sourceStore.location}` : challan.sourceStore?.storeCode || "-"}</p>
                             </div>
-                        )}
-                    </div>
+
+                            <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                                    <Building2 className="size-3.5 text-emerald-600 shrink-0" /> Destination Store
+                                </p>
+                                <p className="font-bold text-sm text-foreground mt-1 truncate">{challan.destinationStore?.name || "Destination Store"}</p>
+                                <p className="font-mono text-xs text-muted-foreground">{challan.destinationStore?.location ? `Loc: ${challan.destinationStore.location}` : challan.destinationStore?.storeCode || "-"}</p>
+                            </div>
+
+                            <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                                    <Calendar className="size-3.5 text-primary shrink-0" /> Project Details
+                                </p>
+                                <p className="font-bold text-sm text-foreground mt-1 truncate">{challan.project?.name || "Project Store Transfer"}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Date: {new Date(challan.challanDate).toLocaleDateString()}</p>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                                    <Building2 className="size-3.5 text-primary shrink-0" /> Consignee Vendor
+                                </p>
+                                <p className="font-bold text-sm text-foreground mt-1 truncate">{challan.vendor?.name || "-"}</p>
+                                <p className="font-mono text-xs text-muted-foreground">{challan.vendor?.vendorCode || "-"}</p>
+                            </div>
+
+                            <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                                    <Calendar className="size-3.5 text-primary shrink-0" /> Dates & Reference
+                                </p>
+                                <p className="text-xs text-foreground mt-1">
+                                    <strong>Challan Date:</strong> {new Date(challan.challanDate).toLocaleDateString()}
+                                </p>
+                                {isReturn && challan.referenceDcNumber && (
+                                    <p className="text-xs text-foreground mt-0.5 truncate">
+                                        <strong>Reference DC:</strong> <span className="font-mono text-primary font-bold">{challan.referenceDcNumber}</span>
+                                    </p>
+                                )}
+                                {!isReturn && challan.transferFromDcNumber && (
+                                    <p className="text-xs text-foreground mt-0.5 truncate">
+                                        <strong>Transfer from DC:</strong> <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">{challan.transferFromDcNumber}</span>
+                                    </p>
+                                )}
+                                {challan.transferredToDcNumber && (
+                                    <p className="text-xs text-foreground mt-0.5 truncate">
+                                        <strong>Transferred to DC:</strong> <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">{challan.transferredToDcNumber}</span>
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="sm:col-span-2 md:col-span-1">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                                    <Package className="size-3.5 text-primary shrink-0" /> Inventory Summary
+                                </p>
+                                <p className="text-xs text-foreground mt-1">
+                                    <strong>Total Items:</strong> {challan.toolCount || (challan.items || []).length}
+                                </p>
+                                {isReturn ? (
+                                    <div className="flex items-center gap-3 mt-1 text-xs font-semibold">
+                                        <span className="text-emerald-600">Returned: {challan.returnedCount || 0}</span>
+                                        <span className="text-rose-600">Missing: {challan.missingCount || 0}</span>
+                                    </div>
+                                ) : challan.challanType === 'Delivery' ? (
+                                    <div className="flex flex-wrap items-center gap-2 mt-1 text-xs font-semibold">
+                                        <span className="text-emerald-600">Returned: {challan.returnedCount || 0}</span>
+                                        <span className="text-amber-600">
+                                            Pending: {Math.max(0, (challan.toolCount || (challan.items || []).length) - ((challan.returnedCount || 0) + (challan.missingCount || 0)))}
+                                        </span>
+                                        {(challan.missingCount || 0) > 0 && (
+                                            <span className="text-rose-600">Missing: {challan.missingCount || 0}</span>
+                                        )}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Remarks & Notes */}
@@ -187,11 +231,11 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                                         <td className="px-4 py-2.5 text-center">
                                             {item.returnStatus === "Returned" ? (
                                                 <span className="inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-xs font-semibold">
-                                                    <CheckCircle2 className="size-3" /> Returned
+                                                    <CheckCircle2 className="size-3" /> Returned {item.returnChallanNumber ? `(${item.returnChallanNumber})` : ""}
                                                 </span>
                                             ) : item.returnStatus === "Missing" ? (
                                                 <span className="inline-flex items-center gap-1 bg-rose-500/15 text-rose-700 dark:text-rose-400 px-2 py-0.5 rounded-full text-xs font-semibold">
-                                                    <AlertTriangle className="size-3" /> Missing
+                                                    <AlertTriangle className="size-3" /> Missing {item.returnChallanNumber ? `(${item.returnChallanNumber})` : ""}
                                                 </span>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full text-xs font-semibold">
@@ -210,59 +254,92 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                     <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full sm:w-24">
                         Close
                     </Button>
-                    {challan.challanType === "Delivery" && challan.status === "Active" && (
-                        <Button
-                            size="sm"
-                            className="w-full sm:w-auto h-9 px-3.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5"
-                            onClick={() => {
-                                onOpenChange(false);
-                                navigate("/challans/delivery/preview", {
-                                    state: {
-                                        isTransfer: true,
-                                        transferFromDcId: challan._id,
-                                        transferFromDcNumber: challan.challanNumber,
-                                        selectedTools: (challan.items || []).map((t: any, idx: number) => ({
-                                            _id: t.tool?._id || t.tool,
-                                            toolId: t.toolId || `TOOL-${idx}`,
-                                            toolCode: t.toolCode || "",
-                                            materialCode: t.toolCode || t.materialCode || `MAT-${1000 + idx}`,
-                                            description: t.description || "Tool Item",
-                                            quantity: Number(t.quantity || 1),
-                                            unit: t.unit || "NOS",
-                                            rate: Number(t.rate || 0),
-                                            remarks: t.remarks || "",
-                                            status: "Available"
-                                        })),
-                                        vendor: challan.vendor,
-                                        storeId: challan.store?._id || challan.store,
-                                        siteCode: "",
-                                        previousSiteCode: challan.siteCode || "",
-                                        subcontractorName: challan.subcontractorName || challan.vendor?.name,
-                                        locationChainage: challan.locationChainage || "",
-                                        workFrontLocation: challan.workFrontLocation || "",
-                                        trnCode: challan.trnCode || "M 25",
-                                        sendingCentreCode: challan.sendingCentreCode || "-",
-                                        mrNo: challan.mrNo || "-",
-                                        mrDate: challan.mrDate || "-",
-                                        stockType: challan.stockType || "-",
-                                        ewayBillNo: challan.ewayBillNo || "-",
-                                        gatePassNo: challan.gatePassNo || "-",
-                                        gatePassApprovedBy: challan.gatePassApprovedBy || "-",
-                                        consignorTaxNo: challan.consignorTaxNo || challan.vendor?.gstNumber || "-",
-                                        vehicleNo: challan.vehicleNo || "-",
-                                        lrNo: challan.lrNo || "-",
-                                        freightStatus: challan.freightStatus || "-",
-                                        remarks: `Site Transfer from ${challan.challanNumber}`
-                                    }
-                                });
-                            }}
-                        >
-                            <ArrowRightLeft className="size-3.5" />
-                            <span>Transfer to Another Site</span>
-                        </Button>
+                    {challan.challanType === "Delivery" && (challan.status === "Active" || challan.status === "Pending") && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                size="sm"
+                                className="h-9 px-3.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs flex items-center gap-1.5"
+                                onClick={() => {
+                                    setIsReturnSelectModalOpen(true);
+                                }}
+                            >
+                                <RotateCcw className="size-3.5" />
+                                <span>{challan.status === "Pending" ? "Return Remaining Tools" : "Create Return Challan"}</span>
+                            </Button>
+
+                            <Button
+                                size="sm"
+                                className="h-9 px-3.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-1.5"
+                                onClick={() => {
+                                    onOpenChange(false);
+                                    navigate("/challans/delivery/preview", {
+                                        state: {
+                                            isTransfer: true,
+                                            transferFromDcId: challan._id,
+                                            transferFromDcNumber: challan.challanNumber,
+                                            selectedTools: (challan.items || [])
+                                                .filter((t: any) => t.returnStatus !== "Returned" && t.returnStatus !== "Missing")
+                                                .map((t: any, idx: number) => ({
+                                                    _id: t.tool?._id || t.tool,
+                                                    toolId: t.toolId || `TOOL-${idx}`,
+                                                    toolCode: t.toolCode || "",
+                                                    materialCode: t.toolCode || t.materialCode || `MAT-${1000 + idx}`,
+                                                    description: t.description || "Tool Item",
+                                                    quantity: Number(t.quantity || 1),
+                                                    unit: t.unit || "NOS",
+                                                    rate: Number(t.rate || 0),
+                                                    remarks: t.remarks || "",
+                                                    status: "Moving"
+                                                })),
+                                            vendor: challan.vendor,
+                                            storeId: challan.store?._id || challan.store,
+                                            siteCode: "",
+                                            previousSiteCode: challan.siteCode || "",
+                                            subcontractorName: challan.subcontractorName || challan.vendor?.name,
+                                            locationChainage: challan.locationChainage || "",
+                                            workFrontLocation: challan.workFrontLocation || "",
+                                            trnCode: challan.trnCode || "M 25",
+                                            sendingCentreCode: challan.sendingCentreCode || "-",
+                                            mrNo: challan.mrNo || "-",
+                                            mrDate: challan.mrDate || "-",
+                                            stockType: challan.stockType || "-",
+                                            ewayBillNo: challan.ewayBillNo || "-",
+                                            gatePassNo: challan.gatePassNo || "-",
+                                            gatePassApprovedBy: challan.gatePassApprovedBy || "-",
+                                            consignorTaxNo: challan.consignorTaxNo || challan.vendor?.gstNumber || "-",
+                                            vehicleNo: challan.vehicleNo || "-",
+                                            lrNo: challan.lrNo || "-",
+                                            freightStatus: challan.freightStatus || "-",
+                                            remarks: `Site Transfer from ${challan.challanNumber}`
+                                        }
+                                    });
+                                }}
+                            >
+                                <ArrowRightLeft className="size-3.5" />
+                                <span>Transfer to Another Site</span>
+                            </Button>
+                        </div>
                     )}
                 </DialogFooter>
             </DialogContent>
+
+            {challan && isReturnSelectModalOpen && (
+                <ReturnToolSelectModal
+                    open={isReturnSelectModalOpen}
+                    onOpenChange={setIsReturnSelectModalOpen}
+                    challan={challan}
+                    onProceed={(dc, selectedToolIds) => {
+                        setIsReturnSelectModalOpen(false);
+                        onOpenChange(false);
+                        navigate(`/challans/return/preview/${dc._id}`, {
+                            state: {
+                                referenceDc: dc,
+                                selectedToolIds
+                            }
+                        });
+                    }}
+                />
+            )}
         </Dialog>
     );
 }

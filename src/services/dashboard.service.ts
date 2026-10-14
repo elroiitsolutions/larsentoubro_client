@@ -8,6 +8,7 @@ export interface SummaryCardsData {
     inspectionDue: number;
     expired: number;
     damagedRepair: number;
+    repair?: number;
     scrap: number;
     usable: number;
     unusable: number;
@@ -82,6 +83,8 @@ export interface AlertItem {
     message: string;
     toolId?: string;
     toolDbId?: string;
+    project?: any;
+    store?: any;
     date: string | Date;
 }
 
