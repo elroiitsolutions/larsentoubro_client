@@ -12,7 +12,8 @@ import {
     CheckCircle2,
     XCircle,
     AlertTriangle,
-    QrCode
+    QrCode,
+    Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -83,6 +84,37 @@ export function QuickToolViewPage() {
                 .catch(err => console.error("QR Code generation error:", err));
         }
     }, [tool, toolId]);
+
+    const handleDownloadQr = async (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        try {
+            const rawTargetId = tool?.toolId || tool?.toolCode || toolId || 'tool-qr';
+            const targetId = (rawTargetId || '').replace(/^__TRASHED_[^_]+_/, '').replace(/^__RESTORE_TEMP_[^_]+_/, '');
+            const link = tool?.qrLink || `https://lntqr.com/vt/${targetId}`;
+            
+            // Generate clean high-resolution QR with white background for print/scan clarity
+            const downloadUrl = await QRCode.toDataURL(link, {
+                margin: 2,
+                width: 600,
+                errorCorrectionLevel: 'H',
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            });
+
+            const linkElem = document.createElement('a');
+            linkElem.href = downloadUrl;
+            linkElem.download = `${targetId}_QR.png`;
+            document.body.appendChild(linkElem);
+            linkElem.click();
+            document.body.removeChild(linkElem);
+            toast.success(`QR code downloaded for ${targetId}`);
+        } catch (err) {
+            console.error("Error downloading QR code:", err);
+            toast.error("Failed to download QR code");
+        }
+    };
 
     // Helper to check if field is visible per Admin settings
     const isFieldVisible = (fieldName: string) => {
@@ -216,7 +248,8 @@ export function QuickToolViewPage() {
     };
 
     // Extracted Field Values
-    const toolIdVal = tool?.toolId || getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || '-';
+    const rawToolIdVal = tool?.toolId || getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || '-';
+    const toolIdVal = (rawToolIdVal || '').replace(/^__TRASHED_[^_]+_/, '').replace(/^__RESTORE_TEMP_[^_]+_/, '');
     const makeYearVal = getFieldValue('makeYear', ['make_year', 'Make Year', 'year']) || '-';
     const capacityVal = getFieldValue('capacity') || '-';
     const safeWorkingLoadVal = getFieldValue('safeWorkingLoad') || '-';
@@ -382,11 +415,21 @@ export function QuickToolViewPage() {
                                 </div>
                             </div>
 
-                            {/* Top-Right QR Code Graphic Box */}
+                            {/* Top-Right QR Code Graphic Box with Hover Download */}
                             <div className="shrink-0">
-                                <div className="size-16 rounded-xl border border-border/60 bg-transparent p-0 flex items-center justify-center">
+                                <div className="group relative size-16 rounded-xl border border-border/60 bg-white dark:bg-card p-0 flex items-center justify-center overflow-hidden shadow-xs">
                                     {qrCodeDataUrl ? (
-                                        <img src={qrCodeDataUrl} alt={toolIdVal} className="size-full object-contain" />
+                                        <>
+                                            <img src={qrCodeDataUrl} alt={toolIdVal} className="size-full object-contain" />
+                                            <button
+                                                type="button"
+                                                onClick={handleDownloadQr}
+                                                title="Click to Download QR Code"
+                                                className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[1px]"
+                                            >
+                                                <Download className="size-5 drop-shadow" />
+                                            </button>
+                                        </>
                                     ) : (
                                         <QrCode className="size-7 text-muted-foreground" />
                                     )}

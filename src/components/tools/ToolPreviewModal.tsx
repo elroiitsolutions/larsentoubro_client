@@ -4,7 +4,8 @@ import QRCode from "qrcode";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QrCode, ExternalLink, AlertCircle } from "lucide-react";
+import { QrCode, ExternalLink, AlertCircle, Download } from "lucide-react";
+import { toast } from "sonner";
 import toolService from "@/services/tool.service";
 
 interface ToolPreviewModalProps {
@@ -41,6 +42,36 @@ export function ToolPreviewModal({
                 .catch(err => console.error("QR Code rendering error:", err));
         }
     }, [tool, toolId]);
+
+    const handleDownloadQr = async (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        try {
+            const targetId = tool?.toolId || tool?.toolCode || toolId || 'tool-qr';
+            const link = tool?.qrLink || `https://lntqr.com/vt/${targetId}`;
+            
+            // Generate clean high-resolution QR with white background
+            const downloadUrl = await QRCode.toDataURL(link, {
+                margin: 2,
+                width: 600,
+                errorCorrectionLevel: 'H',
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            });
+
+            const linkElem = document.createElement('a');
+            linkElem.href = downloadUrl;
+            linkElem.download = `${targetId}_QR.png`;
+            document.body.appendChild(linkElem);
+            linkElem.click();
+            document.body.removeChild(linkElem);
+            toast.success(`QR code downloaded for ${targetId}`);
+        } catch (err) {
+            console.error("Error downloading QR code:", err);
+            toast.error("Failed to download QR code");
+        }
+    };
 
     useEffect(() => {
         if (!isOpen || !toolId) {
@@ -117,7 +148,8 @@ export function ToolPreviewModal({
     };
 
     const toolName = tool?.description || tool?.name || "Tool Information";
-    const toolCode = tool?.toolCode || getFieldValue('toolCode', ['tool_code', 'tag', 'Tag']) || tool?.toolId || toolId || "AR0226UWER";
+    const rawToolCode = tool?.toolCode || getFieldValue('toolCode', ['tool_code', 'tag', 'Tag']) || tool?.toolId || toolId || "AR0226UWER";
+    const toolCode = (rawToolCode || '').replace(/^__TRASHED_[^_]+_/, '').replace(/^__RESTORE_TEMP_[^_]+_/, '');
     
     // Sub-header details line (e.g. 2025 • 2 Tonnes • SWL 3 Tonnes)
     const makeYear = getFieldValue('makeYear', ['make_year', 'Year', 'year']) || (tool?.createdAt ? new Date(tool.createdAt).getFullYear() : '2025');
@@ -198,13 +230,25 @@ export function ToolPreviewModal({
                                     </p>
                                 </div>
 
-                                {/* QR Code Graphic Box */}
-                                <div className="shrink-0 size-16 rounded-xl border border-border/60 bg-transparent p-0 flex items-center justify-center">
-                                    {qrCodeDataUrl ? (
-                                        <img src={qrCodeDataUrl} alt={toolCode} className="size-full object-contain" />
-                                    ) : (
-                                        <QrCode className="size-8 text-muted-foreground" />
-                                    )}
+                                {/* Top-Right QR Code Graphic Box with Hover Download */}
+                                <div className="shrink-0">
+                                    <div className="group relative size-16 rounded-xl border border-border/60 bg-white dark:bg-card p-0 flex items-center justify-center overflow-hidden shadow-xs">
+                                        {qrCodeDataUrl ? (
+                                            <>
+                                                <img src={qrCodeDataUrl} alt={toolCode} className="size-full object-contain" />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDownloadQr}
+                                                    title="Click to Download QR Code"
+                                                    className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[1px]"
+                                                >
+                                                    <Download className="size-5 drop-shadow" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <QrCode className="size-8 text-muted-foreground" />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
