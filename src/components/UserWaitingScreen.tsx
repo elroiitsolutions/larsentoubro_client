@@ -128,14 +128,14 @@ export function UserWaitingScreen({ requestId, email, onApproved, onCancel }: Us
                 <CardDescription className="text-xs text-muted-foreground leading-relaxed">
                     {status === "PENDING" && (
                         <>
-                            Login request sent for <strong className="text-foreground">{email}</strong>. Waiting for administrator approval.
+                            Login request sent for <strong className="text-foreground">{email}</strong>. Waiting for approval from your parent user or administrator.
                         </>
                     )}
                     {status === "REJECTED" && (
-                        <span>Your login request was rejected by the administrator.</span>
+                        <span>Your login request was rejected.</span>
                     )}
                     {status === "EXPIRED" && (
-                        <span>Your login request timed out after 10 minutes without administrator approval.</span>
+                        <span>Your login request timed out after 10 minutes without approval.</span>
                     )}
                 </CardDescription>
             </CardHeader>

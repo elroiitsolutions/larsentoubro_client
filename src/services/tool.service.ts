@@ -327,11 +327,41 @@ export const toolService = {
     },
 
     /**
-     * Fetches created tools for an import job, including base64 QR Code data URLs.
+     * Fetches created tools for an import job with pagination, filters, and search.
+     * Returns lightweight tool metadata with qrLink (QR images are rendered on the client).
      */
-    getImportedJobTools: async (storeId: string, jobId: string): Promise<{ success: boolean; data: any[] }> => {
-        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/imported-tools`;
-        const response = await api.get<{ success: boolean; data: any[] }>(url);
+    getImportedJobTools: async (
+        storeId: string, 
+        jobId: string, 
+        params?: { 
+            page?: number; 
+            pageSize?: number; 
+            filter?: 'all' | 'printed' | 'unprinted'; 
+            search?: string; 
+            offset?: number; 
+            limit?: number; 
+        }
+    ): Promise<{ 
+        success: boolean; 
+        data: {
+            tools: any[];
+            pagination: { page: number; pageSize: number; total: number; totalPages: number };
+            stats?: { total: number; printedCount: number; unprintedCount: number };
+            jobStatus?: string;
+            progress?: any;
+        } 
+    }> => {
+        const searchParams = new URLSearchParams();
+        if (params?.page) searchParams.append('page', String(params.page));
+        if (params?.pageSize) searchParams.append('pageSize', String(params.pageSize));
+        if (params?.filter) searchParams.append('filter', params.filter);
+        if (params?.search) searchParams.append('search', params.search);
+        if (params?.offset !== undefined) searchParams.append('offset', String(params.offset));
+        if (params?.limit !== undefined) searchParams.append('limit', String(params.limit));
+
+        const query = searchParams.toString();
+        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/imported-tools${query ? `?${query}` : ''}`;
+        const response = await api.get(url);
         return response.data;
     },
 

@@ -297,8 +297,20 @@ export function ToolPreviewModal({
                                 <div className="space-y-1">
                                     <span className="text-[11px] text-muted-foreground block">Last Inspection</span>
                                     <span className="font-semibold text-foreground block mb-1">{lastInspection}</span>
-                                    <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-                                        {status}
+                                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold border ${
+                                        status === "Available" || status === "Usable"
+                                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                                            : status === "Moving" || status === "Issued" || status === "In Use"
+                                            ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30"
+                                            : status === "Missing"
+                                            ? "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30"
+                                            : (typeof status === "string" && status.toLowerCase().includes("repair"))
+                                            ? "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30 font-bold"
+                                            : status === "Scrapped" || tool?.isScrapped
+                                            ? "bg-gray-500/15 text-gray-700 dark:text-gray-400 border-gray-500/30"
+                                            : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                    }`}>
+                                        {tool?.isScrapped && status !== "Scrapped" ? "Scrapped" : (typeof status === "string" && status.toLowerCase().includes("repair") ? "Under Repair" : status)}
                                     </span>
                                 </div>
 

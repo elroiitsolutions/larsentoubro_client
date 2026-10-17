@@ -61,10 +61,10 @@ export function LoginForm({
     try {
       const data : any = await authService.login({ email, password })
 
-      if (data.requestId || data.data?.requestId || data.message?.includes("Waiting for administrator")) {
+      if (data.requestId || data.data?.requestId || data.message?.includes("Waiting for")) {
         const reqId = data.requestId || data.data?.requestId
         setPendingReq({ requestId: reqId, email })
-        toast.info("Login request sent. Waiting for administrator approval.")
+        toast.info(data.message || "Login request sent. Waiting for approval.")
         setLoading(false)
         return
       }
@@ -77,10 +77,10 @@ export function LoginForm({
       login(data.token, data.user)
     } catch (err: any) {
       const resData = err?.response?.data
-      if (resData?.requestId || resData?.message?.includes("Waiting for administrator")) {
+      if (resData?.requestId || resData?.message?.includes("Waiting for")) {
         const reqId = resData.requestId || resData?.data?.requestId
         setPendingReq({ requestId: reqId, email })
-        toast.info("Login request sent. Waiting for administrator approval.")
+        toast.info(resData?.message || "Login request sent. Waiting for approval.")
         setLoading(false)
         return
       }

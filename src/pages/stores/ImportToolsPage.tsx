@@ -46,6 +46,16 @@ export function ImportToolsPage() {
     // Progress state
     const [progress, setProgress] = useState({ percentage: 0, processedCount: 0, successCount: 0, failedCount: 0, totalToProcess: 0, failedRows: [] as any[] });
     const [result, setResult] = useState<any>(null);
+    const eventSourceRef = useRef<EventSource | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+                eventSourceRef.current = null;
+            }
+        };
+    }, []);
 
     // Fetch page from server
     const fetchPage = useCallback(async (page: number, size: number, jId?: string) => {
@@ -128,32 +138,46 @@ export function ImportToolsPage() {
                 // Connect SSE
                 const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
                 const token = localStorage.getItem('token') || '';
+                if (eventSourceRef.current) {
+                    eventSourceRef.current.close();
+                }
                 const es = new EventSource(`${baseUrl}/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/progress?token=${token}`);
+                eventSourceRef.current = es;
+
                 es.onmessage = (event) => {
                     try {
                         const msg = JSON.parse(event.data);
                         if (msg.progress) setProgress(p => ({ ...p, ...msg.progress }));
                         if (msg.status === 'completed') {
                             es.close();
+                            eventSourceRef.current = null;
                             setResult({ successCount: msg.progress?.successCount || 0, failedCount: msg.progress?.failedCount || 0, failedRows: msg.progress?.failedRows || [] });
                             setStep('result');
                             toast.success(`Imported ${msg.progress?.successCount || 0} tools`);
                         }
                         if (msg.status === 'failed') {
                             es.close();
+                            eventSourceRef.current = null;
                             toast.error("Import failed: " + (msg.error || "Unknown error"));
                             setResult({ successCount: msg.progress?.successCount || 0, failedCount: msg.progress?.failedCount || 0, failedRows: msg.progress?.failedRows || [] });
                             setStep('result');
                         }
                     } catch {}
                 };
-                es.onerror = () => { es.close(); };
+                es.onerror = () => { 
+                    es.close(); 
+                    eventSourceRef.current = null;
+                };
             } else { toast.error(data.message || "Failed to start import"); }
         } catch (e: any) { toast.error(e?.response?.data?.message || "Commit error"); }
         finally { setLoading(false); }
     };
 
     const reset = () => {
+        if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+            eventSourceRef.current = null;
+        }
         setFile(null); setPreviewMeta(null); setJobId(null); setColumns([]);
         setCurrentRecords([]); setResult(null); setProgress({ percentage: 0, processedCount: 0, successCount: 0, failedCount: 0, totalToProcess: 0, failedRows: [] });
         setStep('upload');
@@ -272,16 +296,84 @@ export function ImportToolsPage() {
                 )}
 
                 {step === 'processing' && (
-                    <div className="flex flex-col h-full items-center justify-center p-12 gap-8">
-                        <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center ring-8 ring-primary/5 animate-pulse"><Loader2 className="size-10 text-primary animate-spin" /></div>
-                        <div className="text-center"><h2 className="text-2xl font-bold mb-2">Importing Records...</h2><p className="text-muted-foreground">Processing {progress.totalToProcess.toLocaleString()} records in batches. Do not close this page.</p></div>
-                        <div className="w-full max-w-md">
-                            <div className="flex justify-between text-sm mb-2"><span className="font-medium">{progress.percentage}%</span><span className="text-muted-foreground">{progress.processedCount.toLocaleString()} / {progress.totalToProcess.toLocaleString()}</span></div>
-                            <div className="h-4 bg-muted rounded-full overflow-hidden shadow-inner"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress.percentage}%` }} /></div>
-                            <div className="flex gap-6 mt-4 text-sm justify-center">
-                                <span className="text-emerald-600 font-medium">✓ {progress.successCount.toLocaleString()} imported</span>
-                                {progress.failedCount > 0 && <span className="text-rose-600 font-medium">✕ {progress.failedCount.toLocaleString()} failed</span>}
+                    <div className="flex flex-col h-full overflow-hidden">
+                        {progress.successCount === 0 ? (
+                            <div className="flex flex-col h-full items-center justify-center p-12 gap-8 my-auto">
+                                <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center ring-8 ring-primary/5 animate-pulse">
+                                    <Loader2 className="size-10 text-primary animate-spin" />
+                                </div>
+                                <div className="text-center">
+                                    <h2 className="text-2xl font-bold mb-2">Starting Tool Import...</h2>
+                                    <p className="text-muted-foreground">Preparing {progress.totalToProcess.toLocaleString()} records. Tools and QR labels will display here as each batch is saved.</p>
+                                </div>
+                                <div className="w-full max-w-md">
+                                    <div className="flex justify-between text-sm mb-2">
+                                        <span className="font-medium">{progress.percentage}%</span>
+                                        <span className="text-muted-foreground">{progress.processedCount.toLocaleString()} / {progress.totalToProcess.toLocaleString()}</span>
+                                    </div>
+                                    <div className="h-3 bg-muted rounded-full overflow-hidden shadow-inner">
+                                        <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress.percentage}%` }} />
+                                    </div>
+                                </div>
                             </div>
+                        ) : (
+                            <div className="flex-1 overflow-auto p-6 max-w-6xl mx-auto w-full space-y-6">
+                                {/* Live Progress Banner */}
+                                <div className="bg-gradient-to-r from-primary/10 via-background to-emerald-500/10 border border-primary/20 rounded-2xl p-5 shadow-sm space-y-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="size-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                                                <Loader2 className="size-5 animate-spin" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-bold text-foreground">
+                                                    Importing in Background ({progress.percentage}%)
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Processed {progress.processedCount.toLocaleString()} of {progress.totalToProcess.toLocaleString()} records.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs font-semibold">
+                                            <span className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                                ✓ {progress.successCount.toLocaleString()} imported so far
+                                            </span>
+                                            {progress.failedCount > 0 && (
+                                                <span className="text-rose-600 dark:text-rose-400 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
+                                                    ✕ {progress.failedCount.toLocaleString()} failed
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="h-2.5 bg-muted rounded-full overflow-hidden shadow-inner">
+                                        <div 
+                                            className="h-full bg-gradient-to-r from-primary to-emerald-500 rounded-full transition-all duration-500 ease-out" 
+                                            style={{ width: `${progress.percentage}%` }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Active Live QR Code Grid */}
+                                {jobId && storeId && (
+                                    <BulkQrCodeGrid 
+                                        storeId={storeId} 
+                                        jobId={jobId} 
+                                        isLiveProcessing={true}
+                                        liveSuccessCount={progress.successCount}
+                                    />
+                                )}
+                            </div>
+                        )}
+                        <div className="p-4 border-t bg-muted/20 flex justify-end gap-3 shrink-0 mt-auto">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => navigate(`/stores/${storeId}/tools`, { state: { breadcrumbs: parentBreadcrumbs } })}
+                                className="text-xs"
+                            >
+                                View in Main Inventory
+                            </Button>
                         </div>
                     </div>
                 )}

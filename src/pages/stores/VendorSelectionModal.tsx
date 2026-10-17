@@ -38,7 +38,7 @@ interface VendorSelectionModalProps {
 
 export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeId }: VendorSelectionModalProps) {
     const navigate = useNavigate();
-    const [recipientType, setRecipientType] = useState<"Subcontractor" | "ScrapDealer">("Subcontractor");
+    const [recipientType] = useState<"Subcontractor" | "ScrapDealer">("Subcontractor");
     const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);

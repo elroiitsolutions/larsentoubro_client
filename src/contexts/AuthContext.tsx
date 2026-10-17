@@ -9,6 +9,9 @@ export interface User {
     user_id: string
     email: string
     id: string
+    _id?: string
+    parentUser?: any
+    canCreateUser?: boolean
     isVendor?: boolean
     allowedPages?: string[]
     hasInspectionAccess?: boolean
@@ -55,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     user_id: u.user_id || u.vendorCode || u._id,
                     email: u.email,
                     id: u._id,
+                    parentUser: u.parentUser,
+                    canCreateUser: Boolean(u.role === 'Admin' || u.canCreateUser),
                     isVendor: isVendorRole,
                     allowedPages: pages,
                     hasInspectionAccess: Boolean(u.role === 'Admin' || u.hasInspectionAccess),
@@ -95,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 user_id: userId || id,
                 email,
                 id,
+                canCreateUser: role === 'Admin',
                 isVendor: isVendorRole,
                 allowedPages: initialAllowed,
                 hasInspectionAccess: role === 'Admin',
@@ -135,6 +141,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user_id: userIdVal,
             email: userData.email,
             id: userData._id || userData.id,
+            parentUser: userData.parentUser,
+            canCreateUser: Boolean(userData.role === 'Admin' || userData.canCreateUser),
             isVendor: isVendorRole,
             allowedPages: userAllowedPages,
             hasInspectionAccess: Boolean(userData.role === 'Admin' || userData.hasInspectionAccess),
@@ -145,6 +153,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const logout = () => {
+        // Trigger backend session duration recording
+        userService.logout().catch(() => {})
+
         eraseCookie("token")
         localStorage.removeItem("token")
         localStorage.removeItem("allowedPages")
