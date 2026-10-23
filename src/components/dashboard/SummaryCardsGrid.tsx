@@ -6,9 +6,11 @@ import {
     CheckCircle2,
     Truck,
     HelpCircle,
+    Archive,
     FolderKanban,
     Store as StoreIcon,
-    Building2
+    Building2,
+    Hammer
 } from "lucide-react";
 import type { SummaryCardsData, DivisionNode, DashboardFilterParams } from "@/services/dashboard.service";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +26,8 @@ interface Props {
 
 export const SummaryCardsGrid: React.FC<Props> = ({
     data,
+    onCardClick,
+    activeStatus,
     hierarchyData,
     filters,
     onChangeFilter
@@ -98,6 +102,18 @@ export const SummaryCardsGrid: React.FC<Props> = ({
             badgeText: "Store/HUB Movement"
         },
         {
+            key: "repair",
+            title: "Repair",
+            count: data.repair ?? data.damagedRepair ?? 0,
+            icon: Hammer,
+            filterVal: "Repair",
+            gradient: "from-orange-600/10 via-orange-500/5 to-transparent",
+            borderColor: "border-orange-500/30",
+            textColor: "text-orange-600 dark:text-orange-400",
+            bgColor: "bg-orange-500/10",
+            badgeText: "Under Repair"
+        },
+        {
             key: "missing",
             title: "Missing",
             count: data.missing,
@@ -108,6 +124,18 @@ export const SummaryCardsGrid: React.FC<Props> = ({
             textColor: "text-red-600",
             bgColor: "bg-red-600/10",
             badgeText: "Investigation Flag"
+        },
+        {
+            key: "scrap",
+            title: "Scrap",
+            count: data.scrap ?? 0,
+            icon: Archive,
+            filterVal: "Scrap",
+            gradient: "from-amber-600/10 via-amber-500/5 to-transparent",
+            borderColor: "border-amber-500/30",
+            textColor: "text-amber-600 dark:text-amber-400",
+            bgColor: "bg-amber-500/10",
+            badgeText: "Decommissioned / Scrapped"
         }
     ];
 
@@ -179,14 +207,19 @@ export const SummaryCardsGrid: React.FC<Props> = ({
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
                 {cards.map((card) => {
                     const Icon = card.icon;
 
                     return (
                         <Card
                             key={card.key}
-                            className={`relative overflow-hidden cursor-default transition-all duration-200 p-4 flex flex-col justify-between rounded-2xl border ${card.borderColor} bg-card/60 backdrop-blur-sm bg-gradient-to-br ${card.gradient} shadow-xs select-none`}
+                            onClick={() => onCardClick?.(card.filterVal)}
+                            className={`relative overflow-hidden ${onCardClick ? "cursor-pointer hover:scale-[1.01] hover:shadow-md" : "cursor-default"} transition-all duration-200 p-4 flex flex-col justify-between rounded-2xl border ${
+                                activeStatus === card.filterVal
+                                    ? "ring-2 ring-primary border-primary shadow-md"
+                                    : card.borderColor
+                            } bg-card/60 backdrop-blur-sm bg-gradient-to-br ${card.gradient} shadow-xs select-none`}
                         >
                             <div className="flex items-start justify-between">
                                 <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">

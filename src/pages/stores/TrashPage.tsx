@@ -31,6 +31,14 @@ import toolService, { type ToolRecord } from "@/services/tool.service"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 
+// Helper to strip internal database safety prefixes for display
+const cleanToolId = (id?: string) => {
+    if (!id) return '';
+    return id
+        .replace(/^__TRASHED_[^_]+_/, '')
+        .replace(/^__RESTORE_TEMP_[^_]+_/, '');
+};
+
 export function TrashPage() {
     const { user } = useAuth()
     const isAdmin = user?.role === "Admin"
@@ -174,7 +182,7 @@ export function TrashPage() {
             isOpen: true,
             type: 'restore',
             targetId: tool._id,
-            targetToolId: tool.toolId || tool._id
+            targetToolId: cleanToolId(tool.toolId) || tool._id
         })
     }
 
@@ -191,7 +199,7 @@ export function TrashPage() {
             isOpen: true,
             type: 'permanent',
             targetId: tool._id,
-            targetToolId: tool.toolId || tool._id
+            targetToolId: cleanToolId(tool.toolId) || tool._id
         })
     }
 
@@ -361,7 +369,7 @@ export function TrashPage() {
                                                     </td>
                                                     <td className="px-6 py-4 font-mono text-xs font-semibold text-rose-600 dark:text-rose-400">
                                                         <span className="bg-rose-500/10 px-2 py-1 rounded-md border border-rose-500/20">
-                                                            {t.toolId}
+                                                            {cleanToolId(t.toolId)}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 font-medium text-foreground">

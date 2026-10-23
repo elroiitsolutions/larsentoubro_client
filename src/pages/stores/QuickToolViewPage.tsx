@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
@@ -12,14 +12,19 @@ import {
     CheckCircle2,
     XCircle,
     AlertTriangle,
-    QrCode
+    QrCode,
+    Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function QuickToolViewPage() {
-    const { toolId } = useParams();
+    const { toolId, storeId: paramStoreId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
+
+    const queryStoreId = searchParams.get('storeId');
+    const queryProjectId = searchParams.get('projectId');
 
     const initialTool = (location.state as any)?.initialTool;
     const isModalOnly = Boolean((location.state as any)?.backgroundLocation);
@@ -29,7 +34,8 @@ export function QuickToolViewPage() {
     const [viewSchema, setViewSchema] = useState<any>(null);
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
-    const fromStoreId = (location.state as any)?.fromStoreId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
+    const fromStoreId = paramStoreId || queryStoreId || (location.state as any)?.fromStoreId || (location.state as any)?.storeId || initialTool?.currentSite?._id || (typeof initialTool?.currentSite === 'string' ? initialTool?.currentSite : undefined);
+    const fromProjectId = queryProjectId || (location.state as any)?.projectId || (location.state as any)?.fromProjectId || initialTool?.project?._id || (typeof initialTool?.project === 'string' ? initialTool?.project : undefined);
 
     const handleClose = () => {
         if (fromStoreId && typeof fromStoreId === 'string') {
@@ -43,11 +49,11 @@ export function QuickToolViewPage() {
         const fetchQuickToolData = async () => {
             try {
                 const [toolRes, schemaRes] = await Promise.allSettled([
-                    toolService.getToolById(toolId || ''),
+                    toolService.getToolById(toolId || '', fromStoreId, fromProjectId),
                     formService.getFormBySlug('tool-quick-view')
                 ]);
 
-                if (toolRes.status === 'fulfilled' && toolRes.value.success) {
+                if (toolRes.status === 'fulfilled' && toolRes.value.success && toolRes.value.data) {
                     setTool(toolRes.value.data);
                 } else if (!initialTool) {
                     toast.error("Failed to fetch tool information");
@@ -67,7 +73,7 @@ export function QuickToolViewPage() {
         if (toolId) {
             fetchQuickToolData();
         }
-    }, [toolId]);
+    }, [toolId, fromStoreId, fromProjectId]);
 
     useEffect(() => {
         if (tool) {
@@ -83,6 +89,37 @@ export function QuickToolViewPage() {
                 .catch(err => console.error("QR Code generation error:", err));
         }
     }, [tool, toolId]);
+
+    const handleDownloadQr = async (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        try {
+            const rawTargetId = tool?.toolId || tool?.toolCode || toolId || 'tool-qr';
+            const targetId = (rawTargetId || '').replace(/^__TRASHED_[^_]+_/, '').replace(/^__RESTORE_TEMP_[^_]+_/, '');
+            const link = tool?.qrLink || `https://lntqr.com/vt/${targetId}`;
+            
+            // Generate clean high-resolution QR with white background for print/scan clarity
+            const downloadUrl = await QRCode.toDataURL(link, {
+                margin: 2,
+                width: 600,
+                errorCorrectionLevel: 'H',
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            });
+
+            const linkElem = document.createElement('a');
+            linkElem.href = downloadUrl;
+            linkElem.download = `${targetId}_QR.png`;
+            document.body.appendChild(linkElem);
+            linkElem.click();
+            document.body.removeChild(linkElem);
+            toast.success(`QR code downloaded for ${targetId}`);
+        } catch (err) {
+            console.error("Error downloading QR code:", err);
+            toast.error("Failed to download QR code");
+        }
+    };
 
     // Helper to check if field is visible per Admin settings
     const isFieldVisible = (fieldName: string) => {
@@ -216,7 +253,8 @@ export function QuickToolViewPage() {
     };
 
     // Extracted Field Values
-    const toolIdVal = tool?.toolId || getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || '-';
+    const rawToolIdVal = tool?.toolId || getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || '-';
+    const toolIdVal = (rawToolIdVal || '').replace(/^__TRASHED_[^_]+_/, '').replace(/^__RESTORE_TEMP_[^_]+_/, '');
     const makeYearVal = getFieldValue('makeYear', ['make_year', 'Make Year', 'year']) || '-';
     const capacityVal = getFieldValue('capacity') || '-';
     const safeWorkingLoadVal = getFieldValue('safeWorkingLoad') || '-';
@@ -382,11 +420,21 @@ export function QuickToolViewPage() {
                                 </div>
                             </div>
 
-                            {/* Top-Right QR Code Graphic Box */}
+                            {/* Top-Right QR Code Graphic Box with Hover Download */}
                             <div className="shrink-0">
-                                <div className="size-16 rounded-xl border border-border/60 bg-transparent p-0 flex items-center justify-center">
+                                <div className="group relative size-16 rounded-xl border border-border/60 bg-white dark:bg-card p-0 flex items-center justify-center overflow-hidden shadow-xs">
                                     {qrCodeDataUrl ? (
-                                        <img src={qrCodeDataUrl} alt={toolIdVal} className="size-full object-contain" />
+                                        <>
+                                            <img src={qrCodeDataUrl} alt={toolIdVal} className="size-full object-contain" />
+                                            <button
+                                                type="button"
+                                                onClick={handleDownloadQr}
+                                                title="Click to Download QR Code"
+                                                className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[1px]"
+                                            >
+                                                <Download className="size-5 drop-shadow" />
+                                            </button>
+                                        </>
                                     ) : (
                                         <QrCode className="size-7 text-muted-foreground" />
                                     )}
@@ -395,7 +443,7 @@ export function QuickToolViewPage() {
                         </div>
 
                         {/* Validity Status Banner */}
-                        {validityStatusInfo && (
+                        {isFieldVisible('validityStatus') && validityStatusInfo && (
                             <div className={`rounded-2xl p-2.5 flex items-center gap-2.5 border text-xs ${
                                 validityStatusInfo.status === 'VALID'
                                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'

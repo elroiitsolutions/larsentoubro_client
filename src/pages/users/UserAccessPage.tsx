@@ -29,7 +29,8 @@ import {
     XIcon,
     KeyIcon,
     QrCode,
-    Building2
+    Building2,
+    ClipboardCheck
 } from "lucide-react"
 import projectService from "@/services/project.service"
 import storeService from "@/services/store.service"
@@ -44,6 +45,7 @@ const AVAILABLE_PAGES = [
     { title: "Stores", url: "/stores", icon: StoreIcon, desc: "Store inventory & management" },
     { title: "Tools", url: "/tools", icon: StoreIcon, desc: "Tool tracking & inventory" },
     { title: "Profile Management", url: "/profiles", icon: Building2, desc: "Vendors, Subcontractors & Scrap" },
+    { title: "Reports & Analytics", url: "/reports", icon: LayoutDashboardIcon, desc: "Operational registers & audit manifests" },
     { title: "Users Management", url: "/users", icon: UsersIcon, desc: "Team list & access control" },
     { title: "Settings & Forms", url: "/settings", icon: Settings2Icon, desc: "System config & form builder" },
 ]
@@ -76,6 +78,9 @@ export function UserAccessPage() {
 
     // Permissions and scopes state
     const [allowedPages, setAllowedPages] = React.useState<string[]>([])
+    const [hasInspectionAccess, setHasInspectionAccess] = React.useState<boolean>(false)
+    const [canCreateUser, setCanCreateUser] = React.useState<boolean>(false)
+    const [parentUserRecord, setParentUserRecord] = React.useState<UserRecord | null>(null)
     const [allProjects, setAllProjects] = React.useState<any[]>([])
     const [allStores, setAllStores] = React.useState<any[]>([])
     const [selectedProjects, setSelectedProjects] = React.useState<string[]>([])
@@ -105,6 +110,23 @@ export function UserAccessPage() {
                 setEmail(u.email || "")
                 setPhone(u.phonenumber || "")
                 setAllowedPages(u.allowedPages || ["/dashboard", "/projects", "/stores"])
+                setHasInspectionAccess(Boolean(u.role === "Admin" || u.hasInspectionAccess))
+                setCanCreateUser(Boolean(u.role === "Admin" || u.canCreateUser))
+
+                // If subuser, fetch parent user record to constrain options
+                if (u.role === "Subuser" && u.parentUser) {
+                    const parentId = typeof u.parentUser === "object" ? u.parentUser._id : u.parentUser
+                    if (parentId) {
+                        try {
+                            const parentRes = await userService.getUserById(parentId)
+                            if (parentRes.success && parentRes.data) {
+                                setParentUserRecord(parentRes.data)
+                            }
+                        } catch (e) {
+                            console.error("Failed to load parent user record", e)
+                        }
+                    }
+                }
 
                 const pIds = (u.projects || []).map((p: any) =>
                     typeof p === "object" ? p._id : p
@@ -266,10 +288,13 @@ export function UserAccessPage() {
 
     const handleSelectAllPages = () => {
         if (userRecord?.role === "Admin" || userRecord?.role === "Vendor") return;
-        if (allowedPages.length === AVAILABLE_PAGES.length) {
+        const allSelected = allowedPages.length === AVAILABLE_PAGES.length && hasInspectionAccess;
+        if (allSelected) {
             setAllowedPages([])
+            setHasInspectionAccess(false)
         } else {
             setAllowedPages(AVAILABLE_PAGES.map((p) => p.url))
+            setHasInspectionAccess(true)
         }
     }
 
@@ -305,6 +330,21 @@ export function UserAccessPage() {
         }
     }
 
+    // Filter displayed available pages if configuring a subuser
+    const displayedAvailablePages = React.useMemo(() => {
+        if (userRecord?.role === "Subuser" && parentUserRecord && parentUserRecord.role !== "Admin") {
+            const parentPages = parentUserRecord.allowedPages || []
+            return AVAILABLE_PAGES.filter(p => parentPages.includes(p.url))
+        }
+        return AVAILABLE_PAGES
+    }, [userRecord, parentUserRecord])
+
+    const parentAllowsInspection = React.useMemo(() => {
+        if (userRecord?.role !== "Subuser") return true
+        if (!parentUserRecord) return true
+        return Boolean(parentUserRecord.role === "Admin" || parentUserRecord.hasInspectionAccess)
+    }, [userRecord, parentUserRecord])
+
     const handleSave = async () => {
         if (!userRecord) return
 
@@ -315,6 +355,9 @@ export function UserAccessPage() {
                 finalAllowedPages = AVAILABLE_PAGES.map((p) => p.url)
             } else if (userRecord.role === "Vendor") {
                 finalAllowedPages = ["/stores", "/tools"]
+            } else if (userRecord.role === "Subuser" && parentUserRecord && parentUserRecord.role !== "Admin") {
+                const parentPages = parentUserRecord.allowedPages || []
+                finalAllowedPages = finalAllowedPages.filter(p => parentPages.includes(p))
             } else {
                 if (selectedProjects.length > 0 && !finalAllowedPages.includes("/projects")) {
                     finalAllowedPages.push("/projects")
@@ -330,6 +373,8 @@ export function UserAccessPage() {
                 email: email.trim(),
                 phonenumber: phone.trim(),
                 allowedPages: finalAllowedPages,
+                hasInspectionAccess: userRecord.role === "Admin" ? true : (parentAllowsInspection && hasInspectionAccess),
+                canCreateUser: userRecord.role === "Admin" ? true : userRecord.role === "Subuser" ? false : canCreateUser,
                 projects: selectedProjects,
                 stores: selectedStores,
             }
@@ -535,7 +580,7 @@ export function UserAccessPage() {
                     </div>
                     <div className="flex items-center gap-2.5">
                         <span className="text-[11px] font-bold font-mono px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                            {allowedPages.length} of {AVAILABLE_PAGES.length} Allowed
+                            {(userRecord?.role === "Admin" ? AVAILABLE_PAGES.length + 1 : allowedPages.length + (hasInspectionAccess ? 1 : 0))} of {AVAILABLE_PAGES.length + 1} Allowed
                         </span>
                         <Button
                             variant="outline"
@@ -543,7 +588,7 @@ export function UserAccessPage() {
                             onClick={handleSelectAllPages}
                             className="h-7 rounded-lg text-[11px] font-semibold px-3 cursor-pointer"
                         >
-                            {allowedPages.length === AVAILABLE_PAGES.length
+                            {(allowedPages.length === AVAILABLE_PAGES.length && hasInspectionAccess)
                                 ? "Revoke All"
                                 : "Grant All"}
                         </Button>
@@ -567,8 +612,17 @@ export function UserAccessPage() {
                             </div>
                         </div>
                     ) : null}
+                    {userRecord?.role === "Subuser" && parentUserRecord && (
+                        <div className="p-3.5 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center gap-3 text-xs text-purple-600 dark:text-purple-400">
+                            <ShieldCheckIcon className="size-5 shrink-0 text-purple-500" />
+                            <div>
+                                <p className="font-bold text-sm">Subuser Account — Constrained by Parent User ({parentUserRecord.name})</p>
+                                <p className="opacity-90">Displaying only pages and operational modules authorized for the parent user. Subuser permissions cannot exceed parent privileges.</p>
+                            </div>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-2.5">
-                        {AVAILABLE_PAGES.map((page) => {
+                        {displayedAvailablePages.map((page) => {
                             const isChecked = userRecord?.role === "Admin"
                                 ? true
                                 : userRecord?.role === "Vendor"
@@ -609,20 +663,252 @@ export function UserAccessPage() {
                                 </div>
                             )
                         })}
+
+                        {/* Tool Inspection Permission Card in Main Grid */}
+                        <div
+                            onClick={() => {
+                                if (userRecord?.role !== "Admin" && parentAllowsInspection) {
+                                    setHasInspectionAccess(prev => !prev)
+                                }
+                            }}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                userRecord?.role === "Admin" || !parentAllowsInspection ? "cursor-default opacity-95" : "cursor-pointer"
+                            } ${
+                                (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
+                                    ? "bg-emerald-500/10 border-emerald-500 text-foreground shadow-xs ring-1 ring-emerald-500/30"
+                                    : "bg-background/60 border-border/70 text-muted-foreground hover:border-border hover:text-foreground"
+                            }`}
+                        >
+                            <div
+                                className={`size-4 rounded-md flex items-center justify-center border shrink-0 transition-colors ${
+                                    (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
+                                        ? "bg-emerald-600 border-emerald-600 text-white"
+                                        : "border-border/80 bg-background"
+                                    }`}
+                            >
+                                {(userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection)) && <CheckIcon className="size-3" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold flex items-center gap-1.5 text-foreground truncate">
+                                    <ClipboardCheck className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                    Tool Inspection
+                                </p>
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                    Quality pass/fail & repair/scrap
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* SECTION 2: PROJECT ACCESS (Immediately visible without excessive scrolling!) */}
+            {/* SECTION: OPERATIONAL & ACTION PERMISSIONS (INSPECTION ACCESS & CREATE USER) */}
+            <Card className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md shadow-xs overflow-hidden shrink-0">
+                <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border/50 bg-muted/15 px-5 py-3">
+                    <div className="flex items-center gap-2">
+                        <ClipboardCheck className="size-4 text-primary" />
+                        <CardTitle className="text-sm font-extrabold text-foreground">
+                            2. Operational & Action Permissions
+                        </CardTitle>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                            (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                : "bg-muted text-muted-foreground border-border"
+                        }`}>
+                            {userRecord?.role === "Admin" ? "Admin Unrestricted" : hasInspectionAccess ? "Inspection: Granted" : "Inspection: Disabled"}
+                        </span>
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                            (userRecord?.role === "Admin" || canCreateUser)
+                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                                : "bg-muted text-muted-foreground border-border"
+                        }`}>
+                            {userRecord?.role === "Admin" ? "Create User: Admin" : canCreateUser ? "Create User: Granted" : "Create User: Disabled"}
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                    {/* Tool Inspection Permission Card */}
+                    <div
+                        onClick={() => {
+                            if (userRecord?.role !== "Admin" && parentAllowsInspection) {
+                                setHasInspectionAccess(prev => !prev)
+                            }
+                        }}
+                        className={`flex items-center justify-between gap-4 p-4 rounded-xl border transition-all ${
+                            userRecord?.role === "Admin" || !parentAllowsInspection
+                                ? "cursor-default opacity-95"
+                                : "cursor-pointer hover:border-border"
+                        } ${
+                            (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
+                                ? "bg-emerald-500/5 border-emerald-500/40 text-foreground"
+                                : "bg-background/60 border-border/70 text-muted-foreground"
+                        }`}
+                    >
+                        <div className="flex items-start gap-3.5 min-w-0">
+                            <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                                (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
+                                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-muted border-border text-muted-foreground"
+                            }`}>
+                                <ClipboardCheck className="size-5" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-sm font-bold text-foreground">
+                                        Tool Inspection Access
+                                    </h4>
+                                    {(userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection)) ? (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
+                                            Active
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-500 border border-slate-500/20">
+                                            Disabled
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                    Authorizes the user to select tools, perform Quality Inspections, mark tools as <strong className="text-emerald-600 font-semibold">Pass</strong> (updating Validation & Expiry) or <strong className="text-rose-600 font-semibold">Fail</strong> (routing to Repair or Scrap).
+                                </p>
+                                {userRecord?.role === "Admin" && (
+                                    <p className="text-[11px] text-blue-500 font-medium mt-1">
+                                        Admin accounts automatically have full Inspection access.
+                                    </p>
+                                )}
+                                {!parentAllowsInspection && (
+                                    <p className="text-[11px] text-rose-500 font-medium mt-1">
+                                        Parent user does not have Inspection access. Subusers cannot receive higher permissions than their parent user.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Interactive toggle control */}
+                        <div className="shrink-0 flex items-center">
+                            <button
+                                type="button"
+                                disabled={userRecord?.role === "Admin" || !parentAllowsInspection}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (userRecord?.role !== "Admin" && parentAllowsInspection) {
+                                        setHasInspectionAccess(prev => !prev)
+                                    }
+                                }}
+                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed ${
+                                    (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
+                                        ? "bg-emerald-600"
+                                        : "bg-muted-foreground/30"
+                                }`}
+                            >
+                                <span
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
+                                            ? "translate-x-5"
+                                            : "translate-x-0"
+                                    }`}
+                                />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Create & Manage Subusers Permission Card */}
+                    <div
+                        onClick={() => {
+                            if (userRecord?.role !== "Admin" && userRecord?.role !== "Subuser") {
+                                setCanCreateUser(prev => !prev)
+                            }
+                        }}
+                        className={`flex items-center justify-between gap-4 p-4 rounded-xl border transition-all ${
+                            userRecord?.role === "Admin" || userRecord?.role === "Subuser"
+                                ? "cursor-default opacity-95"
+                                : "cursor-pointer hover:border-border"
+                        } ${
+                            (userRecord?.role === "Admin" || canCreateUser)
+                                ? "bg-blue-500/5 border-blue-500/40 text-foreground"
+                                : "bg-background/60 border-border/70 text-muted-foreground"
+                        }`}
+                    >
+                        <div className="flex items-start gap-3.5 min-w-0">
+                            <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                                (userRecord?.role === "Admin" || canCreateUser)
+                                    ? "bg-blue-500/15 border-blue-500/30 text-blue-600 dark:text-blue-400"
+                                    : "bg-muted border-border text-muted-foreground"
+                            }`}>
+                                <UsersIcon className="size-5" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-sm font-bold text-foreground">
+                                        Create & Manage Subusers
+                                    </h4>
+                                    {(userRecord?.role === "Admin" || canCreateUser) ? (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 border border-blue-500/30">
+                                            Active
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-500 border border-slate-500/20">
+                                            Disabled
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                    Allows this user to create and manage their own subusers, assign authorized page and inventory permissions, and approve or reject subuser login requests.
+                                </p>
+                                {userRecord?.role === "Admin" && (
+                                    <p className="text-[11px] text-blue-500 font-medium mt-1">
+                                        Admin accounts automatically have full user and subuser creation privileges.
+                                    </p>
+                                )}
+                                {userRecord?.role === "Subuser" && (
+                                    <p className="text-[11px] text-amber-500 font-medium mt-1">
+                                        Subuser accounts cannot create or manage other users.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Interactive toggle control */}
+                        <div className="shrink-0 flex items-center">
+                            <button
+                                type="button"
+                                disabled={userRecord?.role === "Admin" || userRecord?.role === "Subuser"}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (userRecord?.role !== "Admin" && userRecord?.role !== "Subuser") {
+                                        setCanCreateUser(prev => !prev)
+                                    }
+                                }}
+                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed ${
+                                    (userRecord?.role === "Admin" || canCreateUser)
+                                        ? "bg-blue-600"
+                                        : "bg-muted-foreground/30"
+                                }`}
+                            >
+                                <span
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        (userRecord?.role === "Admin" || canCreateUser)
+                                            ? "translate-x-5"
+                                            : "translate-x-0"
+                                    }`}
+                                />
+                            </button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* SECTION 3: PROJECT ACCESS */}
             <Card className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md shadow-xs overflow-hidden shrink-0">
                 <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 bg-muted/15 px-5 py-3.5">
                     <div>
                         <CardTitle className="flex items-center gap-2 text-sm font-extrabold text-foreground">
                             <FolderOpenIcon className="size-4 text-primary" />
-                            2. Project Access ({selectedProjects.length} of {allProjects.length} Selected)
+                            3. Project Access ({selectedProjects.length} of {allProjects.length} Selected)
                         </CardTitle>
                         <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                            Select authorized Projects. Only selected Projects will reveal their child Stores in Step 3 below.
+                            Select authorized Projects. Only selected Projects will reveal their child Stores in Step 4 below.
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
@@ -747,10 +1033,10 @@ export function UserAccessPage() {
                     <div>
                         <CardTitle className="flex items-center gap-2 text-sm font-extrabold text-foreground">
                             <StoreIcon className="size-4 text-primary" />
-                            3. Store Access ({selectedStores.length} of {availableStoresForProjects.length} Assigned)
+                            4. Store Access ({selectedStores.length} of {availableStoresForProjects.length} Assigned)
                         </CardTitle>
                         <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                            Displays ONLY Stores belonging to selected Project(s) above. Stores from unselected projects are restricted.
+                            Displays ONLY Stores belonging to selected Project(s) in Step 3 above. Stores from unselected projects are restricted.
                         </CardDescription>
                     </div>
                     {selectedProjects.length > 0 && availableStoresForProjects.length > 0 && (
@@ -779,7 +1065,7 @@ export function UserAccessPage() {
                                 Select a Project First
                             </h3>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                                Store assignment is locked until you select one or more Projects in Step 2 above. Once selected, only Stores belonging to those specific Projects will appear here.
+                                Store assignment is locked until you select one or more Projects in Step 3 above. Once selected, only Stores belonging to those specific Projects will appear here.
                             </p>
                         </div>
                     ) : (

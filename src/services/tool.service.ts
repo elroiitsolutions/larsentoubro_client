@@ -43,6 +43,17 @@ export interface ToolRecord {
     scrappedAt?: string;
     scrappedBy?: any;
     scrapReason?: string;
+    isDisposed?: boolean;
+    disposedAt?: string;
+    disposalChallanId?: any;
+    disposalChallanNumber?: string;
+    scrapDealer?: any;
+    inspectionStatus?: string;
+    inspectionResult?: 'Pass' | 'Fail' | string;
+    inspectionAction?: 'Pass' | 'Repair' | 'Scrap' | string;
+    inspectedBy?: any;
+    inspectedAt?: string;
+    inspectionHistory?: any[];
 }
 
 export interface ToolListResponse {
@@ -134,8 +145,12 @@ export const toolService = {
     /**
      * Retrieves details of a single tool by its unique ID.
      */
-    getToolById: async (toolId: string): Promise<ToolDetailResponse> => {
-        const url = `/api/tools/${encodeURIComponent(toolId)}`;
+    getToolById: async (toolId: string, storeId?: string, projectId?: string): Promise<ToolDetailResponse> => {
+        const params = new URLSearchParams();
+        if (storeId) params.append('storeId', storeId);
+        if (projectId) params.append('projectId', projectId);
+        const queryString = params.toString() ? `?${params.toString()}` : '';
+        const url = `/api/tools/${encodeURIComponent(toolId)}${queryString}`;
         const response = await api.get<ToolDetailResponse>(url);
         return response.data;
     },
@@ -173,6 +188,15 @@ export const toolService = {
     unmarkToolsAsPrinted: async (toolIds: string[]): Promise<{ success: boolean; message?: string; data?: any }> => {
         const url = `/api/tools/unmark-printed`;
         const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        return response.data;
+    },
+
+    /**
+     * Moves printed tools directly to the Scrap page without creating a Delivery Challan.
+     */
+    bulkScrapTools: async (toolIds: string[], reason?: string): Promise<{ success: boolean; message?: string; count?: number }> => {
+        const url = `/api/tools/bulk-scrap`;
+        const response = await api.post<{ success: boolean; message?: string; count?: number }>(url, { toolIds, reason });
         return response.data;
     },
 
@@ -303,11 +327,41 @@ export const toolService = {
     },
 
     /**
-     * Fetches created tools for an import job, including base64 QR Code data URLs.
+     * Fetches created tools for an import job with pagination, filters, and search.
+     * Returns lightweight tool metadata with qrLink (QR images are rendered on the client).
      */
-    getImportedJobTools: async (storeId: string, jobId: string): Promise<{ success: boolean; data: any[] }> => {
-        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/imported-tools`;
-        const response = await api.get<{ success: boolean; data: any[] }>(url);
+    getImportedJobTools: async (
+        storeId: string, 
+        jobId: string, 
+        params?: { 
+            page?: number; 
+            pageSize?: number; 
+            filter?: 'all' | 'printed' | 'unprinted'; 
+            search?: string; 
+            offset?: number; 
+            limit?: number; 
+        }
+    ): Promise<{ 
+        success: boolean; 
+        data: {
+            tools: any[];
+            pagination: { page: number; pageSize: number; total: number; totalPages: number };
+            stats?: { total: number; printedCount: number; unprintedCount: number };
+            jobStatus?: string;
+            progress?: any;
+        } 
+    }> => {
+        const searchParams = new URLSearchParams();
+        if (params?.page) searchParams.append('page', String(params.page));
+        if (params?.pageSize) searchParams.append('pageSize', String(params.pageSize));
+        if (params?.filter) searchParams.append('filter', params.filter);
+        if (params?.search) searchParams.append('search', params.search);
+        if (params?.offset !== undefined) searchParams.append('offset', String(params.offset));
+        if (params?.limit !== undefined) searchParams.append('limit', String(params.limit));
+
+        const query = searchParams.toString();
+        const url = `/api/stores/${storeId}/tools/bulk-import/jobs/${jobId}/imported-tools${query ? `?${query}` : ''}`;
+        const response = await api.get(url);
         return response.data;
     },
 
@@ -364,7 +418,7 @@ export const toolService = {
     /**
      * Looks up tool validity and sanitized details using QR code or Tool ID.
      */
-    lookupToolValidity: async (code: string): Promise<{
+    lookupToolValidity: async (code: string, storeId?: string, projectId?: string): Promise<{
         success: boolean;
         data?: {
             toolId: string;
@@ -380,8 +434,25 @@ export const toolService = {
         status?: string;
         message?: string;
     }> => {
-        const url = `/api/tools/lookup-validity?code=${encodeURIComponent(code)}`;
+        const params = new URLSearchParams({ code });
+        if (storeId) params.append('storeId', storeId);
+        if (projectId) params.append('projectId', projectId);
+        const url = `/api/tools/lookup-validity?${params.toString()}`;
         const response = await api.get(url);
+        return response.data;
+    },
+
+    /**
+     * Performs quality inspection on one or more tools (Pass/Fail -> Repair/Scrap).
+     */
+    inspectTools: async (payload: {
+        toolIds: string[];
+        result: 'Pass' | 'Fail';
+        action?: 'Pass' | 'Repair' | 'Scrap';
+        validation?: string;
+        remarks?: string;
+    }): Promise<{ success: boolean; message?: string; data?: any }> => {
+        const response = await api.post('/api/tools/inspect', payload);
         return response.data;
     },
 };

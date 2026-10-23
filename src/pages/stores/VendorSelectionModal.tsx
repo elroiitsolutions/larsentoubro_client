@@ -38,7 +38,7 @@ interface VendorSelectionModalProps {
 
 export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeId }: VendorSelectionModalProps) {
     const navigate = useNavigate();
-    const [recipientType, setRecipientType] = useState<"Subcontractor" | "ScrapDealer">("Subcontractor");
+    const [recipientType] = useState<"Subcontractor" | "ScrapDealer">("Subcontractor");
     const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
@@ -221,7 +221,7 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                 </DialogHeader>
 
                 {/* Recipient Type Switcher (Subcontractor vs Scrap Dealer) */}
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-muted p-1 rounded-xl my-2">
+                {/* <div className="flex items-center gap-1.5 sm:gap-2 bg-muted p-1 rounded-xl my-2">
                     <button
                         type="button"
                         onClick={() => setRecipientType("Subcontractor")}
@@ -246,7 +246,7 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                         <Building2 className="size-3.5 text-amber-500 shrink-0" />
                         <span className="truncate">Scrap Dealer</span>
                     </button>
-                </div>
+                </div> */}
 
                 {isCreatingProfile && (
                     <form onSubmit={handleQuickAddProfile} className="bg-muted/40 p-3 sm:p-4 rounded-xl border border-border/80 space-y-3 my-2">

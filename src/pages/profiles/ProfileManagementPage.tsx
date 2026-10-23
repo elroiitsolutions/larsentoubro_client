@@ -21,8 +21,6 @@ import {
     User,
     ShieldAlert,
     RefreshCcw,
-    Layers,
-    FileCheck,
     UserCheck
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
@@ -105,26 +103,9 @@ export function ProfileManagementPage() {
         }
     }
 
-    const isProfileVisible = React.useCallback((p: ProfileRecord) => {
-        if (!currentUser) return true
-        if (currentUser.role === "Admin") return true
-
-        // Profiles created by Admin or legacy profiles without createdBy are visible to all users
-        if (!p.createdBy || p.createdBy.role === "Admin" || !p.createdBy.role) {
-            return true
-        }
-
-        // Profile created by a user: only visible to THAT user
-        const isSelf = Boolean(
-            (p.createdBy._id && (p.createdBy._id === currentUser.id || p.createdBy._id === (currentUser as any)?._id)) ||
-            (p.createdBy.email && currentUser.email && p.createdBy.email.toLowerCase() === currentUser.email.toLowerCase()) ||
-            (p.createdBy.name && (
-                (currentUser.name && p.createdBy.name.toLowerCase() === currentUser.name.toLowerCase()) ||
-                (currentUser.username && p.createdBy.name.toLowerCase() === currentUser.username.toLowerCase())
-            ))
-        )
-        return isSelf
-    }, [currentUser])
+    const isProfileVisible = React.useCallback((_p: ProfileRecord) => {
+        return true
+    }, [])
 
     const visibleProfiles = React.useMemo(() => {
         return profiles.filter(isProfileVisible)
@@ -145,8 +126,8 @@ export function ProfileManagementPage() {
         )
     })
 
-    const taxRecordsCount = visibleProfiles.filter(p => p.gstNumber || p.panNumber || p.licenseNumber).length
-    const totalDocsCount = visibleProfiles.reduce((sum, p) => sum + (p.documents?.length || 0), 0)
+    // const taxRecordsCount = visibleProfiles.filter(p => p.gstNumber || p.panNumber || p.licenseNumber).length
+    // const totalDocsCount = visibleProfiles.reduce((sum, p) => sum + (p.documents?.length || 0), 0)
 
     const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
 
@@ -155,7 +136,7 @@ export function ProfileManagementPage() {
     }
 
     return (
-        <div className="flex flex-col gap-5 sm:gap-6 w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-6 pb-12 animate-in fade-in duration-300">
+        <div className="flex flex-col gap-5 sm:gap-6 w-full p-3 sm:p-4 md:p-6 pb-12 animate-in fade-in duration-300">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
                 <div>
@@ -233,7 +214,7 @@ export function ProfileManagementPage() {
             </div>
 
             {/* Metrics Overview Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="rounded-2xl border border-border/60 bg-card p-3.5 sm:p-4 shadow-xs">
                     <div className="flex flex-row items-center gap-3.5">
                         <div className="p-2.5 sm:p-3 rounded-xl bg-primary/10 text-primary shrink-0">
@@ -269,7 +250,7 @@ export function ProfileManagementPage() {
                         </div>
                     </div>
                 </Card>
-            </div>
+            </div> */}
 
             {/* Profile Table Card */}
             <Card className={`${bentoCardClass} flex flex-col mt-1`}>

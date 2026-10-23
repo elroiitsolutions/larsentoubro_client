@@ -18,7 +18,10 @@ import {
     CheckCircle2,
     Truck,
     Package,
-    MapPin
+    MapPin,
+    AlertTriangle,
+    Archive,
+    Clock
 } from "lucide-react";
 import reportService from "@/services/report.service";
 import projectService, { type ProjectRecord } from "@/services/project.service";
@@ -189,7 +192,7 @@ export function ToolsReportPage() {
     return (
         <div className="p-6 mx-auto space-y-6">
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <Card className="bg-card/50">
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
@@ -204,7 +207,7 @@ export function ToolsReportPage() {
                 <Card className="bg-card/50">
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
-                            <p className="text-xs font-medium text-muted-foreground">Available in Store</p>
+                            <p className="text-xs font-medium text-muted-foreground">Available</p>
                             <h3 className="text-2xl font-bold tracking-tight text-emerald-600 mt-1">{summary.availableCount || 0}</h3>
                         </div>
                         <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600">
@@ -215,11 +218,44 @@ export function ToolsReportPage() {
                 <Card className="bg-card/50">
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
-                            <p className="text-xs font-medium text-muted-foreground">Issued / Out on DC</p>
+                            <p className="text-xs font-medium text-muted-foreground">Issued / DC</p>
                             <h3 className="text-2xl font-bold tracking-tight text-indigo-600 mt-1">{summary.issuedCount || 0}</h3>
                         </div>
                         <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-600">
                             <Truck className="size-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-card/50">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-muted-foreground">Under Repair</p>
+                            <h3 className="text-2xl font-bold tracking-tight text-orange-600 mt-1">{summary.repairCount || 0}</h3>
+                        </div>
+                        <div className="p-3 rounded-xl bg-orange-500/10 text-orange-600">
+                            <Wrench className="size-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-card/50">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-muted-foreground">Missing</p>
+                            <h3 className="text-2xl font-bold tracking-tight text-rose-600 mt-1">{summary.missingCount || 0}</h3>
+                        </div>
+                        <div className="p-3 rounded-xl bg-rose-500/10 text-rose-600">
+                            <AlertTriangle className="size-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-card/50">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-muted-foreground">Scrapped</p>
+                            <h3 className="text-2xl font-bold tracking-tight text-gray-600 mt-1">{summary.scrappedCount || 0}</h3>
+                        </div>
+                        <div className="p-3 rounded-xl bg-gray-500/10 text-gray-600">
+                            <Archive className="size-5" />
                         </div>
                     </CardContent>
                 </Card>
@@ -316,16 +352,19 @@ export function ToolsReportPage() {
                             ))}
                         </select>
 
-                        {/* Status Dropdown - Only Missing, Moving, Available */}
+                        {/* Status Dropdown */}
                         <select
                             value={selectedStatus}
                             onChange={e => { setSelectedStatus(e.target.value); setPage(1); }}
                             className="h-9 px-3 rounded-md border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                         >
                             <option value="All">All Statuses</option>
-                            <option value="Missing">Missing</option>
-                            <option value="Moving">Moving</option>
                             <option value="Available">Available</option>
+                            <option value="Moving">Moving / Transit</option>
+                            <option value="Issued">Issued</option>
+                            <option value="Repair">Under Repair</option>
+                            <option value="Missing">Missing</option>
+                            <option value="Scrapped">Scrapped</option>
                         </select>
                     </div>
 
@@ -421,9 +460,13 @@ export function ToolsReportPage() {
                                                     ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
                                                     : item.status === "Missing"
                                                     ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                                    : (typeof item.status === "string" && item.status.toLowerCase().includes("repair"))
+                                                    ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 font-semibold"
+                                                    : item.status === "Scrapped" || item.isScrapped
+                                                    ? "bg-gray-500/10 text-gray-600 dark:text-gray-400"
                                                     : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                                             }`}>
-                                                {item.status}
+                                                {item.isScrapped && item.status !== "Scrapped" ? "Scrapped" : (typeof item.status === "string" && item.status.toLowerCase().includes("repair") ? "Under Repair" : item.status)}
                                             </span>
                                         </td>
                                         <td className="px-5 py-3.5 text-xs text-muted-foreground">{item.subcontractorName || "-"}</td>

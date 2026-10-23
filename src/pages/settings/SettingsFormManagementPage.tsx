@@ -3,8 +3,7 @@ import {
     Card,
     CardContent,
 } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { FileTextIcon, Sparkles, ArrowRight, CheckCircle2, Sliders, Layers } from "lucide-react"
+import { FileTextIcon, CheckCircle2 } from "lucide-react"
 import { FormEditor } from "./FormEditor"
 import { toast } from "sonner"
 import formService from "@/services/form.service"
@@ -100,7 +99,7 @@ export function SettingsFormManagementPage() {
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1">
             <div className="w-full space-y-6 pb-12">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-card to-card/60 border border-border/60 rounded-2xl p-6 shadow-sm">
+                {/* <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-card to-card/60 border border-border/60 rounded-2xl p-6 shadow-sm">
                     <div className="space-y-1.5">
                         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-1">
                             <Sparkles className="size-3.5" />
@@ -119,7 +118,7 @@ export function SettingsFormManagementPage() {
                             <span>{forms.length} {forms.length === 1 ? 'Form' : 'Forms'} Available</span>
                         </div>
                     </div>
-                </div>
+                </div> */}
 
                 {/* Forms Grid */}
                 {loading ? (
@@ -128,7 +127,7 @@ export function SettingsFormManagementPage() {
                         <p className="font-medium">Loading form schemas...</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {forms.map((form) => (
                             <Card 
                                 key={form.slug} 
@@ -152,16 +151,16 @@ export function SettingsFormManagementPage() {
                                                 {form.name}
                                             </h3>
                                         </div>
-                                        <div className="inline-block px-2 py-0.5 rounded-md bg-muted text-xs font-mono text-muted-foreground">
+                                        {/* <div className="inline-block px-2 py-0.5 rounded-md bg-muted text-xs font-mono text-muted-foreground">
                                             Slug: {form.slug}
-                                        </div>
+                                        </div> */}
                                         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 pt-1">
                                             {form.description || "Configure custom fields and validation constraints for this schema."}
                                         </p>
                                     </div>
                                 </CardContent>
                                 
-                                <div className="px-6 py-4 bg-muted/30 border-t border-border/40 flex items-center justify-between mt-2">
+                                {/* <div className="px-6 py-4 bg-muted/30 border-t border-border/40 flex items-center justify-between mt-2">
                                     <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                                         <Sliders className="size-3.5" />
                                         Customizable Schema
@@ -174,7 +173,7 @@ export function SettingsFormManagementPage() {
                                         Edit Form
                                         <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
                                     </Button>
-                                </div>
+                                </div> */}
                             </Card>
                         ))}
                         {forms.length === 0 && (

@@ -170,25 +170,8 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
             </div>
 
             {/* Main Form Fields Editor (Max-width expanded to 6xl = 1152px for plenty of horizontal room) */}
-            <div className="max-w-6xl mx-auto w-full space-y-4 pb-20">
-                {/* Minimal Header Guidance */}
-                <div className="bg-muted/30 border border-border/50 rounded-xl px-5 py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Sparkles className="size-4 text-primary shrink-0" />
-                        <span>
-                            All fields are displayed as clean <strong>horizontal rows</strong>. Click <strong>Settings</strong> to customize placeholders or rules.
-                        </span>
-                    </div>
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={handleAddField}
-                        className="rounded-xl text-xs font-semibold h-8 gap-1.5 shrink-0 cursor-pointer"
-                    >
-                        <PlusIcon className="size-3.5" />
-                        Add Field Row
-                    </Button>
-                </div>
+            <div className="max-w-7xl mx-auto w-full space-y-4 pb-20">
+               
 
                 {/* Empty State */}
                 {fields.length === 0 ? (

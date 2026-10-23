@@ -24,8 +24,12 @@ import {
     Hash, 
     RefreshCw, 
     Loader2,
-    FileText} from "lucide-react";
+    FileText,
+    Eye
+} from "lucide-react";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
+import challanService from "@/services/challan.service";
+import { generateDeliveryChallanPDF } from "@/utils/pdf/challanPdfGenerator";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -35,12 +39,14 @@ interface ScrapModalProps {
     onOpenChange: (open: boolean) => void;
     selectedTools: any[];
     storeId?: string;
+    onSuccess?: () => void;
 }
 
-export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: ScrapModalProps) {
+export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSuccess }: ScrapModalProps) {
     const navigate = useNavigate();
     const [scrapDealers, setScrapDealers] = useState<ProfileRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null);
     const [selectedDealerDetails, setSelectedDealerDetails] = useState<ProfileRecord | null>(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
@@ -133,17 +139,13 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
         }
     };
 
-    const handleProceedToScrapDC = () => {
+    const handleProceedToPreview = () => {
         if (!selectedDealerDetails) {
             toast.error("Please select a destination Scrap Dealer profile first");
             return;
         }
         if (selectedTools.length === 0) {
-            toast.error("Please select at least one tool to scrap");
-            return;
-        }
-
-        if (selectedTools.some((t: any) => !t.isPrinted)) {
+            toast.error("Please select at least one tool to dispose of");
             return;
         }
 
@@ -175,18 +177,91 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
         });
     };
 
+    const handleDirectCreateScrapDC = async () => {
+        if (!selectedDealerDetails) {
+            toast.error("Please select a destination Scrap Dealer profile first");
+            return;
+        }
+        if (selectedTools.length === 0) {
+            toast.error("Please select at least one tool to dispose of");
+            return;
+        }
+
+        try {
+            setIsGenerating(true);
+            const items = selectedTools.map(t => ({
+                tool: t._id,
+                toolId: t.toolId || t.toolCode || t._id,
+                description: t.description || '',
+                toolCode: t.toolCode || '',
+                category: t.toolType || t.category || '',
+                capacity: t.capacity || '',
+                safeWorkingLoad: t.safeWorkingLoad || '',
+                serialNumber: t.serialNumber?.toString() || '',
+                makeYear: t.makeYear || '',
+                quantity: 1,
+                unit: 'NOS',
+                rate: 0,
+                remarks: t.remarks || ''
+            }));
+
+            const payload = {
+                scrapDealerId: selectedDealerDetails._id,
+                storeId: storeId || (selectedTools[0]?.currentSite?._id || selectedTools[0]?.currentSite),
+                challanDate,
+                deliveryDate,
+                remarks: scrapReason || `Scrap Disposal to ${selectedDealerDetails.name}`,
+                notes: notes || `Disposal Delivery Challan generated for ${selectedTools.length} scrapped tools`,
+                items
+            };
+
+            const res = await challanService.createScrapDeliveryChallan(payload);
+            if (res.success && res.data) {
+                toast.success(`Scrap Delivery Challan ${res.data.challanNumber} created successfully! Downloading PDF...`);
+
+                try {
+                    await generateDeliveryChallanPDF({
+                        ...res.data,
+                        vendor: {
+                            _id: selectedDealerDetails._id,
+                            name: selectedDealerDetails.name,
+                            vendorCode: selectedDealerDetails.code,
+                            address: selectedDealerDetails.address || '',
+                            gstNumber: selectedDealerDetails.gstNumber || '',
+                            licenseNumber: selectedDealerDetails.licenseNumber || '',
+                            contactPerson: selectedDealerDetails.contactPerson || '',
+                            contactPhone: selectedDealerDetails.contactPhone || ''
+                        },
+                        items
+                    }, { download: true });
+                } catch (pdfErr) {
+                    console.error("PDF download error:", pdfErr);
+                    toast.error("Challan created, but automatic PDF download failed.");
+                }
+
+                onOpenChange(false);
+                onSuccess?.();
+            }
+        } catch (err: any) {
+            console.error("Error creating Scrap Delivery Challan:", err);
+            toast.error(err?.response?.data?.message || err.message || "Failed to create Scrap Delivery Challan");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={(o) => { if (!isGenerating) onOpenChange(o); }}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col p-6">
                 <DialogHeader>
                     <div className="flex items-center justify-between">
                         <div>
                             <DialogTitle className="text-xl font-bold flex items-center gap-2 text-amber-600 dark:text-amber-400">
                                 <Archive className="size-5" />
-                                Transfer Selected Tools to Scrap
+                                Create Scrap Disposal Delivery Challan (SDC)
                             </DialogTitle>
                             <DialogDescription className="text-sm text-muted-foreground mt-1">
-                                Select Scrap Dealer and generate a Delivery Challan for <span className="font-bold text-foreground">{selectedTools.length} selected tool(s)</span>.
+                                Select destination Scrap Dealer and issue a Delivery Challan for <span className="font-bold text-foreground">{selectedTools.length} selected tool(s)</span>.
                             </DialogDescription>
                         </div>
                         <Button
@@ -472,9 +547,19 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
                         <Button
                             variant="outline"
                             onClick={() => onOpenChange(false)}
-                            className="h-9"
+                            disabled={isGenerating}
+                            className="h-9 text-xs"
                         >
                             Cancel
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleProceedToPreview}
+                            disabled={!selectedDealerDetails || selectedTools.length === 0 || isGenerating}
+                            className="h-9 px-3 text-xs font-semibold gap-1.5 border-border/80 text-foreground hover:bg-muted"
+                        >
+                            <Eye className="size-3.5 text-primary" />
+                            Preview Challan First
                         </Button>
                         <TooltipProvider delay={100}>
                             <Tooltip>
@@ -484,26 +569,31 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId }: Scrap
                                         title={
                                             !selectedDealerDetails
                                                 ? "Please select a destination Scrap Dealer profile first"
-                                                : selectedTools.some((t: any) => !t.isPrinted)
-                                                    ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
-                                                    : `Create Scrap DC with ${selectedTools.length} tools`
+                                                : `Create and download Scrap DC with ${selectedTools.length} tools`
                                         }
                                     >
                                         <Button
-                                            disabled={!selectedDealerDetails || selectedTools.length === 0 || selectedTools.some((t: any) => !t.isPrinted)}
-                                            onClick={handleProceedToScrapDC}
+                                            disabled={!selectedDealerDetails || selectedTools.length === 0 || isGenerating}
+                                            onClick={handleDirectCreateScrapDC}
                                             className="bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-1.5 shadow-md h-9 px-4 cursor-pointer font-semibold text-xs"
                                         >
-                                            <span>Create Scrap DC ({selectedTools.length} Tools)</span>
-                                            <ArrowRight className="size-4" />
+                                            {isGenerating ? (
+                                                <>
+                                                    <Loader2 className="size-3.5 animate-spin mr-1" />
+                                                    Generating DC...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>Confirm & Create DC ({selectedTools.length})</span>
+                                                    <ArrowRight className="size-4" />
+                                                </>
+                                            )}
                                         </Button>
                                     </span>
                                 </TooltipTrigger>
-                                {(!selectedDealerDetails || selectedTools.some((t: any) => !t.isPrinted)) && (
+                                {!selectedDealerDetails && (
                                     <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                        {!selectedDealerDetails
-                                            ? "Please select a destination Scrap Dealer profile first"
-                                            : "Disabled: All selected tools must be marked as Printed before moving to Scrap"}
+                                        Please select a destination Scrap Dealer profile first
                                     </TooltipContent>
                                 )}
                             </Tooltip>

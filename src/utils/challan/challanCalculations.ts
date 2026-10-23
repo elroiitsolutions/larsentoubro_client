@@ -11,7 +11,7 @@ export interface ChallanItemSummary {
 export interface ChallanItemInput {
     quantity?: number;
     rate?: number;
-    returnStatus?: 'Sent' | 'Returned' | 'Missing';
+    returnStatus?: 'Sent' | 'Returned' | 'Missing' | 'Pending';
 }
 
 /**
@@ -81,8 +81,12 @@ export const getChallanStatusBadgeClass = (status: string): string => {
     switch (status) {
         case 'Active':
             return 'bg-blue-500/15 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 ring-1 ring-blue-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
-        case 'Transfer':
+        case 'Pending':
             return 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 ring-1 ring-amber-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
+        case 'Transfer':
+            return 'bg-purple-500/15 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 ring-1 ring-purple-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
+        case 'Cancelled':
+            return 'bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400 ring-1 ring-rose-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs';
         case 'Completed':
         case 'Returned':
         default:
@@ -99,6 +103,13 @@ export const getChallanTypeBadgeClass = (type: string): string => {
             return 'bg-purple-500/15 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 ring-1 ring-purple-500/30 font-semibold px-2.5 py-0.5 rounded-md text-xs inline-flex items-center gap-1';
         case 'Return':
             return 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 ring-1 ring-amber-500/30 font-semibold px-2.5 py-0.5 rounded-md text-xs inline-flex items-center gap-1';
+        case 'Transfer':
+            return 'bg-cyan-500/15 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300 ring-1 ring-cyan-500/30 font-semibold px-2.5 py-0.5 rounded-md text-xs inline-flex items-center gap-1';
+        case 'Scrap':
+        case 'ScrapDC':
+        case 'Scrap DC':
+        case 'SDC':
+            return 'bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 ring-1 ring-rose-500/30 font-semibold px-2.5 py-0.5 rounded-md text-xs inline-flex items-center gap-1';
         default:
             return 'bg-gray-500/15 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300 ring-1 ring-gray-500/30 font-semibold px-2.5 py-0.5 rounded-md text-xs';
     }

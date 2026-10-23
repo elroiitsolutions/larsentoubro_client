@@ -103,6 +103,20 @@ const data = {
       isActive: false,
       items: [],
     },
+    // {
+    //   title: "Reports & Audit",
+    //   url: "/reports",
+    //   icon: <BarChart3 />,
+    //   isActive: false,
+    //   items: [],
+    // },
+    // {
+    //   title: "Login Report",
+    //   url: "/reports/logins",
+    //   icon: <FileText />,
+    //   isActive: false,
+    //   items: [],
+    // },
     {
       title: "Settings",
       url: "/settings",
@@ -135,22 +149,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
     const adminOnlyUrls = [
       "/tools/trash",
-      "/users",
-      "/admin/approvals",
+      "/reports/logins",
       "/settings"
     ];
     const allowed = user?.allowedPages || [];
-    return data.navMain.filter((item) => {
-      if (adminOnlyUrls.includes(item.url)) return false;
-      if (item.url === "/qr-scanner") return true;
-      if (item.url === "/dashboard") return allowed.includes("/dashboard");
-      if (item.url === "/projects") return allowed.includes("/projects");
-      if (item.url === "/stores") return allowed.includes("/stores");
-      if (item.url === "/profiles") return allowed.includes("/profiles");
-      if (item.url === "/challans/history") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/challans");
-      if (item.url === "/tools/scrap") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/scrap");
-      return true;
-    });
+    return data.navMain
+      .filter((item) => {
+        if (adminOnlyUrls.includes(item.url)) return false;
+        if (item.url === "/users") {
+          return Boolean(user?.canCreateUser);
+        }
+        if (item.url === "/admin/approvals") {
+          return user?.role === "Admin" || user?.role === "User" || Boolean(user?.canCreateUser);
+        }
+        if (item.url === "/qr-scanner") return true;
+        if (item.url === "/dashboard") return allowed.includes("/dashboard");
+        if (item.url === "/projects") return allowed.includes("/projects");
+        if (item.url === "/stores") return allowed.includes("/stores");
+        if (item.url === "/profiles") return allowed.includes("/profiles");
+        if (item.url === "/challans/history") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/challans");
+        if (item.url === "/tools/scrap") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/scrap");
+        return true;
+      })
+      .map((item) => {
+        if (item.url === "/users" && user?.role !== "Admin") {
+          return { ...item, title: "Subusers" };
+        }
+        return item;
+      });
   }, [user])
 
   const currentUserData = React.useMemo(() => {

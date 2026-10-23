@@ -4,11 +4,14 @@ import QRCode from "qrcode";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QrCode, ExternalLink, AlertCircle } from "lucide-react";
+import { QrCode, ExternalLink, AlertCircle, Download } from "lucide-react";
+import { toast } from "sonner";
 import toolService from "@/services/tool.service";
 
 interface ToolPreviewModalProps {
     toolId: string | null;
+    storeId?: string;
+    projectId?: string;
     isOpen: boolean;
     onClose: () => void;
     initialData?: any;
@@ -16,6 +19,8 @@ interface ToolPreviewModalProps {
 
 export function ToolPreviewModal({
     toolId,
+    storeId,
+    projectId,
     isOpen,
     onClose,
     initialData
@@ -42,6 +47,36 @@ export function ToolPreviewModal({
         }
     }, [tool, toolId]);
 
+    const handleDownloadQr = async (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        try {
+            const targetId = tool?.toolId || tool?.toolCode || toolId || 'tool-qr';
+            const link = tool?.qrLink || `https://lntqr.com/vt/${targetId}`;
+            
+            // Generate clean high-resolution QR with white background
+            const downloadUrl = await QRCode.toDataURL(link, {
+                margin: 2,
+                width: 600,
+                errorCorrectionLevel: 'H',
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            });
+
+            const linkElem = document.createElement('a');
+            linkElem.href = downloadUrl;
+            linkElem.download = `${targetId}_QR.png`;
+            document.body.appendChild(linkElem);
+            linkElem.click();
+            document.body.removeChild(linkElem);
+            toast.success(`QR code downloaded for ${targetId}`);
+        } catch (err) {
+            console.error("Error downloading QR code:", err);
+            toast.error("Failed to download QR code");
+        }
+    };
+
     useEffect(() => {
         if (!isOpen || !toolId) {
             setTool(null);
@@ -57,13 +92,16 @@ export function ToolPreviewModal({
             return;
         }
 
-        // Otherwise fetch fresh data by toolId
+        // Otherwise fetch fresh data by toolId with store & project scope
         let isMounted = true;
         setLoading(true);
         setError(false);
 
+        const targetStoreId = storeId || initialData?.currentSite?._id || (typeof initialData?.currentSite === 'string' ? initialData?.currentSite : undefined);
+        const targetProjectId = projectId || initialData?.project?._id || (typeof initialData?.project === 'string' ? initialData?.project : undefined);
+
         toolService
-            .getToolById(toolId)
+            .getToolById(toolId, targetStoreId, targetProjectId)
             .then((res) => {
                 if (isMounted) {
                     if (res && res.success && res.data) {
@@ -88,13 +126,21 @@ export function ToolPreviewModal({
         return () => {
             isMounted = false;
         };
-    }, [toolId, isOpen, initialData]);
+    }, [toolId, isOpen, initialData, storeId, projectId]);
 
     const handleNavigateFullDetails = () => {
         const idToUse = tool?.toolId || tool?.toolCode || tool?._id || toolId;
         onClose();
         if (idToUse) {
-            navigate(`/tooldetails/${encodeURIComponent(idToUse)}`);
+            const effectiveStoreId = storeId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
+            const effectiveProjectId = projectId || tool?.project?._id || (typeof tool?.project === 'string' ? tool?.project : undefined);
+            navigate(`/tooldetails/${encodeURIComponent(idToUse)}`, {
+                state: {
+                    fromStoreId: effectiveStoreId,
+                    projectId: effectiveProjectId,
+                    initialTool: tool
+                }
+            });
         }
     };
 
@@ -117,7 +163,8 @@ export function ToolPreviewModal({
     };
 
     const toolName = tool?.description || tool?.name || "Tool Information";
-    const toolCode = tool?.toolCode || getFieldValue('toolCode', ['tool_code', 'tag', 'Tag']) || tool?.toolId || toolId || "AR0226UWER";
+    const rawToolCode = tool?.toolCode || getFieldValue('toolCode', ['tool_code', 'tag', 'Tag']) || tool?.toolId || toolId || "AR0226UWER";
+    const toolCode = (rawToolCode || '').replace(/^__TRASHED_[^_]+_/, '').replace(/^__RESTORE_TEMP_[^_]+_/, '');
     
     // Sub-header details line (e.g. 2025 • 2 Tonnes • SWL 3 Tonnes)
     const makeYear = getFieldValue('makeYear', ['make_year', 'Year', 'year']) || (tool?.createdAt ? new Date(tool.createdAt).getFullYear() : '2025');
@@ -198,13 +245,25 @@ export function ToolPreviewModal({
                                     </p>
                                 </div>
 
-                                {/* QR Code Graphic Box */}
-                                <div className="shrink-0 size-16 rounded-xl border border-border/60 bg-transparent p-0 flex items-center justify-center">
-                                    {qrCodeDataUrl ? (
-                                        <img src={qrCodeDataUrl} alt={toolCode} className="size-full object-contain" />
-                                    ) : (
-                                        <QrCode className="size-8 text-muted-foreground" />
-                                    )}
+                                {/* Top-Right QR Code Graphic Box with Hover Download */}
+                                <div className="shrink-0">
+                                    <div className="group relative size-16 rounded-xl border border-border/60 bg-white dark:bg-card p-0 flex items-center justify-center overflow-hidden shadow-xs">
+                                        {qrCodeDataUrl ? (
+                                            <>
+                                                <img src={qrCodeDataUrl} alt={toolCode} className="size-full object-contain" />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDownloadQr}
+                                                    title="Click to Download QR Code"
+                                                    className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[1px]"
+                                                >
+                                                    <Download className="size-5 drop-shadow" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <QrCode className="size-8 text-muted-foreground" />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -238,8 +297,20 @@ export function ToolPreviewModal({
                                 <div className="space-y-1">
                                     <span className="text-[11px] text-muted-foreground block">Last Inspection</span>
                                     <span className="font-semibold text-foreground block mb-1">{lastInspection}</span>
-                                    <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-                                        {status}
+                                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold border ${
+                                        status === "Available" || status === "Usable"
+                                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                                            : status === "Moving" || status === "Issued" || status === "In Use"
+                                            ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30"
+                                            : status === "Missing"
+                                            ? "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30"
+                                            : (typeof status === "string" && status.toLowerCase().includes("repair"))
+                                            ? "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30 font-bold"
+                                            : status === "Scrapped" || tool?.isScrapped
+                                            ? "bg-gray-500/15 text-gray-700 dark:text-gray-400 border-gray-500/30"
+                                            : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                    }`}>
+                                        {tool?.isScrapped && status !== "Scrapped" ? "Scrapped" : (typeof status === "string" && status.toLowerCase().includes("repair") ? "Under Repair" : status)}
                                     </span>
                                 </div>
 

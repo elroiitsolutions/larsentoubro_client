@@ -7,14 +7,11 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
     FileText,
     Search,
-    Filter,
     RotateCcw,
     Download,
     Eye,
     ArrowRight,
     ArrowRightLeft,
-    CheckCircle2,
-    Clock,
     Loader2,
     Calendar,
     Building2,
@@ -28,8 +25,9 @@ import {
     getChallanStatusBadgeClass,
     getChallanTypeBadgeClass
 } from "@/utils/challan/challanCalculations";
-import { generateDeliveryChallanPDF, generateReturnChallanPDF } from "@/utils/pdf/challanPdfGenerator";
+import { generateDeliveryChallanPDF, generateReturnChallanPDF, generateTransferChallanPDF } from "@/utils/pdf/challanPdfGenerator";
 import { ChallanDetailModal } from "./ChallanDetailModal";
+import { ReturnToolSelectModal } from "./ReturnToolSelectModal";
 import { toast } from "sonner";
 
 export function ChallanHistoryPage() {
@@ -56,6 +54,10 @@ export function ChallanHistoryPage() {
     // Detail modal state
     const [selectedChallan, setSelectedChallan] = useState<ChallanRecord | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    // Return tool selection modal state
+    const [returnSelectDc, setReturnSelectDc] = useState<ChallanRecord | null>(null);
+    const [isReturnSelectModalOpen, setIsReturnSelectModalOpen] = useState(false);
 
     const fetchVendors = async () => {
         try {
@@ -161,7 +163,9 @@ export function ChallanHistoryPage() {
     const handleDownloadPdf = async (challan: ChallanRecord, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
-            if (challan.challanType === "Delivery") {
+            if (challan.challanType === "Transfer" || challan.isStoreTransfer) {
+                await generateTransferChallanPDF(challan, { download: true });
+            } else if (challan.challanType === "Delivery" || challan.isScrapDC || challan.challanType === "Scrap") {
                 await generateDeliveryChallanPDF(challan, { download: true });
             } else {
                 await generateReturnChallanPDF(challan, { download: true });
@@ -224,14 +228,22 @@ export function ChallanHistoryPage() {
 
     const handleCreateReturnChallan = (challan: ChallanRecord, e: React.MouseEvent) => {
         e.stopPropagation();
+        setReturnSelectDc(challan);
+        setIsReturnSelectModalOpen(true);
+    };
+
+    const handleProceedToReturn = (challan: ChallanRecord, selectedToolIds: string[]) => {
         navigate(`/challans/return/preview/${challan._id}`, {
-            state: { referenceDc: challan }
+            state: {
+                referenceDc: challan,
+                selectedToolIds
+            }
         });
     };
 
-    // Calculate quick stats
-    const activeDcCount = challans.filter(c => c.challanType === "Delivery" && c.status === "Active").length;
-    const completedRcCount = challans.filter(c => c.challanType === "Return").length;
+    // Calculate quick stats (commented out with stat cards)
+    // const activeDcCount = challans.filter(c => c.challanType === "Delivery" && (c.status === "Active" || c.status === "Pending")).length;
+    // const completedRcCount = challans.filter(c => c.challanType === "Return").length;
 
     const vendorOptions = vendors.map(v => ({
         label: `${v.name} (${v.vendorCode})`,
@@ -240,11 +252,15 @@ export function ChallanHistoryPage() {
 
     const typeOptions = [
         { label: "Delivery Challan (DC)", value: "Delivery" },
-        { label: "Return Challan (RC)", value: "Return" }
+        { label: "Return Challan (RC)", value: "Return" },
+        { label: "Store Transfer Challan (STC)", value: "Transfer" },
+        { label: "Scrap Challan (SDC)", value: "Scrap" }
     ];
 
     const statusOptions = [
+        { label: "All Statuses", value: "All" },
         { label: "Active", value: "Active" },
+        { label: "Pending (Partial)", value: "Pending" },
         { label: "Transfer", value: "Transfer" },
         { label: "Completed", value: "Completed" }
     ];
@@ -276,7 +292,7 @@ export function ChallanHistoryPage() {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Card className="p-4 bg-card/60 backdrop-blur-sm border-border shadow-sm flex items-center justify-between">
                     <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase">Active DCs (Pending Return)</p>
@@ -298,11 +314,11 @@ export function ChallanHistoryPage() {
                         <CheckCircle2 className="size-6" />
                     </div>
                 </Card>
-            </div>
+            </div> */}
 
             {/* Filter Bar (Compact Header, Labels & Horizontal Layout) */}
             <Card className="p-4 space-y-3.5">
-                <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
+                {/* <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                         <Filter className="size-3.5 text-primary" /> Filter Challans
                     </h3>
@@ -316,7 +332,7 @@ export function ChallanHistoryPage() {
                             <RotateCcw className="size-3 mr-1" /> Reset filters
                         </Button>
                     )}
-                </div>
+                </div> */}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                     <div className="col-span-1 sm:col-span-2">
@@ -415,6 +431,16 @@ export function ChallanHistoryPage() {
                             }}
                         />
                     </div>
+                      {(search || vendor !== "All" || status !== "All" || challanType !== "All" || startDate || endDate) && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={resetFilters}
+                            className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                            <RotateCcw className="size-3 mr-1" /> Reset filters
+                        </Button>
+                    )}
                 </div>
             </Card>
 
@@ -454,7 +480,7 @@ export function ChallanHistoryPage() {
                                 </tr>
                             ) : (
                                 challans.map((challan, index) => {
-                                    const isDcActive = challan.challanType === "Delivery" && challan.status === "Active";
+                                    const isDcOpen = challan.challanType === "Delivery" && (challan.status === "Active" || challan.status === "Pending");
                                     const sNo = (page - 1) * limit + index + 1;
                                     return (
                                         <tr
@@ -486,24 +512,70 @@ export function ChallanHistoryPage() {
                                                 )}
                                             </td>
                                             <td className="px-2.5 py-3.5 text-center">
-                                                <span className={getChallanTypeBadgeClass(challan.challanType)}>
-                                                    {challan.challanType}
-                                                </span>
+                                                {(() => {
+                                                    const isScrap = challan.isScrapDC || challan.challanType === "Scrap" || (challan.challanNumber && challan.challanNumber.startsWith("SDC-"));
+                                                    const displayType = isScrap ? "Scrap" : challan.challanType;
+                                                    const badgeText = isScrap ? "Scrap DC" : challan.challanType;
+                                                    return (
+                                                        <span className={getChallanTypeBadgeClass(displayType)}>
+                                                            {badgeText}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-3 py-3.5 max-w-[200px]">
-                                                <div className="font-semibold text-foreground flex items-center gap-1.5 truncate">
-                                                    <Building2 className="size-3.5 text-muted-foreground shrink-0" />
-                                                    <span className="truncate">{challan.vendor?.name}</span>
-                                                </div>
-                                                <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                                                    {challan.vendor?.vendorCode || "-"}
-                                                </div>
+                                                {challan.challanType === "Transfer" || challan.isStoreTransfer ? (
+                                                    <div>
+                                                        <div className="font-semibold text-foreground flex items-center gap-1.5 truncate" title={`${challan.sourceStore?.name || "Source"} -> ${challan.destinationStore?.name || "Destination"}`}>
+                                                            <Building2 className="size-3.5 text-primary shrink-0" />
+                                                            <span className="truncate">{challan.sourceStore?.name || "Source"} &rarr; {challan.destinationStore?.name || "Destination"}</span>
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground font-mono mt-0.5 truncate">
+                                                            Project: {challan.project?.name || "Same Project"}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <div className="font-semibold text-foreground flex items-center gap-1.5 truncate">
+                                                            <Building2 className="size-3.5 text-muted-foreground shrink-0" />
+                                                            <span className="truncate">{challan.vendor?.name || "-"}</span>
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                                                            {challan.vendor?.vendorCode || "-"}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-3 py-3.5 font-medium text-foreground/80 whitespace-nowrap text-xs">
                                                 {new Date(challan.challanDate).toLocaleDateString()}
                                             </td>
                                             <td className="px-2.5 py-3.5 text-center font-bold text-foreground">
-                                                {challan.toolCount || (challan.items || []).length}
+                                                <div>{challan.toolCount || (challan.items || []).length}</div>
+                                                {challan.challanType === "Delivery" && (() => {
+                                                    const total = challan.toolCount || (challan.items || []).length;
+                                                    const ret = challan.returnedCount || 0;
+                                                    const miss = challan.missingCount || 0;
+                                                    const pend = Math.max(0, total - (ret + miss));
+                                                    const hasReturns = ret > 0 || miss > 0 || challan.status === "Pending";
+                                                    if (!hasReturns) return null;
+                                                    return (
+                                                        <div className="text-[10px] font-normal flex items-center justify-center gap-1 mt-0.5 whitespace-nowrap">
+                                                            {ret > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{ret} Ret</span>}
+                                                            {pend > 0 && (
+                                                                <>
+                                                                    {ret > 0 && <span className="text-muted-foreground/60">&bull;</span>}
+                                                                    <span className="text-amber-600 dark:text-amber-400 font-semibold">{pend} Pend</span>
+                                                                </>
+                                                            )}
+                                                            {miss > 0 && (
+                                                                <>
+                                                                    {(ret > 0 || pend > 0) && <span className="text-muted-foreground/60">&bull;</span>}
+                                                                    <span className="text-rose-600 dark:text-rose-400 font-semibold">{miss} Miss</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-3 py-3.5 text-center whitespace-nowrap">
                                                 {(() => {
@@ -538,7 +610,7 @@ export function ChallanHistoryPage() {
                                                         PDF
                                                     </Button>
 
-                                                    {isDcActive && (
+                                                    {isDcOpen && (
                                                         <>
                                                             <Button
                                                                 size="sm"
@@ -553,10 +625,15 @@ export function ChallanHistoryPage() {
 
                                                             <Button
                                                                 size="sm"
-                                                                className="h-7 px-2.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-sm flex items-center gap-1"
+                                                                className={`h-7 px-2.5 text-xs font-semibold shadow-xs flex items-center gap-1 text-white ${
+                                                                    challan.status === "Pending"
+                                                                        ? "bg-amber-600 hover:bg-amber-700"
+                                                                        : "bg-amber-500 hover:bg-amber-600"
+                                                                }`}
                                                                 onClick={e => handleCreateReturnChallan(challan, e)}
+                                                                title={challan.status === "Pending" ? "Create subsequent Return Challan for remaining tools" : "Create Return Challan"}
                                                             >
-                                                                <span>Create RC</span>
+                                                                <span>{challan.status === "Pending" ? "Return Remaining" : "Create RC"}</span>
                                                                 <ArrowRight className="size-3" />
                                                             </Button>
                                                         </>
@@ -603,6 +680,15 @@ export function ChallanHistoryPage() {
                 onOpenChange={setIsDetailModalOpen}
                 challan={selectedChallan}
             />
+
+            {returnSelectDc && (
+                <ReturnToolSelectModal
+                    open={isReturnSelectModalOpen}
+                    onOpenChange={setIsReturnSelectModalOpen}
+                    challan={returnSelectDc}
+                    onProceed={handleProceedToReturn}
+                />
+            )}
         </div>
     );
 }

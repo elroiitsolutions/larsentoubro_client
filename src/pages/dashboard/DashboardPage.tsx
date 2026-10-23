@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import NoAccessPage from "../NoAccessPage";
 import { getDefaultAllowedPath } from "@/utils/navigation";
@@ -22,6 +22,7 @@ import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import ToolLifeExtensionModal from "@/components/dashboard/ToolLifeExtensionModal";
 
 export function DashboardPage() {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
 
@@ -117,6 +118,14 @@ export function DashboardPage() {
                 dbId: alert.toolDbId
             });
             setExtensionModalOpen(true);
+        } else if (alert.toolDbId) {
+            const params = new URLSearchParams();
+            const projId = alert.project?._id || alert.project;
+            const storeId = alert.store?._id || alert.store;
+            if (projId) params.set('projectId', String(projId));
+            if (storeId) params.set('storeId', String(storeId));
+            const queryStr = params.toString() ? `?${params.toString()}` : '';
+            navigate(`/tooldetails/${alert.toolDbId}${queryStr}`);
         } else {
             toast.info(`${alert.title}: ${alert.message}`);
         }
@@ -135,8 +144,8 @@ export function DashboardPage() {
             <div className="w-full mx-auto p-4 space-y-6">
                 <Skeleton className="h-16 w-full rounded-2xl" />
                 <Skeleton className="h-28 w-full rounded-2xl" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
                         <Skeleton key={i} className="h-32 rounded-2xl" />
                     ))}
                 </div>
@@ -187,6 +196,8 @@ export function DashboardPage() {
                 data={dashboardData.summaryCards}
                 hierarchyData={dashboardData.hierarchyTree}
                 filters={filters}
+                activeStatus={filters.status}
+                onCardClick={(statusVal) => handleFilterChange('status', filters.status === statusVal ? 'All' : statusVal)}
                 onChangeFilter={handleFilterChange}
             />
 

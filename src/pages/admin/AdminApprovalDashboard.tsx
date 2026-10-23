@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import api from "@/lib/axios"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface LoginRequestItem {
     id: string
@@ -16,6 +17,7 @@ interface LoginRequestItem {
 }
 
 export function AdminApprovalDashboard() {
+    const { user } = useAuth()
     const [requests, setRequests] = useState<LoginRequestItem[]>([])
     const [onlineCount, setOnlineCount] = useState<number>(0)
     const [loading, setLoading] = useState<boolean>(true)
@@ -97,7 +99,7 @@ export function AdminApprovalDashboard() {
     }
 
     const handleReject = async (id: string, name: string) => {
-        const reason = window.prompt(`Enter rejection reason for ${name} (optional):`, "Rejected by administrator")
+        const reason = window.prompt(`Enter rejection reason for ${name} (optional):`, "Access not authorized at this time")
         if (reason === null) return // cancelled prompt
 
         setActionId(id)
@@ -126,10 +128,12 @@ export function AdminApprovalDashboard() {
                     </div>
                     <div>
                         <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                            Admin Login Approvals
+                            {user?.role === "Admin" ? "Admin Login Approvals" : "Login Approvals"}
                         </h1>
                         <p className="text-xs text-muted-foreground">
-                            Review and authorize real-time user login requests
+                            {user?.role === "Admin"
+                                ? "Review and authorize real-time user login requests"
+                                : "Review and authorize real-time login requests for your subusers"}
                         </p>
                     </div>
                 </div>

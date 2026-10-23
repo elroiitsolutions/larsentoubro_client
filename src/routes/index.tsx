@@ -19,8 +19,8 @@ import { DeliveryChallanPreviewPage } from "@/pages/challans/DeliveryChallanPrev
 import { ChallanHistoryPage } from "@/pages/challans/ChallanHistoryPage"
 import { ReturnChallanPreviewPage } from "@/pages/challans/ReturnChallanPreviewPage"
 
-// Tools Report Import
-import { ToolsReportPage } from "@/pages/reports/ToolsReportPage"
+// Reports Hub Imports
+import { ReportsPage } from "@/pages/reports/ReportsPage"
 
 import { AdminApprovalDashboard } from "@/pages/admin/AdminApprovalDashboard"
 import { ToolViewConfigPage } from "@/pages/settings/ToolViewConfigPage"
@@ -134,26 +134,34 @@ function AppRoutes() {
                         <Route path="/challans/history" element={<ChallanHistoryPage />} />
                         <Route path="/challans/return/preview/:dcId" element={<ReturnChallanPreviewPage />} />
                         
-                        <Route path="/reports" element={<ToolsReportPage />} />
-                        <Route path="/reports/tools" element={<ToolsReportPage />} />
+                        <Route path="/reports" element={<ReportsPage />} />
+                        <Route path="/reports/tools" element={<ReportsPage defaultTab="tools" />} />
+                        <Route path="/reports/challans" element={<ReportsPage defaultTab="challans" />} />
+                        <Route path="/reports/missing" element={<ReportsPage defaultTab="missing" />} />
+                        <Route path="/reports/inspections" element={<ReportsPage defaultTab="inspections" />} />
+                        <Route path="/reports/scrap" element={<ReportsPage defaultTab="scrap" />} />
+                        <Route path="/reports/subcontractors" element={<ReportsPage defaultTab="subcontractors" />} />
 
                         <Route path="/profiles" element={<ProfileManagementPage />} />
                         <Route path="/profiles/subcontractors" element={<ProfileManagementPage />} />
                         <Route path="/profiles/scrap-dealers" element={<ProfileManagementPage />} />
                         <Route path="/profiles/suppliers" element={<ProfileManagementPage />} />
                         <Route path="/vendors" element={<ProfileManagementPage />} />
+                        <Route path="/users" element={<UsersPage />} />
+                        <Route path="/users/:id/access" element={<UserAccessPage />} />
+                        <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
+                        <Route path="/approvals" element={<AdminApprovalDashboard />} />
 
                         {/* Admin-only Protected Routes */}
                         <Route element={<AdminRoute />}>
                             <Route path="/tools/trash" element={<TrashPage />} />
                             <Route path="/trash" element={<TrashPage />} />
-                            <Route path="/users" element={<UsersPage />} />
-                            <Route path="/users/:id/access" element={<UserAccessPage />} />
-                            <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
+                            <Route path="/reports/logins" element={<ReportsPage defaultTab="logins" />} />
                             <Route path="/settings" element={<SettingsPage />} />
                             <Route path="/settings/forms" element={<SettingsFormManagementPage />} />
-                            <Route path="/settings/reports" element={<ToolsReportPage />} />
-                            <Route path="/settings/reports/tools" element={<ToolsReportPage />} />
+                            <Route path="/settings/reports" element={<ReportsPage />} />
+                            <Route path="/settings/reports/tools" element={<ReportsPage defaultTab="tools" />} />
+                            <Route path="/settings/reports/logins" element={<ReportsPage defaultTab="logins" />} />
                             <Route path="/settings/tool-quick-view" element={<ToolViewConfigPage mode="quick" />} />
                             <Route path="/settings/tool-details-view" element={<ToolViewConfigPage mode="details" />} />
                             <Route path="/settings/tool-view" element={<ToolViewConfigPage mode="details" />} />

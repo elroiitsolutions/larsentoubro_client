@@ -25,7 +25,7 @@ export const formatDateDDMMYYYY = (dateInput: any): string => {
 export const formatDCNumber = (numStr: any): string => {
     if (!numStr) return 'DC-26-001';
     const str = String(numStr);
-    return str.replace(/(DC|RC)-(\d{2,4})-(\d+)/i, (_, prefix, yr, num) => {
+    return str.replace(/(SDC|DC|RC|STC|TC)-(\d{2,4})-(\d+)/i, (_, prefix, yr, num) => {
         const shortYr = String(yr).slice(-2);
         return `${prefix.toUpperCase()}-${shortYr}-${String(num).padStart(3, '0')}`;
     });
@@ -79,6 +79,16 @@ export interface ChallanPdfOptions {
 const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
     const pageWidth = doc.internal.pageSize.getWidth();
 
+    const isScrapChallan = Boolean(
+        challan.isScrapDC || 
+        challan.challanType === 'Scrap' || 
+        (challan.challanNumber && String(challan.challanNumber).startsWith('SDC-')) ||
+        challan.vendor?.profileType === 'ScrapDealer' || 
+        (challan.vendor?.vendorCode && String(challan.vendor.vendorCode).startsWith('SCR-')) ||
+        (challan.remarks && typeof challan.remarks === 'string' && challan.remarks.toLowerCase().includes('scrap')) ||
+        (challan.notes && typeof challan.notes === 'string' && challan.notes.toLowerCase().includes('scrap'))
+    );
+
     // L&T Logo
     try {
         doc.addImage(LNT_LOGO_BASE64, 'PNG', 14, 7, 16, 16);
@@ -108,31 +118,36 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
     // Title inside Left Box
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    const titleText = isReturn ? 'RETURN CHALLAN' : 'DELIVERY CHALLAN';
+    const titleText = isScrapChallan ? 'SCRAP DELIVERY CHALLAN' : (isReturn ? 'RETURN CHALLAN' : 'DELIVERY CHALLAN');
     doc.text(titleText, 62, 37, { align: 'center' });
 
-    // Horizontal divider in Left Box for DC NO and DATE
+    // Horizontal divider in Left Box for DC NO, INDENT NO, and DATE
     doc.line(14, 43, 110, 43);
 
-    // Vertical line between DC NO and DATE
-    doc.line(62, 43, 62, 58);
+    // 3 Equal columns for Left Box (Width 96mm, each 32mm):
+    // Col 1: 14 to 46 (DC NO / RC NO)
+    // Col 2: 46 to 78 (INDENT NO)
+    // Col 3: 78 to 110 (DATE)
+    doc.line(46, 43, 46, 58);
+    doc.line(78, 43, 78, 58);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.text(isReturn ? 'RC NO.' : 'DC NO.', 16, 48);
+    doc.text(isScrapChallan ? 'SDC NO.' : (isReturn ? 'RC NO.' : 'DC NO.'), 16, 48);
+    doc.text('INDENT NO.', 48, 48);
     doc.text('DATE', 64, 48);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     const challanNumFormatted = formatDCNumber(challan.challanNumber);
-    doc.text(challanNumFormatted, 16, 53);
-    if (challan.indentNo && challan.indentNo !== '-') {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.8);
-        doc.text(`INDENT: ${challan.indentNo}`, 16, 57);
-    }
-    doc.setFontSize(9);
-    doc.text(formatDateDDMMYYYY(challan.challanDate), 64, 54);
+    doc.text(challanNumFormatted, 16, 54);
+
+    const indentVal = challan.indentNo && String(challan.indentNo).trim() !== '' && challan.indentNo !== '-' 
+        ? String(challan.indentNo).trim() 
+        : '-';
+    doc.text(indentVal, 48, 54);
+
+    doc.text(formatDateDDMMYYYY(challan.challanDate), 80, 54);
 
     // Consignee Right Box
     doc.setFont('helvetica', 'bold');
@@ -563,6 +578,224 @@ export const generateReturnChallanPDF = async (challan: any, options: ChallanPdf
 
     if (options.download !== false) {
         const filename = options.fileName || `${challan.challanNumber || 'Return_Challan'}.pdf`;
+        doc.save(filename);
+    }
+
+    return doc;
+};
+
+/**
+ * Generate Store-to-Store Transfer Challan PDF matching L&T Construction standards
+ */
+export const generateTransferChallanPDF = async (challan: any, options: ChallanPdfOptions = { download: true }): Promise<any> => {
+    const jsPDFLib = await loadJsPDF();
+    const doc = new jsPDFLib.jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // L&T Logo
+    try {
+        doc.addImage(LNT_LOGO_BASE64, 'PNG', 14, 7, 16, 16);
+    } catch (e) {
+        doc.setFillColor(14, 76, 146);
+        doc.roundedRect(14, 10, 35, 10, 1.5, 1.5, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('L&T Construction', 18, 16.5);
+    }
+
+    // Main Header Title
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Larsen & Toubro Limited, Construction', pageWidth / 2, 16, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.text('STORE-TO-STORE TOOL TRANSFER CHALLAN', pageWidth / 2, 22, { align: 'center' });
+
+    // Header Box Frame (Y: 26 to 66)
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.4);
+    doc.rect(14, 26, 182, 40);
+
+    // Vertical Divider (Y: 26 to 54)
+    doc.line(100, 26, 100, 54);
+
+    // Left Box: Source Store & Project
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('SOURCE STORE & PROJECT', 16, 31);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const srcStoreName = challan.sourceStore?.name || 'Source Store';
+    const srcStoreCode = challan.sourceStore?.storeCode ? `(${challan.sourceStore.storeCode})` : '';
+    const projName = challan.project?.name || 'Same Project';
+    const srcLoc = challan.sourceStore?.location ? `Loc: ${challan.sourceStore.location}` : '';
+
+    doc.text(`Store: ${srcStoreName} ${srcStoreCode}`, 16, 37, { maxWidth: 80 });
+    doc.setFontSize(7.5);
+    doc.text(`Project: ${projName}`, 16, 43, { maxWidth: 80 });
+    if (srcLoc) doc.text(srcLoc, 16, 48, { maxWidth: 80 });
+
+    // Right Box: Destination Store
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('DESTINATION STORE (SAME PROJECT)', 102, 31);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const destStoreName = challan.destinationStore?.name || 'Destination Store';
+    const destStoreCode = challan.destinationStore?.storeCode ? `(${challan.destinationStore.storeCode})` : '';
+    const destLoc = challan.destinationStore?.location ? `Loc: ${challan.destinationStore.location}` : '';
+
+    doc.text(`Store: ${destStoreName} ${destStoreCode}`, 102, 37, { maxWidth: 90 });
+    doc.setFontSize(7.5);
+    doc.text(`Project: ${projName}`, 102, 43, { maxWidth: 90 });
+    if (destLoc) doc.text(destLoc, 102, 48, { maxWidth: 90 });
+
+    // Divider Line at Y: 54
+    doc.line(14, 54, 196, 54);
+
+    // Meta Row (Y: 54 to 66)
+    doc.line(60, 54, 60, 66);
+    doc.line(110, 54, 110, 66);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.text('CHALLAN NO.', 37, 58, { align: 'center' });
+    doc.text('TRANSFER DATE', 85, 58, { align: 'center' });
+    doc.text('PREPARED / AUTHORIZED BY', 153, 58, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text(formatDCNumber(challan.challanNumber), 37, 63, { align: 'center' });
+    doc.text(formatDateDDMMYYYY(challan.challanDate), 85, 63, { align: 'center' });
+    doc.text(String(challan.createdBy?.name || 'L&T Store Manager'), 153, 63, { align: 'center' });
+
+    // Sub-banner notice
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.setTextColor(180, 0, 0);
+    doc.text('INTERNAL STORE-TO-STORE TRANSFER – TOOLS & EQUIPMENT WITHIN SAME PROJECT', pageWidth / 2, 70, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+
+    // Items Table
+    const tableBody = (challan.items || []).map((item: any, idx: number) => {
+        const toolUid = item.toolId || `TOOL-${idx + 1}`;
+        const desc = item.description || 'Tool Item';
+        
+        // Relevant specifications formatted
+        const specList: string[] = [];
+        if (item.toolCode) specList.push(`Code: ${item.toolCode}`);
+        if (item.category) specList.push(`Type: ${item.category}`);
+        if (item.capacity) specList.push(`Cap: ${item.capacity}`);
+        if (item.safeWorkingLoad) specList.push(`SWL: ${item.safeWorkingLoad}`);
+        if (item.serialNumber) specList.push(`S/N: ${item.serialNumber}`);
+        if (item.makeYear) specList.push(`Make: ${item.makeYear}`);
+        const specsStr = specList.length > 0 ? specList.join(' | ') : '-';
+
+        return [
+            String(idx + 1),
+            String(toolUid),
+            desc,
+            specsStr,
+            String(item.quantity || 1),
+            item.unit || 'NOS',
+            item.remarks || '-'
+        ];
+    });
+
+    doc.autoTable({
+        startY: 73,
+        head: [['SL. NO.', 'TOOL ID / UID', 'DESCRIPTION', 'RELEVANT SPECIFICATIONS', 'QTY', 'UNIT', 'REMARKS']],
+        body: tableBody,
+        theme: 'grid',
+        headStyles: {
+            fillColor: [240, 240, 240],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            halign: 'center',
+            fontSize: 7.5,
+            lineWidth: 0.3,
+            lineColor: [0, 0, 0]
+        },
+        styles: {
+            fontSize: 7.5,
+            cellPadding: 2.5,
+            lineWidth: 0.3,
+            lineColor: [0, 0, 0],
+            textColor: [0, 0, 0]
+        },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 12 },
+            1: { halign: 'center', cellWidth: 32, fontStyle: 'bold' },
+            2: { cellWidth: 44 },
+            3: { cellWidth: 54 },
+            4: { halign: 'center', cellWidth: 12 },
+            5: { halign: 'center', cellWidth: 12 },
+            6: { cellWidth: 16 }
+        },
+        margin: { left: 14, right: 14 }
+    });
+
+    let y = doc.lastAutoTable.finalY + 4;
+    if (y > 220) {
+        doc.addPage();
+        y = 25;
+    }
+
+    // Total Count & Remarks Row
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.4);
+
+    doc.rect(14, y, 140, 9);
+    doc.rect(154, y, 42, 9);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('TOTAL TRANSFERRED TOOLS COUNT', 16, y + 5.5);
+    doc.text(String(challan.toolCount || (challan.items || []).length), 175, y + 5.5, { align: 'center' });
+
+    y += 9;
+
+    // Signature Block (Sender, Receiver, Authorized)
+    doc.rect(14, y, 182, 30);
+    doc.line(74, y, 74, y + 30);
+    doc.line(134, y, 134, y + 30);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text('PREPARED / AUTHORIZED BY', 44, y + 6, { align: 'center' });
+    doc.text('SENDER STORE KEEPER', 104, y + 6, { align: 'center' });
+    doc.text('RECEIVER STORE KEEPER', 164, y + 6, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(`Name: ${challan.createdBy?.name || 'Store Admin'}`, 16, y + 25);
+    doc.text(`Source: ${srcStoreName}`, 76, y + 25);
+    doc.text(`Destination: ${destStoreName}`, 136, y + 25);
+
+    y += 33;
+
+    // Remarks Box
+    doc.rect(14, y, 182, 12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text('TRANSFER REMARKS', 16, y + 4.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    const remText = challan.remarks || 'Store-to-Store Inter-Project Tool Transfer completed successfully.';
+    doc.text(doc.splitTextToSize(remText, 175), 16, y + 9);
+
+    addContinuationHeaders(doc, challan);
+
+    if (options.download !== false) {
+        const filename = options.fileName || `${formatDCNumber(challan.challanNumber)}.pdf`;
         doc.save(filename);
     }
 
