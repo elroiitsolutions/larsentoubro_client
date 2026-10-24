@@ -133,7 +133,7 @@ function AppRoutes() {
                         <Route path="/challans/delivery/preview" element={<DeliveryChallanPreviewPage />} />
                         <Route path="/challans/history" element={<ChallanHistoryPage />} />
                         <Route path="/challans/return/preview/:dcId" element={<ReturnChallanPreviewPage />} />
-                        
+
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/reports/tools" element={<ReportsPage defaultTab="tools" />} />
                         <Route path="/reports/challans" element={<ReportsPage defaultTab="challans" />} />

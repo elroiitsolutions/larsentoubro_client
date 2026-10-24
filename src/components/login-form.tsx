@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
-import { Eye , EyeOff} from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 
 import { UserWaitingScreen } from "@/components/UserWaitingScreen"
 
@@ -59,7 +59,7 @@ export function LoginForm({
     setLoading(true)
 
     try {
-      const data : any = await authService.login({ email, password })
+      const data: any = await authService.login({ email, password })
 
       if (data.requestId || data.data?.requestId || data.message?.includes("Waiting for")) {
         const reqId = data.requestId || data.data?.requestId
@@ -172,17 +172,17 @@ export function LoginForm({
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? "Logging in..." : "Login"}
                 </Button>
-                
+
                 <div className="relative my-2 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
                   <span className="relative bg-card px-2 text-[10px] uppercase font-bold text-muted-foreground">Or access as Guest</span>
                 </div>
 
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleGuestLogin} 
-                  disabled={loading} 
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGuestLogin}
+                  disabled={loading}
                   className="w-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 hover:text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold border-emerald-500/30 cursor-pointer"
                 >
                   Continue as Guest User
