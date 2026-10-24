@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useFormBuilderStore } from "@/store/useFormBuilderStore"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,11 +15,9 @@ import {
     TrashIcon, 
     PlusIcon, 
     SaveIcon, 
-    Tag, 
     Sliders, 
     CheckSquare, 
-    Layers, 
-    Sparkles, 
+    Layers,  
     HelpCircle, 
     ShieldCheck, 
     ListFilter, 
@@ -36,11 +34,16 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
     const [expandedOptionsId, setExpandedOptionsId] = useState<string | null>(null)
     const [fieldToDelete, setFieldToDelete] = useState<{ id: string; label: string } | null>(null)
 
+    const [saving, setSaving] = useState(false)
+    const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const bottomRef = useRef<HTMLDivElement>(null)
+
     useEffect(() => {
         loadForm(form)
     }, [form, loadForm])
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const invalidFields = fields.filter(f => !f.label || !f.label.trim())
         if (invalidFields.length > 0) {
             toast.error("Please provide a name for all fields before saving")
@@ -54,19 +57,53 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
             label: f.label.trim()
         }))
 
-        onSave({ ...form, fields: sanitizedFields })
+        try {
+            setSaving(true)
+            await onSave({ ...form, fields: sanitizedFields })
+        } catch (err) {
+            console.error(err)
+        } finally {
+            setSaving(false)
+        }
     }
 
     const handleAddField = () => {
         const nextOrder = fields.length
+        const newFieldId = `f_${Date.now()}`
         addField({
-            id: `f_${Date.now()}`,
+            id: newFieldId,
             name: `field_${nextOrder}`,
             label: `New Field ${nextOrder + 1}`,
             type: "text",
             order: nextOrder
         })
+        setNewlyAddedId(newFieldId)
         toast.success("New field added")
+
+        // Smoothly scroll down to the newly created field
+        setTimeout(() => {
+            const el = document.getElementById(`field-row-${newFieldId}`)
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                const input = el.querySelector('input')
+                if (input) {
+                    input.focus()
+                    input.select()
+                }
+            } else if (bottomRef.current) {
+                bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            } else if (containerRef.current) {
+                containerRef.current.scrollTo({
+                    top: containerRef.current.scrollHeight,
+                    behavior: 'smooth'
+                })
+            }
+        }, 100)
+
+        // Clear highlight ring after animation
+        setTimeout(() => {
+            setNewlyAddedId((prev) => (prev === newFieldId ? null : prev))
+        }, 2500)
     }
 
     const handleRemoveField = async (id: string, label: string) => {
@@ -119,7 +156,7 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
     }
 
     return (
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1">
+        <div ref={containerRef} className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1 scroll-smooth">
             {/* Sticky Top Action Bar */}
             <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border/60 -mx-1 px-4 sm:px-6 py-3.5 mb-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -137,10 +174,6 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                         <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                             {form.name}
                         </h2>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-mono font-semibold">
-                            <Tag className="size-3" />
-                            {form.slug}
-                        </span>
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted border border-border/60 text-muted-foreground text-xs font-semibold">
                             <Layers className="size-3" />
                             {fields.length} {fields.length === 1 ? 'Field' : 'Fields'}
@@ -153,25 +186,16 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                         variant="outline" 
                         size="sm" 
                         onClick={handleAddField} 
-                        className="rounded-xl h-9 gap-1.5 font-semibold cursor-pointer shadow-xs"
+                        className="rounded-xl h-9 gap-1.5 font-semibold cursor-pointer shadow-xs hover:bg-muted"
                     >
                         <PlusIcon className="size-4 text-primary" />
                         <span>Add Field</span>
-                    </Button>
-                    <Button 
-                        size="sm" 
-                        onClick={handleSave} 
-                        className="rounded-xl h-9 gap-1.5 font-semibold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                    >
-                        <SaveIcon className="size-4" />
-                        <span>Save Form Schema</span>
                     </Button>
                 </div>
             </div>
 
             {/* Main Form Fields Editor (Max-width expanded to 6xl = 1152px for plenty of horizontal room) */}
-            <div className="max-w-7xl mx-auto w-full space-y-4 pb-20">
-               
+            <div className="max-w-6xl mx-auto w-full space-y-4 pb-20">
 
                 {/* Empty State */}
                 {fields.length === 0 ? (
@@ -206,10 +230,13 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                             return (
                                 <div 
                                     key={field.id}
-                                    className={`bg-card border transition-all rounded-xl shadow-xs overflow-hidden ${
-                                        isSettingsOpen || isOptionsOpen 
-                                            ? 'border-primary/50 ring-1 ring-primary/20' 
-                                            : 'border-border/60 hover:border-border'
+                                    id={`field-row-${field.id}`}
+                                    className={`bg-card border transition-all duration-300 rounded-xl shadow-xs overflow-hidden ${
+                                        newlyAddedId === field.id
+                                            ? 'border-primary ring-2 ring-primary/40 shadow-md'
+                                            : isSettingsOpen || isOptionsOpen 
+                                                ? 'border-primary/50 ring-1 ring-primary/20' 
+                                                : 'border-border/60 hover:border-border'
                                     }`}
                                 >
                                     {/* HORIZONTAL FIELD ROW - 12-column grid matching table header */}
@@ -497,6 +524,60 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                         })}
                     </div>
                 )}
+
+                {/* Anchor for smooth scroll down */}
+                <div ref={bottomRef} className="h-0 w-full" />
+
+                {/* Bottom Actions Card */}
+                <div className="sticky bottom-4 z-20 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Button 
+                            type="button"
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleAddField} 
+                            className="rounded-xl h-9 gap-1.5 font-semibold cursor-pointer shadow-xs hover:bg-muted"
+                        >
+                            <PlusIcon className="size-4 text-primary" />
+                            <span>Add Field Row</span>
+                        </Button>
+                        <span className="text-xs text-muted-foreground font-medium hidden sm:inline-block">
+                            {fields.length} {fields.length === 1 ? 'field' : 'fields'} configured in this form schema
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={onBack}
+                            className="rounded-xl h-9 px-4 font-semibold cursor-pointer shadow-xs hover:bg-muted gap-1.5"
+                        >
+                            <ArrowLeftIcon className="size-4" />
+                            <span>Back to Forms</span>
+                        </Button>
+                        <Button 
+                            type="button"
+                            size="sm" 
+                            onClick={handleSave} 
+                            disabled={saving}
+                            className="rounded-xl h-9 px-5 gap-1.5 font-semibold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                        >
+                            {saving ? (
+                                <>
+                                    <div className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                                    <span>Saving Schema...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <SaveIcon className="size-4" />
+                                    <span>Save Form Schema</span>
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </div>
             </div>
 
             {/* Confirmation Dialog for Field Deletion */}
