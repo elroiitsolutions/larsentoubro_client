@@ -19,7 +19,6 @@ import {
     Sliders, 
     CheckSquare, 
     Layers, 
-    Sparkles, 
     HelpCircle, 
     ShieldCheck, 
     ListFilter, 

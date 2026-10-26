@@ -41,7 +41,7 @@ export function DeliveryChallanPreviewPage() {
     // Header & Company Titles (Static Non-Editable)
     const companyName = "LARSEN & TOUBRO LIMITED, CONSTRUCTION";
     const documentTitle = "DELIVERY CHALLAN";
-    const docReferenceCode = "ECC-O&M/STR/906";
+    const docReferenceCode = "ECC-D&M/STR/906";
     const registeredOfficeAddress = "Registered Office : L & T House, Ballard Estate, Bombay - 400 038.";
 
     // Dates & Remarks

@@ -30,7 +30,6 @@ import {
     Clock,
     ExternalLink,
     Filter,
-    Sparkles,
     Layers,
     QrCode
 } from "lucide-react";
