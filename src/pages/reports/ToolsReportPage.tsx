@@ -20,7 +20,8 @@ import {
     Package,
     MapPin,
     AlertTriangle,
-    Archive} from "lucide-react";
+    Archive
+} from "lucide-react";
 import reportService from "@/services/report.service";
 import projectService, { type ProjectRecord } from "@/services/project.service";
 import storeService, { type StoreRecord } from "@/services/store.service";
