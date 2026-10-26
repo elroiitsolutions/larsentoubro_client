@@ -186,6 +186,8 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [isSelectingAll, setIsSelectingAll] = useState(false);
     const [isBulkActionsOpen, setIsBulkActionsOpen] = useState(false);
     const bulkActionsRef = useRef<HTMLDivElement>(null);
+    const isFirstMount = useRef(true);
+    const hasSetBreadcrumbsRef = useRef(false);
 
     useEffect(() => {
         if (selectedToolIds.size === 0) {
@@ -563,6 +565,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         return combined;
     }, [filterOptions, tools]);
 
+    const toolTypeOptions = useMemo(() => getOptionsForField('toolType'), [getOptionsForField]);
+    const statusOptions = useMemo(() => getOptionsForField('status'), [getOptionsForField]);
+
     const renderFilterInput = (label: string, field: string, placeholder?: string) => {
         const value = draftAdvancedFilters[field] ? draftAdvancedFilters[field] : "";
         const options = getOptionsForField(field);
@@ -631,10 +636,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
                 // If we don't have breadcrumbs in state (e.g. on hard refresh),
                 // infer the projectId from the tools and reconstruct the breadcrumbs!
-                if (!(location.state as any)?.breadcrumbs && data.data && data.data.length > 0) {
+                if (!hasSetBreadcrumbsRef.current && !(location.state as any)?.breadcrumbs && data.data && data.data.length > 0) {
                     const project = data.data[0].project;
                     const projId = typeof project === 'object' ? project._id : project;
                     if (projId) {
+                        hasSetBreadcrumbsRef.current = true;
                         navigate(".", {
                             replace: true,
                             state: {
@@ -658,7 +664,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         }
     }, [storeId, page, limit, search, category, status, printStatus, sortBy, sortOrder, advancedFilters]);
 
+    // On initial mount/refresh, fetch immediately without 300ms penalty; debounce subsequent filter/search keystrokes
     useEffect(() => {
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            fetchTools();
+            return;
+        }
         const timeout = setTimeout(() => {
             fetchTools();
         }, 300);
@@ -671,7 +683,8 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             if (res.success && res.data) {
                 const storeObj: any = res.data;
                 const projId = storeObj.projectId || (typeof storeObj.project === 'object' ? storeObj.project?._id : storeObj.project);
-                if (projId && (location.state as any)?.projectId !== projId) {
+                if (projId && (location.state as any)?.projectId !== projId && !hasSetBreadcrumbsRef.current) {
+                    hasSetBreadcrumbsRef.current = true;
                     navigate(".", {
                         replace: true,
                         state: {
@@ -989,7 +1002,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <SearchableSelect
                                     value={category}
                                     onValueChange={(val) => { setCategory(val); setPage(1); }}
-                                    options={getOptionsForField('toolType')}
+                                    options={toolTypeOptions}
                                     placeholder="All Types"
                                     searchPlaceholder="Search tool type..."
                                     allLabel="All Types"
@@ -1001,7 +1014,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <SearchableSelect
                                     value={status}
                                     onValueChange={(val) => { setStatus(val); setPage(1); }}
-                                    options={getOptionsForField('status')}
+                                    options={statusOptions}
                                     placeholder="All Statuses"
                                     searchPlaceholder="Search status..."
                                     allLabel="All Statuses"
