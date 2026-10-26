@@ -1813,26 +1813,28 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                 <Tooltip>
                                                     <TooltipTrigger>
                                                         <span
-                                                            className={`w-full block ${(!areAllSelectedPrinted || hasRepairTool) ? "cursor-not-allowed" : ""}`}
+                                                            className={`w-full block ${(!areAllSelectedPrinted || hasRepairTool || hasMovingTool) ? "cursor-not-allowed" : ""}`}
                                                             title={
-                                                                hasRepairTool
-                                                                    ? "Disabled: Selected tool(s) are under Repair and cannot be transferred"
-                                                                    : !areAllSelectedPrinted
-                                                                        ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
-                                                                        : `Transfer ${selectedToolIds.size} tool(s)`
+                                                                hasMovingTool
+                                                                    ? "Disabled: Selected tool(s) are currently Moving on a Delivery Challan"
+                                                                    : hasRepairTool
+                                                                        ? "Disabled: Selected tool(s) are under Repair and cannot be transferred"
+                                                                        : !areAllSelectedPrinted
+                                                                            ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
+                                                                            : `Transfer ${selectedToolIds.size} tool(s)`
                                                             }
                                                         >
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
-                                                                disabled={!areAllSelectedPrinted || hasRepairTool}
+                                                                disabled={!areAllSelectedPrinted || hasRepairTool || hasMovingTool}
                                                                 className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                                                                    areAllSelectedPrinted && !hasRepairTool
+                                                                    areAllSelectedPrinted && !hasRepairTool && !hasMovingTool
                                                                         ? "text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 cursor-pointer"
                                                                         : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
                                                                 }`}
                                                                 onClick={() => {
-                                                                    if (!areAllSelectedPrinted || hasRepairTool) return;
+                                                                    if (!areAllSelectedPrinted || hasRepairTool || hasMovingTool) return;
                                                                     setIsTransferModalOpen(true);
                                                                     setIsBulkActionsOpen(false);
                                                                 }}
@@ -1843,11 +1845,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                         </span>
                                                     </TooltipTrigger>
                                                     <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                        {hasRepairTool
-                                                            ? "Disabled: Selected tool(s) are under Repair and cannot be transferred"
-                                                            : !areAllSelectedPrinted
-                                                                ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
-                                                                : `Transfer ${selectedToolIds.size} tool(s)`}
+                                                        {hasMovingTool
+                                                            ? "Disabled: Selected tool(s) are currently Moving on a Delivery Challan"
+                                                            : hasRepairTool
+                                                                ? "Disabled: Selected tool(s) are under Repair and cannot be transferred"
+                                                                : !areAllSelectedPrinted
+                                                                    ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
+                                                                    : `Transfer ${selectedToolIds.size} tool(s)`}
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
@@ -1875,26 +1879,28 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                             <Tooltip>
                                                 <TooltipTrigger>
                                                     <span
-                                                        className={`w-full block ${(!areAllSelectedPrinted || hasRepairTool) ? "cursor-not-allowed" : ""}`}
+                                                        className={`w-full block ${(!areAllSelectedPrinted || hasRepairTool || hasMovingTool) ? "cursor-not-allowed" : ""}`}
                                                         title={
-                                                            hasRepairTool
-                                                                ? "Disabled: Selected tool(s) are already under Repair and cannot be moved to Scrap"
-                                                                : !areAllSelectedPrinted
-                                                                    ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
-                                                                    : `Scrap ${selectedToolIds.size} selected tool(s)`
+                                                            hasMovingTool
+                                                                ? "Disabled: Selected tool(s) are currently Moving and cannot be moved to Scrap"
+                                                                : hasRepairTool
+                                                                    ? "Disabled: Selected tool(s) are already under Repair and cannot be moved to Scrap"
+                                                                    : !areAllSelectedPrinted
+                                                                        ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
+                                                                        : `Scrap ${selectedToolIds.size} selected tool(s)`
                                                         }
                                                     >
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
-                                                            disabled={!areAllSelectedPrinted || hasRepairTool}
+                                                            disabled={!areAllSelectedPrinted || hasRepairTool || hasMovingTool}
                                                             className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                                                                areAllSelectedPrinted && !hasRepairTool
+                                                                areAllSelectedPrinted && !hasRepairTool && !hasMovingTool
                                                                     ? "text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
                                                                     : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
                                                             }`}
                                                             onClick={() => {
-                                                                if (!areAllSelectedPrinted || hasRepairTool) return;
+                                                                if (!areAllSelectedPrinted || hasRepairTool || hasMovingTool) return;
                                                                 setIsMoveToScrapModalOpen(true);
                                                                 setIsBulkActionsOpen(false);
                                                             }}
@@ -1905,11 +1911,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                     </span>
                                                 </TooltipTrigger>
                                                 <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                    {hasRepairTool
-                                                        ? "Disabled: Selected tool(s) are already under Repair and cannot be moved to Scrap"
-                                                        : !areAllSelectedPrinted
-                                                            ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
-                                                            : `Scrap ${selectedToolIds.size} selected tool(s)`}
+                                                    {hasMovingTool
+                                                        ? "Disabled: Selected tool(s) are currently Moving and cannot be moved to Scrap"
+                                                        : hasRepairTool
+                                                            ? "Disabled: Selected tool(s) are already under Repair and cannot be moved to Scrap"
+                                                            : !areAllSelectedPrinted
+                                                                ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
+                                                                : `Scrap ${selectedToolIds.size} selected tool(s)`}
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
