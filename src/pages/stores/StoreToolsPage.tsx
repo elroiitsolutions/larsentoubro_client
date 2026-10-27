@@ -1299,7 +1299,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 </div>
 
                 <CardContent className="p-0 flex-1 min-h-0 flex flex-col overflow-hidden">
-                    <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-hidden relative">
                         <div className="h-full overflow-auto">
                             <table className="h-full min-w-full text-sm text-left whitespace-nowrap">
 
@@ -1340,30 +1340,10 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
-                                    {loading ? (
+                                    {loading || tools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={20} className="px-6 py-20 text-center">
-                                                <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                                    <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
-                                                    <p className="text-sm font-medium animate-pulse">Loading inventory...</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : tools.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={20} className="px-6 py-20 text-center">
-                                                <div className="flex flex-col items-center justify-center text-muted-foreground max-w-sm mx-auto">
-                                                    <SlidersHorizontal className="size-8 text-muted-foreground/40 mb-3" />
-                                                    <p className="text-sm font-medium text-foreground">No tools found</p>
-                                                    <p className="text-xs text-muted-foreground mt-1 mb-4">Try adjusting your filters or search terms</p>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => { setSearch(""); setCategory("All"); setStatus("All"); }}
-                                                    >
-                                                        Clear all filters
-                                                    </Button>
-                                                </div>
+                                            <td colSpan={100} className="px-6 py-24 text-center select-none opacity-0">
+                                                &nbsp;
                                             </td>
                                         </tr>
                                     ) : tools.map((t) => (
@@ -1446,6 +1426,32 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 </tbody>
                             </table>
                         </div>
+
+                        {loading && (
+                            <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
+                                <div className="flex flex-col items-center justify-center text-muted-foreground">
+                                    <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
+                                    <p className="text-sm font-medium animate-pulse">Loading inventory...</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {!loading && tools.length === 0 && (
+                            <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
+                                <div className="pointer-events-auto flex flex-col items-center justify-center text-muted-foreground max-w-sm mx-auto p-4 text-center">
+                                    <SlidersHorizontal className="size-8 text-muted-foreground/40 mb-3" />
+                                    <p className="text-sm font-medium text-foreground">No tools found</p>
+                                    <p className="text-xs text-muted-foreground mt-1 mb-4">Try adjusting your filters or search terms</p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => { setSearch(""); setCategory("All"); setStatus("All"); }}
+                                    >
+                                        Clear all filters
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Premium Pagination Bar */}

@@ -129,48 +129,29 @@ const drawLnTHeader = (doc: any, challan: any, isReturn: boolean) => {
         String(challan.indentNo).trim() !== '' && 
         challan.indentNo !== '-'
     );
+    const indentVal = hasIndent ? String(challan.indentNo).trim() : '-';
 
-    if (hasIndent) {
-        // 3 Equal columns for Left Box (Width 96mm, each 32mm):
-        // Col 1: 14 to 46 (DC NO / RC NO)
-        // Col 2: 46 to 78 (INDENT NO)
-        // Col 3: 78 to 110 (DATE)
-        doc.line(46, 43, 46, 58);
-        doc.line(78, 43, 78, 58);
+    // Always 3 Equal columns for Left Box (Width 96mm, each 32mm):
+    // Col 1: 14 to 46 (DC NO / RC NO)
+    // Col 2: 46 to 78 (INDENT NO)
+    // Col 3: 78 to 110 (DATE)
+    doc.line(46, 43, 46, 58);
+    doc.line(78, 43, 78, 58);
 
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.text(isScrapChallan ? 'SDC NO.' : (isReturn ? 'RC NO.' : 'DC NO.'), 16, 48);
-        doc.text('INDENT NO.', 48, 48);
-        doc.text('DATE', 80, 48);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(isScrapChallan ? 'SDC NO.' : (isReturn ? 'RC NO.' : 'DC NO.'), 16, 48);
+    doc.text('INDENT NO.', 48, 48);
+    doc.text('DATE', 80, 48);
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        const challanNumFormatted = formatDCNumber(challan.challanNumber);
-        doc.text(challanNumFormatted, 16, 54);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const challanNumFormatted = formatDCNumber(challan.challanNumber);
+    doc.text(challanNumFormatted, 16, 54);
 
-        const indentVal = String(challan.indentNo).trim();
-        doc.text(indentVal, 48, 54);
+    doc.text(indentVal, 48, 54);
 
-        doc.text(formatDateDDMMYYYY(challan.challanDate), 80, 54);
-    } else {
-        // 2 Equal columns for Left Box (Width 96mm, each 48mm):
-        // Col 1: 14 to 62 (DC NO / RC NO)
-        // Col 2: 62 to 110 (DATE)
-        doc.line(62, 43, 62, 58);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.text(isScrapChallan ? 'SDC NO.' : (isReturn ? 'RC NO.' : 'DC NO.'), 16, 48);
-        doc.text('DATE', 64, 48);
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        const challanNumFormatted = formatDCNumber(challan.challanNumber);
-        doc.text(challanNumFormatted, 16, 54);
-
-        doc.text(formatDateDDMMYYYY(challan.challanDate), 64, 54);
-    }
+    doc.text(formatDateDDMMYYYY(challan.challanDate), 80, 54);
 
     // Consignee Right Box
     doc.setFont('helvetica', 'bold');

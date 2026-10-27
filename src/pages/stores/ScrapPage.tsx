@@ -23,7 +23,6 @@ import {
     CheckSquare,
     Square,
     X,
-    QrCode,
     Truck,
     Filter,
     FolderKanban,
@@ -413,7 +412,7 @@ export function ScrapPage() {
                 </div>
 
                 <CardContent className="p-0 flex-1 min-h-0 flex flex-col overflow-hidden">
-                    <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-hidden relative">
                         <div className="h-full overflow-auto">
                             <table className="h-full min-w-full text-sm text-left whitespace-nowrap">
                                 <thead className="sticky top-0 z-10 bg-card shadow-xs">
@@ -447,42 +446,10 @@ export function ScrapPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
-                                    {loading ? (
+                                    {loading || scrappedTools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={10} className="px-6 py-20 text-center">
-                                                <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                                    <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
-                                                    <p className="text-sm font-medium animate-pulse">Loading scrapped tools...</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : scrappedTools.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={10} className="px-6 py-24 text-center">
-                                                <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                                                    <div className="size-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4 text-amber-600">
-                                                        <Archive className="size-8" />
-                                                    </div>
-                                                    <h3 className="text-lg font-semibold text-foreground mb-1">
-                                                        {disposalStatus === "disposed" ? "No Disposed Tools" : "No Scrapped Tools Found"}
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground text-balance">
-                                                        {disposalStatus === "pending"
-                                                            ? "No tools waiting for disposal. Tools marked as Scrap from store inventory will appear here."
-                                                            : "No matching scrap tool records found for the selected filter criteria."}
-                                                    </p>
-                                                    {isAnyFilterActive && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={resetFilters}
-                                                            className="mt-4 rounded-xl text-xs gap-1.5"
-                                                        >
-                                                            <RotateCcw className="size-3.5" />
-                                                            Reset Filters
-                                                        </Button>
-                                                    )}
-                                                </div>
+                                            <td colSpan={50} className="px-6 py-24 text-center select-none opacity-0">
+                                                &nbsp;
                                             </td>
                                         </tr>
                                     ) : (
@@ -526,20 +493,7 @@ export function ScrapPage() {
                                                         </button>
                                                     </td>
                                                     <td className="px-6 py-4 font-mono font-bold text-foreground">
-                                                        <div className="flex items-center gap-2">
-                                                            <span>{t.toolId || t.toolCode || t._id}</span>
-                                                            {t.qrLink && (
-                                                                <a
-                                                                    href={t.qrLink}
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                    className="text-primary hover:text-primary/80 transition-colors"
-                                                                    title="View QR Link"
-                                                                >
-                                                                    <QrCode className="size-4" />
-                                                                </a>
-                                                            )}
-                                                        </div>
+                                                        <span>{t.toolId || t.toolCode || t._id}</span>
                                                     </td>
                                                     <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate" title={t.description}>
                                                         {t.description || '-'}
@@ -605,6 +559,44 @@ export function ScrapPage() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {loading && (
+                            <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
+                                <div className="flex flex-col items-center justify-center text-muted-foreground">
+                                    <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
+                                    <p className="text-sm font-medium animate-pulse">Loading scrapped tools...</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {!loading && scrappedTools.length === 0 && (
+                            <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
+                                <div className="pointer-events-auto flex flex-col items-center justify-center max-w-sm mx-auto p-4 text-center">
+                                    <div className="size-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4 text-amber-600">
+                                        <Archive className="size-8" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-foreground mb-1">
+                                        {disposalStatus === "disposed" ? "No Disposed Tools" : "No Scrapped Tools Found"}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground text-balance">
+                                        {disposalStatus === "pending"
+                                            ? "No tools waiting for disposal. Tools marked as Scrap from store inventory will appear here."
+                                            : "No matching scrap tool records found for the selected filter criteria."}
+                                    </p>
+                                    {isAnyFilterActive && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={resetFilters}
+                                            className="mt-4 rounded-xl text-xs gap-1.5"
+                                        >
+                                            <RotateCcw className="size-3.5" />
+                                            Reset Filters
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Premium Pagination Bar */}
