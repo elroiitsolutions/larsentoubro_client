@@ -69,8 +69,26 @@ export function ToolDetailsPage() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
+    const isToolDeletable = useMemo(() => {
+        const s = (tool?.status || "").trim().toLowerCase();
+        return s === "available" || s === "missing";
+    }, [tool?.status]);
+
+    const isMoving = useMemo(() => {
+        return (tool?.status || "").trim().toLowerCase() === "moving";
+    }, [tool?.status]);
+
+    const isMissing = useMemo(() => {
+        return (tool?.status || "").trim().toLowerCase() === "missing";
+    }, [tool?.status]);
+
     const confirmDelete = async () => {
         if (!tool?._id) return;
+        if (!isToolDeletable) {
+            toast.error(`Cannot delete tool with status "${tool.status}". Only Available and Missing tools can be deleted.`);
+            setShowDeleteConfirm(false);
+            return;
+        }
         setDeleting(true);
         try {
             const res = await toolService.deleteTool(tool._id);
@@ -289,7 +307,8 @@ export function ToolDetailsPage() {
 
                 {/* Quick Action Buttons */}
                 <div className="flex items-center gap-2">
-                    {canInspect && (
+                    {/* Quality Inspection: Hidden if Moving or Missing */}
+                    {!isMoving && !isMissing && canInspect && (
                         <Button
                             variant="outline"
                             size="sm"
@@ -310,33 +329,47 @@ export function ToolDetailsPage() {
                             Inspect Tool
                         </Button>
                     )}
-                    {isAdmin && (
-                        <>
-                            <ToolFormModal
-                                storeId={tool.currentSite?._id || (typeof tool.currentSite === 'string' ? tool.currentSite : '') || paramStoreId || ''}
-                                tool={tool}
-                                onSuccess={() => window.location.reload()}
-                                triggerButton={
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer font-medium"
-                                    >
-                                        <Edit className="size-3.5 text-primary" />
-                                        Edit Tool
-                                    </Button>
+                    {/* Edit Tool: Hidden if Moving or Missing */}
+                    {isAdmin && !isMoving && !isMissing && (
+                        <ToolFormModal
+                            storeId={tool.currentSite?._id || (typeof tool.currentSite === 'string' ? tool.currentSite : '') || paramStoreId || ''}
+                            tool={tool}
+                            onSuccess={() => window.location.reload()}
+                            triggerButton={
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer font-medium"
+                                >
+                                    <Edit className="size-3.5 text-primary" />
+                                    Edit Tool
+                                </Button>
+                            }
+                        />
+                    )}
+                    {/* Delete Tool: Hidden if Moving; If Missing, ONLY Delete option is shown */}
+                    {isAdmin && !isMoving && (isMissing || isToolDeletable) && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!isToolDeletable}
+                            className={`h-8 rounded-xl text-xs gap-1.5 shadow-2xs font-medium ${
+                                isToolDeletable
+                                    ? "text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                                    : "text-slate-400 border-border bg-muted/40 cursor-not-allowed opacity-50"
+                            }`}
+                            onClick={() => {
+                                if (!isToolDeletable) {
+                                    toast.error(`Cannot delete tool with status "${tool.status}". Only Available and Missing tools can be deleted.`);
+                                    return;
                                 }
-                            />
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium cursor-pointer"
-                                onClick={() => setShowDeleteConfirm(true)}
-                            >
-                                <Trash2 className="size-3.5 text-rose-500" />
-                                Delete Tool
-                            </Button>
-                        </>
+                                setShowDeleteConfirm(true);
+                            }}
+                            title={isToolDeletable ? "Delete Tool" : `Cannot delete tool with status "${tool?.status}". Only Available and Missing tools can be deleted.`}
+                        >
+                            <Trash2 className="size-3.5 text-rose-500" />
+                            Delete Tool
+                        </Button>
                     )}
                     {tool.qrLink && (
                         <Button

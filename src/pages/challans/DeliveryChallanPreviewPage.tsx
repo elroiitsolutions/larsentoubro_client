@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,6 +96,21 @@ export function DeliveryChallanPreviewPage() {
     );
 
     const [creating, setCreating] = useState(false);
+    const [previewDcNumber, setPreviewDcNumber] = useState<string>(isScrapDC ? "SDC-26-001" : "DC-26-001");
+
+    useEffect(() => {
+        let isMounted = true;
+        challanService.getNextChallanNumber(isScrapDC ? 'Scrap' : 'Delivery')
+            .then(num => {
+                if (isMounted && num) {
+                    setPreviewDcNumber(num);
+                }
+            })
+            .catch(err => console.error("Error fetching next challan number:", err));
+        return () => {
+            isMounted = false;
+        };
+    }, [isScrapDC]);
 
     if (initialTools.length === 0) {
         return (
@@ -233,7 +248,7 @@ export function DeliveryChallanPreviewPage() {
     const handleDownloadDraft = async () => {
         try {
             const draftData = {
-                challanNumber: isScrapDC ? "SDC-26-001" : "DC-26-001",
+                challanNumber: previewDcNumber,
                 ...getChallanPayload(true),
                  indentNo: indentNo
             };
@@ -468,7 +483,7 @@ export function DeliveryChallanPreviewPage() {
                             <div className="grid grid-cols-3 divide-x-2 divide-black flex-1">
                                 <div className="p-2 space-y-1">
                                     <span className="font-bold text-[10px] block">DC NO.</span>
-                                    <span className="font-bold text-xs block font-mono text-slate-700">DC-26-001</span>
+                                    <span className="font-bold text-xs block font-mono text-slate-700">{previewDcNumber}</span>
                                 </div>
                                 <div className="p-2 space-y-1">
                                     <span className="font-bold text-[10px] block">INDENT NO.</span>
