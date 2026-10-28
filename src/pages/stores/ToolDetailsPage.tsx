@@ -71,11 +71,15 @@ export function ToolDetailsPage() {
 
     const confirmDelete = async () => {
         if (!tool?._id) return;
+        if (tool.isPrinted) {
+            toast.error("Printed tools cannot be deleted. Only unprinted tools can be moved to Trash.");
+            return;
+        }
         setDeleting(true);
         try {
             const res = await toolService.deleteTool(tool._id);
             if (res.success) {
-                toast.success(res.message || "Tool soft-deleted successfully");
+                toast.success(res.message || "Tool soft-deleted to Trash successfully");
                 navigate(-1);
             }
         } catch (error: any) {
@@ -327,15 +331,17 @@ export function ToolDetailsPage() {
                                     </Button>
                                 }
                             />
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium cursor-pointer"
-                                onClick={() => setShowDeleteConfirm(true)}
-                            >
-                                <Trash2 className="size-3.5 text-rose-500" />
-                                Delete Tool
-                            </Button>
+                            {!tool.isPrinted && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 rounded-xl text-xs gap-1.5 shadow-2xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium cursor-pointer"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                >
+                                    <Trash2 className="size-3.5 text-rose-500" />
+                                    Delete Tool
+                                </Button>
+                            )}
                         </>
                     )}
                     {tool.qrLink && (

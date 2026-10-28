@@ -118,13 +118,6 @@ const generateBreadcrumbs = (pathname: string, state?: any): Array<{ label: stri
                 { label: 'Settings', href: '/settings' },
                 { label: 'Tool Quick View Layout', href: `/settings/tool-quick-view` }
             ]
-        },
-        {
-            test: /^\/settings\/tool-details-view$/,
-            build: () => [
-                { label: 'Settings', href: '/settings' },
-                { label: 'Tool Details Layout', href: `/settings/tool-details-view` }
-            ]
         }
     ];
 

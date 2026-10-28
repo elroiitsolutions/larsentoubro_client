@@ -28,12 +28,8 @@ interface BulkEditToolsModalProps {
 
 const statusOptions = [
     "Available",
-    "In Use",
     "Moving",
-    "Maintenance",
-    "Damaged",
-    "Expired",
-    "Missing"
+    "Repair"
 ];
 
 export function BulkEditToolsModal({

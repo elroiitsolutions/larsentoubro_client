@@ -134,7 +134,7 @@ export function ToolPreviewModal({
         if (idToUse) {
             const effectiveStoreId = storeId || tool?.currentSite?._id || (typeof tool?.currentSite === 'string' ? tool?.currentSite : undefined);
             const effectiveProjectId = projectId || tool?.project?._id || (typeof tool?.project === 'string' ? tool?.project : undefined);
-            navigate(`/tooldetails/${encodeURIComponent(idToUse)}`, {
+            navigate(`/vt/${encodeURIComponent(idToUse)}`, {
                 state: {
                     fromStoreId: effectiveStoreId,
                     projectId: effectiveProjectId,

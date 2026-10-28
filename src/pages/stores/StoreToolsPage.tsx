@@ -47,6 +47,7 @@ import { ToolTransferModal } from "./ToolTransferModal"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { MoveToScrapModal } from "./MoveToScrapModal"
 import { ToolInspectionModal } from "./ToolInspectionModal"
+import { DeleteProgressModal } from "./DeleteProgressModal"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -221,23 +222,40 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         isOpen: false,
         isBulk: false
     });
+    const [deleteProgressModal, setDeleteProgressModal] = useState<{
+        open: boolean;
+        jobId: string | null;
+        totalCount: number;
+    }>({
+        open: false,
+        jobId: null,
+        totalCount: 0
+    });
     const [deleting, setDeleting] = useState(false);
     const [markingPrinted, setMarkingPrinted] = useState(false);
     const [unmarkingPrinted, setUnmarkingPrinted] = useState(false);
 
     const handleSingleDelete = (tool: any, e: React.MouseEvent) => {
         e.stopPropagation();
+        if (tool.isPrinted) {
+            toast.error("Printed tools cannot be deleted. Only unprinted tools can be moved to Trash.");
+            return;
+        }
         setDeleteDialog({
             isOpen: true,
             isBulk: false,
             toolId: tool._id,
             toolCode: tool.toolId || tool.description || 'this tool',
-            isPrinted: tool.isPrinted
+            isPrinted: false
         });
     };
 
     const handleBulkDelete = () => {
         if (selectedToolIds.size === 0) return;
+        if (printedCount > 0) {
+            toast.error(`Cannot delete: ${printedCount} selected tool(s) are printed. Only unprinted tools can be moved to Trash.`);
+            return;
+        }
         setDeleteDialog({
             isOpen: true,
             isBulk: true
@@ -260,6 +278,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
     // Subcontractor DC, Transfer, and Scrap flows require ALL selected tools to be marked as Printed
     const areAllSelectedPrinted = totalSelected > 0 && unprintedCount === 0 && printedCount === totalSelected;
+
+    // Only Admin can delete tools, and strictly unprinted tools only
+    const canDeleteSelected = isAdmin && totalSelected > 0 && printedCount === 0 && unprintedCount === totalSelected;
 
     const hasRepairTool = useMemo(() => selectedToolsList.some(t => t.status === "Repair"), [selectedToolsList]);
     const hasMovingTool = useMemo(() => selectedToolsList.some(t => t.status === "Moving"), [selectedToolsList]);
@@ -317,26 +338,50 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         setDeleting(true);
         try {
             if (deleteDialog.isBulk) {
-                const res = await toolService.bulkDeleteTools(Array.from(selectedToolIds), storeId);
-                if (res.success) {
-                    toast.success(res.message || `Deleted ${selectedToolIds.size} tools`);
+                const targetIds = Array.from(selectedToolIds);
+                const res = await toolService.bulkDeleteTools(targetIds, storeId, true);
+                if (res.success && res.data?.jobId) {
+                    setDeleteDialog(prev => ({ ...prev, isOpen: false }));
+                    setDeleteProgressModal({
+                        open: true,
+                        jobId: res.data.jobId,
+                        totalCount: targetIds.length
+                    });
+                } else {
+                    toast.success(res.message || `Deleted ${targetIds.length} tools`);
                     handleClearSelection();
                     fetchTools();
+                    setDeleteDialog(prev => ({ ...prev, isOpen: false }));
                 }
             } else if (deleteDialog.toolId) {
-                const res = await toolService.deleteTool(deleteDialog.toolId);
-                if (res.success) {
+                const res = await toolService.deleteTool(deleteDialog.toolId, storeId, true);
+                if (res.success && res.data?.jobId) {
+                    setDeleteDialog(prev => ({ ...prev, isOpen: false }));
+                    setDeleteProgressModal({
+                        open: true,
+                        jobId: res.data.jobId,
+                        totalCount: 1
+                    });
+                } else {
                     toast.success(res.message || "Tool deleted successfully");
                     fetchTools();
+                    setDeleteDialog(prev => ({ ...prev, isOpen: false }));
                 }
             }
         } catch (error: any) {
             console.error(error);
             toast.error(error?.response?.data?.message || "Failed to delete tool(s)");
+            setDeleteDialog(prev => ({ ...prev, isOpen: false }));
         } finally {
             setDeleting(false);
-            setDeleteDialog(prev => ({ ...prev, isOpen: false }));
         }
+    };
+
+    const handleDeleteJobComplete = () => {
+        setDeleteProgressModal({ open: false, jobId: null, totalCount: 0 });
+        handleClearSelection();
+        fetchTools();
+        toast.success("Tool(s) moved to Trash. Remaining active tool IDs have been automatically re-sequenced.");
     };
 
     // Pagination and Filter States
@@ -543,7 +588,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             return ["1 Year", "2 Years", "3 Years"];
         }
         if (field === 'status') {
-            return ["Available", "In Use", "Moving", "Repair", "Missing", "Maintenance", "Damaged", "Expired"];
+            return ["Available", "Moving", "Repair", "Printed", "Not Printed"];
         }
         if (field === 'printStatus') {
             return ["Printed", "Not Printed"];
@@ -1012,8 +1057,23 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             </div>
                             <div className="w-full sm:w-44">
                                 <SearchableSelect
-                                    value={status}
-                                    onValueChange={(val) => { setStatus(val); setPage(1); }}
+                                    value={
+                                        status !== "All"
+                                            ? status
+                                            : printStatus !== "All"
+                                                ? printStatus
+                                                : "All"
+                                    }
+                                    onValueChange={(val) => {
+                                        if (val === "Printed" || val === "Not Printed") {
+                                            setStatus("All");
+                                            setPrintStatus(val);
+                                        } else {
+                                            setStatus(val);
+                                            setPrintStatus("All");
+                                        }
+                                        setPage(1);
+                                    }}
                                     options={statusOptions}
                                     placeholder="All Statuses"
                                     searchPlaceholder="Search status..."
@@ -1405,15 +1465,21 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                             </td>
                                             {isAdmin && (
                                                 <td className="px-6 py-4 text-center">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg"
-                                                        onClick={(e) => handleSingleDelete(t, e)}
-                                                        title="Delete tool"
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                    </Button>
+                                                    {!t.isPrinted ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg cursor-pointer"
+                                                            onClick={(e) => handleSingleDelete(t, e)}
+                                                            title="Delete unprinted tool"
+                                                        >
+                                                            <Trash2 className="size-4" />
+                                                        </Button>
+                                                    ) : (
+                                                        <span className="text-muted-foreground/30 text-xs select-none" title="Printed tools cannot be deleted">
+                                                            —
+                                                        </span>
+                                                    )}
                                                 </td>
                                             )}
                                             {TOOL_COLUMNS.map((col) => (
@@ -1943,19 +2009,48 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     )}
 
                                     {isAdmin && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-9 text-xs font-medium rounded-xl text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center gap-1.5 sm:col-span-2"
-                                            onClick={() => {
-                                                handleBulkDelete();
-                                                setIsBulkActionsOpen(false);
-                                            }}
-                                            title="Delete Selected"
-                                        >
-                                            <Trash2 className="size-3.5 shrink-0" />
-                                            <span className="truncate">Delete Selected ({selectedToolIds.size})</span>
-                                        </Button>
+                                        <TooltipProvider delay={100}>
+                                            <Tooltip>
+                                                <TooltipTrigger className="sm:col-span-2 w-full">
+                                                    <span
+                                                        className={`w-full block ${!canDeleteSelected ? "cursor-not-allowed" : ""}`}
+                                                        title={
+                                                            !canDeleteSelected
+                                                                ? printedCount > 0
+                                                                    ? `Disabled: Cannot delete because ${printedCount} selected tool(s) are Printed. Only unprinted tools can be deleted.`
+                                                                    : "Select tools to delete"
+                                                                : `Delete ${selectedToolIds.size} unprinted tool(s)`
+                                                        }
+                                                    >
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            disabled={!canDeleteSelected}
+                                                            className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                                canDeleteSelected
+                                                                    ? "text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                                                                    : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                            }`}
+                                                            onClick={() => {
+                                                                if (!canDeleteSelected) return;
+                                                                handleBulkDelete();
+                                                                setIsBulkActionsOpen(false);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="size-3.5 shrink-0" />
+                                                            <span className="truncate">Delete Selected ({selectedToolIds.size})</span>
+                                                        </Button>
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                    {!canDeleteSelected
+                                                        ? printedCount > 0
+                                                            ? `Disabled: Cannot delete because ${printedCount} selected tool(s) are Printed. Only unprinted tools can be deleted.`
+                                                            : "Select tools to delete"
+                                                        : `Delete ${selectedToolIds.size} unprinted tool(s)`}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     )}
                                 </div>
                             )}
@@ -2054,13 +2149,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             <Trash2 className="size-6 text-rose-500" />
                             <span>Confirm Tool Deletion</span>
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
+                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2 leading-relaxed">
                             {deleteDialog.isBulk ? (
-                                <>Are you sure you want to delete <strong>{selectedToolIds.size}</strong> selected tools? Unprinted tools will move to <strong>Trash</strong> (re-sequenced), while printed tools will move to <strong>Scrap</strong> (no re-sequencing).</>
-                            ) : deleteDialog.isPrinted ? (
-                                <>Are you sure you want to delete printed tool <strong className="font-mono text-foreground">{deleteDialog.toolCode}</strong>? Because this tool is marked as <strong>Printed</strong>, it will move to <strong>Scrap</strong> and active tool IDs will <strong>NOT</strong> be re-sequenced.</>
+                                <>Are you sure you want to delete <strong>{selectedToolIds.size}</strong> selected unprinted tools? They will move to <strong>Trash</strong>, and all remaining active tool IDs in this project will be automatically re-sequenced in batches.</>
                             ) : (
-                                <>Are you sure you want to delete tool <strong className="font-mono text-foreground">{deleteDialog.toolCode}</strong>? It will move to <strong>Trash</strong> and remaining active tool IDs will be re-sequenced.</>
+                                <>Are you sure you want to delete unprinted tool <strong className="font-mono text-foreground">{deleteDialog.toolCode}</strong>? It will move to <strong>Trash</strong>, and all remaining active tool IDs in this project will be automatically re-sequenced in batches.</>
                             )}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -2071,7 +2164,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         <AlertDialogAction
                             disabled={deleting}
                             onClick={confirmDelete}
-                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
                         >
                             {deleting ? (
                                 <Loader2 className="size-4 animate-spin mr-1.5" />
@@ -2081,6 +2174,14 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <DeleteProgressModal
+                open={deleteProgressModal.open}
+                jobId={deleteProgressModal.jobId}
+                totalCount={deleteProgressModal.totalCount}
+                onComplete={handleDeleteJobComplete}
+                onClose={() => setDeleteProgressModal({ open: false, jobId: null, totalCount: 0 })}
+            />
         </div>
     )
 }

@@ -165,25 +165,6 @@ export function QuickToolViewPage() {
         return undefined;
     };
 
-    // const handleGoToFullDetails = () => {
-    //     if (tool?.toolId) {
-    //         const storeIdVal = fromStoreId || tool.currentSite?._id || tool.currentSite;
-    //         const projId = (location.state as any)?.projectId || (tool?.project?._id || tool?.project);
-    //         const detailsBreadcrumbs = [
-    //             { label: 'Projects', href: '/projects' },
-    //             { label: 'Stores', href: projId ? `/projects/${projId}/stores` : '/projects' },
-    //             { label: 'Tools', href: storeIdVal ? `/stores/${storeIdVal}/tools` : '/projects' },
-    //             { label: `Tool Details (${tool.toolId})`, href: `/tooldetails/${encodeURIComponent(tool.toolId)}` }
-    //         ];
-    //         navigate(`/tooldetails/${encodeURIComponent(tool.toolId)}`, {
-    //             state: {
-    //                 fromStoreId: storeIdVal,
-    //                 breadcrumbs: detailsBreadcrumbs
-    //             }
-    //         });
-    //     }
-    // };
-
     const isAvailable = tool?.status === 'Available' || tool?.status === 'Usable';
     const isMoving = tool?.status === 'Moving' || tool?.status === 'In Use';
 
