@@ -28,7 +28,7 @@ export function LoginForm({
 
   // Steps: 'email' (Step 1) | 'otp' (Step 2)
   const [step, setStep] = React.useState<"email" | "otp">("email")
-  const [email, setEmail] = React.useState("gdking00724@gmail.com")
+  const [email, setEmail] = React.useState("lntqr@gmail.com")
   const [otp, setOtp] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
@@ -186,7 +186,7 @@ export function LoginForm({
                     <Input
                       id="email"
                       type="email"
-                      placeholder="e.g. gdking00724@gmail.com"
+                      placeholder="e.g. lntqr@gmail.com"
                       required
                       autoFocus
                       autoComplete="email"
@@ -197,17 +197,6 @@ export function LoginForm({
                     />
                     <Mail className="absolute left-3.5 top-4 size-4 text-slate-400 pointer-events-none" />
                   </div>
-                  {email !== "gdking00724@gmail.com" && (
-                    <div className="flex items-center justify-end pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setEmail("gdking00724@gmail.com")}
-                        className="text-[11px] font-semibold text-blue-700 hover:underline cursor-pointer"
-                      >
-                        Use dev email: gdking00724@gmail.com
-                      </button>
-                    </div>
-                  )}
                 </Field>
 
                 <Field className="pt-1">
