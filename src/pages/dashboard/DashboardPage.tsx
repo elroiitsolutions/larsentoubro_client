@@ -125,7 +125,7 @@ export function DashboardPage() {
             if (projId) params.set('projectId', String(projId));
             if (storeId) params.set('storeId', String(storeId));
             const queryStr = params.toString() ? `?${params.toString()}` : '';
-            navigate(`/tooldetails/${alert.toolDbId}${queryStr}`);
+            navigate(`/vt/${encodeURIComponent(alert.toolId || alert.toolDbId)}${queryStr}`);
         } else {
             toast.info(`${alert.title}: ${alert.message}`);
         }

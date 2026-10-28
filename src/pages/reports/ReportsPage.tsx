@@ -1287,9 +1287,9 @@ export function ReportsPage({ defaultTab }: ReportsPageProps) {
                                             <tr key={item._id || idx} className="hover:bg-muted/30 transition-colors">
                                                 <td className="px-4 py-3 font-mono font-bold text-primary text-xs">
                                                     <button
-                                                        onClick={() => navigate(`/tooldetails/${item._id}`)}
+                                                        onClick={() => navigate(`/vt/${encodeURIComponent(item.toolId || item._id)}`)}
                                                         className="hover:underline flex items-center gap-1 cursor-pointer"
-                                                        title="View full tool details"
+                                                        title="View tool details"
                                                     >
                                                         {item.toolId}
                                                         <ExternalLink className="size-2.5 opacity-60" />
@@ -1435,8 +1435,9 @@ export function ReportsPage({ defaultTab }: ReportsPageProps) {
                                             <tr key={item._id || idx} className="hover:bg-muted/30 transition-colors">
                                                 <td className="px-4 py-3 font-mono font-bold text-primary text-xs">
                                                     <button
-                                                        onClick={() => navigate(`/tooldetails/${item._id}`)}
+                                                        onClick={() => navigate(`/vt/${encodeURIComponent(item.toolId || item._id)}`)}
                                                         className="hover:underline flex items-center gap-1 cursor-pointer"
+                                                        title="View tool details"
                                                     >
                                                         {item.toolId}
                                                     </button>

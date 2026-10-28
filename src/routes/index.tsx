@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 
 import { SidebarLayout } from "@/layouts/SidebarLayout"
@@ -12,7 +12,6 @@ import { UserAccessPage } from "@/pages/users/UserAccessPage"
 import { StoreToolsPage } from "@/pages/stores/StoreToolsPage"
 import { ImportToolsPage } from "@/pages/stores/ImportToolsPage"
 import { QuickToolViewPage } from "@/pages/stores/QuickToolViewPage"
-import { ToolDetailsPage } from "@/pages/stores/ToolDetailsPage"
 import { SettingsPage } from "@/pages/settings/SettingsPage"
 import { SettingsFormManagementPage } from "@/pages/settings/SettingsFormManagementPage"
 import { DeliveryChallanPreviewPage } from "@/pages/challans/DeliveryChallanPreviewPage"
@@ -78,6 +77,11 @@ function AdminRoute() {
     return <Outlet />
 }
 
+function ToolDetailsRedirect() {
+    const { toolId } = useParams();
+    return <Navigate to={`/vt/${encodeURIComponent(toolId || '')}`} replace />;
+}
+
 function PublicRoute() {
     const { user, loading } = useAuth()
 
@@ -129,7 +133,7 @@ function AppRoutes() {
                         <Route path="/tools/scrap" element={<ScrapPage />} />
                         <Route path="/scrap" element={<ScrapPage />} />
                         <Route path="/vt/:toolId" element={<QuickToolViewPage />} />
-                        <Route path="/tooldetails/:toolId" element={<ToolDetailsPage />} />
+                        <Route path="/tooldetails/:toolId" element={<ToolDetailsRedirect />} />
                         <Route path="/challans/delivery/preview" element={<DeliveryChallanPreviewPage />} />
                         <Route path="/challans/history" element={<ChallanHistoryPage />} />
                         <Route path="/challans/return/preview/:dcId" element={<ReturnChallanPreviewPage />} />
@@ -162,9 +166,9 @@ function AppRoutes() {
                             <Route path="/settings/reports" element={<ReportsPage />} />
                             <Route path="/settings/reports/tools" element={<ReportsPage defaultTab="tools" />} />
                             <Route path="/settings/reports/logins" element={<ReportsPage defaultTab="logins" />} />
-                            <Route path="/settings/tool-quick-view" element={<ToolViewConfigPage mode="quick" />} />
-                            <Route path="/settings/tool-details-view" element={<ToolViewConfigPage mode="details" />} />
-                            <Route path="/settings/tool-view" element={<ToolViewConfigPage mode="details" />} />
+                            <Route path="/settings/tool-quick-view" element={<ToolViewConfigPage />} />
+                            <Route path="/settings/tool-details-view" element={<Navigate to="/settings/tool-quick-view" replace />} />
+                            <Route path="/settings/tool-view" element={<Navigate to="/settings/tool-quick-view" replace />} />
                         </Route>
                     </Route>
                 </Route>

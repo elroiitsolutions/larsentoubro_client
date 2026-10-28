@@ -3,14 +3,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
     SaveIcon,
-    Wrench,
     Sliders
 } from "lucide-react"
 import { toast } from "sonner"
 import formService from "@/services/form.service"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
-import { useLocation } from "react-router-dom"
 
 function ToggleSwitch({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (val: boolean) => void }) {
     return (
@@ -32,19 +30,12 @@ function ToggleSwitch({ checked, onCheckedChange }: { checked: boolean; onChecke
     );
 }
 
-export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'details' }) {
+export function ToolViewConfigPage() {
     const { user } = useAuth()
-    const location = useLocation()
 
-    // Determine mode from prop or URL
-    const mode = propMode || (location.pathname.includes('quick') ? 'quick' : 'details')
-    const formSlug = mode === 'quick' ? 'tool-quick-view' : 'tool-details-view'
-    const pageTitle = mode === 'quick'
-        ? 'Tool Quick View Module Access & Configuration'
-        : 'Full Tool Details View Access & Configuration'
-    const pageDescription = mode === 'quick'
-        ? 'Customization settings for fields shown on the Quick Tool View Module (/vt).'
-        : 'Customization settings for fields shown on the Full Tool Details Page (/tooldetails).'
+    const formSlug = 'tool-quick-view'
+    const pageTitle = 'Tool Quick View Module Access & Configuration'
+    const pageDescription = 'Customization settings for fields shown on the Quick Tool View Module (/vt).'
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -145,7 +136,7 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
             }))
 
             const payload = {
-                name: mode === 'quick' ? "Tool Quick View Module Layout" : "Tool Details Card Layout",
+                name: "Tool Quick View Module Layout",
                 slug: formSlug,
                 description: pageDescription,
                 fields: sanitizedFields
@@ -153,7 +144,7 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
 
             const res = await formService.saveForm(payload)
             if (res.success) {
-                toast.success(`${mode === 'quick' ? 'Quick View' : 'Full Details'} layout settings saved successfully!`)
+                toast.success("Quick View layout settings saved successfully!")
                 fetchSchema()
             } else {
                 toast.error(res.message || "Failed to save settings")
@@ -177,7 +168,7 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
                     <div className="flex items-center gap-3">
                         <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
                             <span className="p-2 rounded-xl bg-primary/10 text-primary">
-                                {mode === 'quick' ? <Sliders className="size-5" /> : <Wrench className="size-5" />}
+                                <Sliders className="size-5" />
                             </span>
                             {pageTitle}
                         </h1>
@@ -214,7 +205,7 @@ export function ToolViewConfigPage({ mode: propMode }: { mode?: 'quick' | 'detai
                         {/* "Select All" Top Banner Bar */}
                         <div className="bg-blue-50/80 dark:bg-blue-950/40 px-6 py-4 border-b border-blue-100 dark:border-blue-900 flex items-center justify-between">
                             <span className="text-sm font-extrabold text-foreground tracking-tight">
-                                Select All Fields ({mode === 'quick' ? 'Quick View' : 'Full Details'})
+                                Select All Fields (Quick View)
                             </span>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground">

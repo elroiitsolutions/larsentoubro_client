@@ -156,20 +156,30 @@ export const toolService = {
     },
 
     /**
-     * Soft deletes an existing tool by ID.
+     * Soft deletes an existing tool by ID (supports async mode for live progress bar).
      */
-    deleteTool: async (toolId: string): Promise<ToolMutationResponse> => {
-        const url = `/api/tools/${encodeURIComponent(toolId)}`;
-        const response = await api.delete<ToolMutationResponse>(url);
+    deleteTool: async (toolId: string, storeId?: string, isAsync = false): Promise<any> => {
+        const query = isAsync ? `?async=true${storeId ? `&storeId=${encodeURIComponent(storeId)}` : ''}` : '';
+        const url = `/api/tools/${encodeURIComponent(toolId)}${query}`;
+        const response = await api.delete(url);
         return response.data;
     },
 
     /**
-     * Soft deletes multiple tools by ID list.
+     * Soft deletes multiple tools by ID list (supports async mode for live progress bar).
      */
-    bulkDeleteTools: async (toolIds: string[], storeId?: string): Promise<{ success: boolean; message?: string; data?: any }> => {
+    bulkDeleteTools: async (toolIds: string[], storeId?: string, isAsync = false): Promise<{ success: boolean; message?: string; data?: any }> => {
         const url = storeId ? `/api/stores/${storeId}/tools/bulk-delete` : `/api/tools/bulk-delete`;
-        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds });
+        const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds, async: isAsync });
+        return response.data;
+    },
+
+    /**
+     * Retrieves status of an asynchronous delete job.
+     */
+    getDeleteJobStatus: async (jobId: string): Promise<{ success: boolean; data: any }> => {
+        const url = `/api/tools/delete-jobs/${encodeURIComponent(jobId)}/status`;
+        const response = await api.get<{ success: boolean; data: any }>(url);
         return response.data;
     },
 

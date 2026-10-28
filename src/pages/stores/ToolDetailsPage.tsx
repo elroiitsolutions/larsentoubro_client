@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import toolService from "@/services/tool.service";
 import formService from "@/services/form.service";
@@ -84,16 +84,15 @@ export function ToolDetailsPage() {
 
     const confirmDelete = async () => {
         if (!tool?._id) return;
-        if (!isToolDeletable) {
-            toast.error(`Cannot delete tool with status "${tool.status}". Only Available and Missing tools can be deleted.`);
-            setShowDeleteConfirm(false);
+        if (tool.isPrinted) {
+            toast.error("Printed tools cannot be deleted. Only unprinted tools can be moved to Trash.");
             return;
         }
         setDeleting(true);
         try {
             const res = await toolService.deleteTool(tool._id);
             if (res.success) {
-                toast.success(res.message || "Tool soft-deleted successfully");
+                toast.success(res.message || "Tool soft-deleted to Trash successfully");
                 navigate(-1);
             }
         } catch (error: any) {
@@ -185,7 +184,7 @@ export function ToolDetailsPage() {
     // Comprehensive field extraction looking at root properties, customFields Map/Object, and key aliases
     const getFieldValue = (key: string, aliases: string[] = []) => {
         const keysToTry = [key, ...aliases];
-        
+
         // 1. Try on root tool object
         for (const k of keysToTry) {
             if (tool[k] !== undefined && tool[k] !== null && tool[k] !== '') {
@@ -222,7 +221,7 @@ export function ToolDetailsPage() {
 
     // Resolving values with intelligent fallbacks for Step 5
     const toolCodeVal = getFieldValue('toolCode', ['tool_code', 'Tool Code', 'tag', 'Tag']) || getFieldValue('toolId') || '-';
-    
+
     let makeYearVal = getFieldValue('makeYear', ['make_year', 'Make Year', 'year', 'Year', 'make']);
     if (!makeYearVal && tool.dateOfSupply) {
         const dateParts = String(tool.dateOfSupply).split(/[\/\-]/);
@@ -237,11 +236,11 @@ export function ToolDetailsPage() {
     makeYearVal = makeYearVal || '-';
 
     const toolVariantVal = getFieldValue('toolVariant', [
-        'tool_variant', 
-        'Tool Variant', 
-        'variant', 
-        'Variant', 
-        'operationType', 
+        'tool_variant',
+        'Tool Variant',
+        'variant',
+        'Variant',
+        'operationType',
         'Operation Type',
         'typeVariant'
     ]) || 'Standard';
@@ -273,16 +272,15 @@ export function ToolDetailsPage() {
                     <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
                         {tool.description}
                     </h1>
-                    <span className={`shrink-0 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors shadow-2xs ${
-                        tool.status === 'Available' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' :
-                        tool.status === 'Repair' ? 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30 font-bold' :
-                        tool.status === 'Moving' ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30 animate-pulse' :
-                        tool.status === 'In Use' ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30' :
-                        'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'
-                    }`}>
+                    <span className={`shrink-0 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors shadow-2xs ${tool.status === 'Available' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' :
+                            tool.status === 'Repair' ? 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30 font-bold' :
+                                tool.status === 'Moving' ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30 animate-pulse' :
+                                    tool.status === 'In Use' ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30' :
+                                        'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'
+                        }`}>
                         {tool.status === 'Available' ? <CheckCircle2 className="size-3.5 mr-1.5" /> :
-                         tool.status === 'Repair' ? <Wrench className="size-3.5 mr-1.5" /> :
-                         <XCircle className="size-3.5 mr-1.5" />}
+                            tool.status === 'Repair' ? <Wrench className="size-3.5 mr-1.5" /> :
+                                <XCircle className="size-3.5 mr-1.5" />}
                         {tool.status}
                     </span>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/60 text-xs font-mono text-muted-foreground">
@@ -353,11 +351,10 @@ export function ToolDetailsPage() {
                             variant="outline"
                             size="sm"
                             disabled={!isToolDeletable}
-                            className={`h-8 rounded-xl text-xs gap-1.5 shadow-2xs font-medium ${
-                                isToolDeletable
+                            className={`h-8 rounded-xl text-xs gap-1.5 shadow-2xs font-medium ${isToolDeletable
                                     ? "text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
                                     : "text-slate-400 border-border bg-muted/40 cursor-not-allowed opacity-50"
-                            }`}
+                                }`}
                             onClick={() => {
                                 if (!isToolDeletable) {
                                     toast.error(`Cannot delete tool with status "${tool.status}". Only Available and Missing tools can be deleted.`);
@@ -575,11 +572,10 @@ export function ToolDetailsPage() {
                                 <div className="bg-muted/30 border border-border/40 rounded-xl p-3 flex flex-col justify-between">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Latest Inspection</span>
                                     <span className="text-sm font-bold mt-1">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                            tool.inspectionResult === 'Pass' 
-                                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' 
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${tool.inspectionResult === 'Pass'
+                                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                                                 : 'bg-rose-500/15 text-rose-700 dark:text-rose-400'
-                                        }`}>
+                                            }`}>
                                             {tool.inspectionResult}
                                         </span>
                                     </span>
@@ -625,9 +621,8 @@ export function ToolDetailsPage() {
                                                         {item.inspectedAt ? new Date(item.inspectedAt).toLocaleDateString() : '-'}
                                                     </td>
                                                     <td className="px-3 py-2">
-                                                        <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${
-                                                            item.result === 'Pass' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
-                                                        }`}>
+                                                        <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${item.result === 'Pass' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
+                                                            }`}>
                                                             {item.result}
                                                         </span>
                                                     </td>
