@@ -141,6 +141,16 @@ const challanService = {
     logPdfDownload: async (referenceNumber: string, details?: string): Promise<{ success: boolean }> => {
         const res = await api.post('/api/challans/log-pdf-download', { referenceNumber, details });
         return res.data;
+    },
+
+    getNextChallanNumber: async (type: string = 'Delivery'): Promise<string> => {
+        try {
+            const res = await api.get('/api/challans/next-number', { params: { type } });
+            return res.data?.data?.challanNumber || (type === 'Scrap' ? 'SDC-26-001' : 'DC-26-001');
+        } catch (err) {
+            console.error('Failed to get next challan number:', err);
+            return type === 'Scrap' ? 'SDC-26-001' : 'DC-26-001';
+        }
     }
 };
 

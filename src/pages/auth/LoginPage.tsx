@@ -1,4 +1,3 @@
-import * as React from "react"
 import { LoginForm } from "@/components/login-form"
 import logoUrl from "@/assets/logo.png"
 

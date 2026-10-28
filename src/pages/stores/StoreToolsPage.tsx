@@ -235,25 +235,17 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [markingPrinted, setMarkingPrinted] = useState(false);
     const [unmarkingPrinted, setUnmarkingPrinted] = useState(false);
 
-    const handleSingleDelete = (tool: any, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (tool.isPrinted) {
-            toast.error("Printed tools cannot be deleted. Only unprinted tools can be moved to Trash.");
-            return;
-        }
-        setDeleteDialog({
-            isOpen: true,
-            isBulk: false,
-            toolId: tool._id,
-            toolCode: tool.toolId || tool.description || 'this tool',
-            isPrinted: false
-        });
+    const isToolDeletable = (status?: string): boolean => {
+        const s = (status || "").trim().toLowerCase();
+        return s === "available" || s === "missing";
     };
+
 
     const handleBulkDelete = () => {
         if (selectedToolIds.size === 0) return;
-        if (printedCount > 0) {
-            toast.error(`Cannot delete: ${printedCount} selected tool(s) are printed. Only unprinted tools can be moved to Trash.`);
+        const nonDeletable = selectedToolsList.filter(t => !isToolDeletable(t.status));
+        if (nonDeletable.length > 0) {
+            toast.error("Cannot delete tools with status Moving. Only Available and Missing tools can be deleted.");
             return;
         }
         setDeleteDialog({
@@ -285,6 +277,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const hasRepairTool = useMemo(() => selectedToolsList.some(t => t.status === "Repair"), [selectedToolsList]);
     const hasMovingTool = useMemo(() => selectedToolsList.some(t => t.status === "Moving"), [selectedToolsList]);
     const hasMissingTool = useMemo(() => selectedToolsList.some(t => t.status === "Missing"), [selectedToolsList]);
+    const hasNonDeletableTool = useMemo(() => selectedToolsList.some(t => !isToolDeletable(t.status)), [selectedToolsList]);
 
     const handleMarkPrinted = async () => {
         if (isInspectionRestricted) {
@@ -839,6 +832,14 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             });
             return;
         }
+        if (hasMovingTool) {
+            toast.error("Cannot edit tools with status Moving. No actions are available until returned via Return Challan (RC).");
+            return;
+        }
+        if (hasMissingTool) {
+            toast.error("Cannot edit tools with status Missing. Only deletion is available for missing equipment.");
+            return;
+        }
         setIsBulkEditModalOpen(true);
     };
 
@@ -1015,10 +1016,18 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
                     {isAdmin && (
                         <Button
-                            variant={selectedToolIds.size > 0 ? "default" : "outline"}
+                            variant={selectedToolIds.size > 0 && !hasMissingTool && !hasMovingTool ? "default" : "outline"}
                             size="lg"
-                            className="gap-2 rounded-xl shadow-sm border-border/80 transition-all"
+                            className={`gap-2 rounded-xl shadow-sm border-border/80 transition-all ${selectedToolIds.size > 0 && (hasMissingTool || hasMovingTool) ? "opacity-50 cursor-not-allowed" : ""}`}
                             onClick={handleOpenBulkEdit}
+                            disabled={selectedToolIds.size > 0 && (hasMissingTool || hasMovingTool)}
+                            title={
+                                selectedToolIds.size > 0 && hasMovingTool
+                                    ? "Cannot edit tools currently Moving on a Delivery Challan"
+                                    : selectedToolIds.size > 0 && hasMissingTool
+                                        ? "Cannot edit tools with status Missing"
+                                        : undefined
+                            }
                         >
                             <Edit3 className="size-4" />
                             Bulk Edit {selectedToolIds.size > 0 ? `(${selectedToolIds.size})` : ""}
@@ -1391,7 +1400,6 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('isPrinted')}>
                                             <div className="flex items-center">Print Status {renderSortIcon('isPrinted')}</div>
                                         </th>
-                                        {isAdmin && <th className="px-6 py-4 text-center">Actions</th>}
                                         {TOOL_COLUMNS.map((col) => (
                                             <th key={col.key} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(col.key)}>
                                                 <div className="flex items-center">{col.label} {renderSortIcon(col.key)}</div>
@@ -1463,25 +1471,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                     </span>
                                                 )}
                                             </td>
-                                            {isAdmin && (
-                                                <td className="px-6 py-4 text-center">
-                                                    {!t.isPrinted ? (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg cursor-pointer"
-                                                            onClick={(e) => handleSingleDelete(t, e)}
-                                                            title="Delete unprinted tool"
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                        </Button>
-                                                    ) : (
-                                                        <span className="text-muted-foreground/30 text-xs select-none" title="Printed tools cannot be deleted">
-                                                            —
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            )}
+
                                             {TOOL_COLUMNS.map((col) => (
                                                 <td key={col.key} className="px-6 py-4 text-foreground/80">
                                                     {renderFieldValue(t, col.key)}
@@ -1655,358 +1645,28 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 </div>
                             </div>
 
-                            {/* Primary Action: Delivery Challan / Sub Contractor (Hidden for Inspection Users) */}
-                            {!isInspectionRestricted && (
-                                hasMovingTool ? (
-                                    <TooltipProvider delay={100}>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <span className="w-full block cursor-not-allowed" title="Cannot create Delivery Challan: Selected tool(s) are already Moving">
-                                                    <Button
-                                                        size="sm"
-                                                        disabled
-                                                        className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-                                                    >
-                                                        <Truck className="size-4 opacity-50" />
-                                                        <span>Already Moving</span>
-                                                    </Button>
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                Cannot create Delivery Challan: Selected tool(s) are already Moving
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                ) : hasMissingTool ? (
-                                    <TooltipProvider delay={100}>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <span className="w-full block cursor-not-allowed" title="Cannot create Delivery Challan: Selected tool(s) are marked as Missing">
-                                                    <Button
-                                                        size="sm"
-                                                        disabled
-                                                        className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-                                                    >
-                                                        <Truck className="size-4 opacity-50" />
-                                                        <span>Tool is Missing</span>
-                                                    </Button>
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                Cannot create Delivery Challan: Selected tool(s) are marked as Missing
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                ) : hasRepairTool ? (
-                                    <TooltipProvider delay={100}>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <span className="w-full block cursor-not-allowed" title="Cannot create Delivery Challan: Selected tool(s) are under Repair">
-                                                    <Button
-                                                        size="sm"
-                                                        disabled
-                                                        className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-                                                    >
-                                                        <Truck className="size-4 opacity-50" />
-                                                        <span>Tool Under Repair</span>
-                                                    </Button>
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                Cannot create Delivery Challan: Selected tool(s) are under Repair
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                ) : (
-                                    <TooltipProvider delay={100}>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <span
-                                                    className={`w-full block ${!areAllSelectedPrinted ? "cursor-not-allowed" : ""}`}
-                                                    title={
-                                                        !areAllSelectedPrinted
-                                                            ? "Disabled: All selected tools must be marked as Printed before creating a Delivery Challan"
-                                                            : `Create Subcontractor DC (${selectedToolIds.size} tools)`
-                                                    }
-                                                >
-                                                    <Button
-                                                        size="sm"
-                                                        disabled={!areAllSelectedPrinted}
-                                                        className={`w-full h-10 text-xs rounded-xl flex items-center justify-center gap-2 font-semibold transition-all ${
-                                                            areAllSelectedPrinted
-                                                                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md cursor-pointer"
-                                                                : "bg-muted text-muted-foreground shadow-none cursor-not-allowed opacity-50 border border-border/60"
-                                                        }`}
-                                                        onClick={() => {
-                                                            if (!areAllSelectedPrinted) return;
-                                                            setIsVendorModalOpen(true);
-                                                            setIsBulkActionsOpen(false);
-                                                        }}
-                                                    >
-                                                        <Truck className="size-4" />
-                                                        <span>Sub Contractor</span>
-                                                    </Button>
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                {!areAllSelectedPrinted
-                                                    ? "Disabled: All selected tools must be marked as Printed before creating a Delivery Challan"
-                                                    : `Create Subcontractor DC (${selectedToolIds.size} tools)`}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                )
-                            )}
+                            {/* Status-specific options (Moving: no options, Missing: only delete, Available: all options) */}
+                            {hasMovingTool ? (
+                                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+                                    <div className="flex items-center justify-center gap-1.5 text-amber-700 dark:text-amber-400 font-semibold text-xs mb-1">
+                                        <Truck className="size-4" />
+                                        <span>Already Moving</span>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                        Selected tool(s) are currently Moving on a Delivery Challan. No actions are available until returned via Return Challan (RC).
+                                    </p>
+                                </div>
+                            ) : hasMissingTool ? (
+                                <div className="space-y-2.5 w-full">
+                                    <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
+                                        <p className="text-xs font-semibold text-rose-700 dark:text-rose-400">
+                                            Selected tool(s) are marked as Missing
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                                            Only deletion is available for missing equipment.
+                                        </p>
+                                    </div>
 
-                            {/* Inspection Action (Authorized users only) */}
-                            {canInspect && (
-                                <TooltipProvider delay={100}>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <span
-                                                className={`w-full block ${(hasRepairTool || hasMovingTool) ? "cursor-not-allowed" : ""}`}
-                                                title={
-                                                    hasRepairTool
-                                                        ? "Inspection blocked: Selected tool(s) are already under Repair"
-                                                        : hasMovingTool
-                                                            ? "Inspection blocked: Selected tool(s) are currently Moving"
-                                                            : `Start Inspection (${selectedToolIds.size} tools)`
-                                                }
-                                            >
-                                                <Button
-                                                    size="sm"
-                                                    disabled={hasRepairTool || hasMovingTool}
-                                                    className={`w-full h-10 text-xs rounded-xl flex items-center justify-center gap-2 font-semibold transition-all ${
-                                                        !hasRepairTool && !hasMovingTool
-                                                            ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white shadow-md shadow-emerald-500/20 cursor-pointer"
-                                                            : "bg-muted text-muted-foreground shadow-none cursor-not-allowed opacity-50 border border-border/60"
-                                                    }`}
-                                                    onClick={() => {
-                                                        if (hasRepairTool || hasMovingTool) return;
-                                                        setIsInspectionModalOpen(true);
-                                                        setIsBulkActionsOpen(false);
-                                                    }}
-                                                >
-                                                    <ClipboardCheck className="size-4 shrink-0" />
-                                                    <span>Quality Inspection ({selectedToolIds.size})</span>
-                                                </Button>
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                            {hasRepairTool
-                                                ? "Inspection blocked: Selected tool(s) are already under Repair"
-                                                : hasMovingTool
-                                                    ? "Inspection blocked: Selected tool(s) are currently Moving"
-                                                    : `Start Quality Inspection for ${selectedToolIds.size} selected tool(s)`}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
-
-                            {/* Grid of Action Buttons (Hidden for Inspection Users, Visible for Admin & Regular Users) */}
-                            {(!isInspectionRestricted || isAdmin) && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-                                    {!isInspectionRestricted && (
-                                        <>
-                                            <TooltipProvider delay={100}>
-                                                <Tooltip>
-                                                    <TooltipTrigger>
-                                                        <span
-                                                            className={`w-full block ${!canMarkAsPrinted ? "cursor-not-allowed" : ""}`}
-                                                            title={
-                                                                !canMarkAsPrinted
-                                                                    ? printedCount > 0 && unprintedCount > 0
-                                                                        ? "Disabled: Selection contains mixed printed and not printed tools"
-                                                                        : printedCount > 0
-                                                                            ? "Disabled: All selected tools are already printed"
-                                                                            : "Select not printed tools to mark as printed"
-                                                                    : `Mark ${selectedToolIds.size} tool(s) as Printed`
-                                                            }
-                                                        >
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                                                                    canMarkAsPrinted
-                                                                        ? "text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
-                                                                        : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
-                                                                }`}
-                                                                onClick={handleMarkPrinted}
-                                                                disabled={markingPrinted || !canMarkAsPrinted}
-                                                            >
-                                                                {markingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <Printer className="size-3.5 shrink-0" />}
-                                                                <span className="truncate">Mark as Printed ({selectedToolIds.size})</span>
-                                                            </Button>
-                                                        </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                        {!canMarkAsPrinted
-                                                            ? printedCount > 0 && unprintedCount > 0
-                                                                ? "Disabled: Selection contains mixed printed and not printed tools"
-                                                                : printedCount > 0
-                                                                    ? "Disabled: All selected tools are already printed"
-                                                                    : "Select not printed tools to mark as printed"
-                                                            : `Mark ${selectedToolIds.size} tool(s) as Printed`}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-
-                                            <TooltipProvider delay={100}>
-                                                <Tooltip>
-                                                    <TooltipTrigger>
-                                                        <span
-                                                            className={`w-full block ${!canUnprint ? "cursor-not-allowed" : ""}`}
-                                                            title={
-                                                                !canUnprint
-                                                                    ? printedCount > 0 && unprintedCount > 0
-                                                                        ? "Disabled: Selection contains mixed printed and not printed tools"
-                                                                        : unprintedCount > 0
-                                                                            ? "Disabled: Selected tools are already not printed"
-                                                                            : "Select printed tools to unprint"
-                                                                    : `Unprint ${selectedToolIds.size} tool(s) (Reset to Not Printed)`
-                                                            }
-                                                        >
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                                                                    canUnprint
-                                                                        ? "text-amber-700 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
-                                                                        : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
-                                                                }`}
-                                                                onClick={() => handleUnmarkPrinted()}
-                                                                disabled={unmarkingPrinted || !canUnprint}
-                                                            >
-                                                                {unmarkingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RotateCcw className="size-3.5 shrink-0" />}
-                                                                <span className="truncate">Unprint ({selectedToolIds.size})</span>
-                                                            </Button>
-                                                        </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                        {!canUnprint
-                                                            ? printedCount > 0 && unprintedCount > 0
-                                                                ? "Disabled: Selection contains mixed printed and not printed tools"
-                                                                : unprintedCount > 0
-                                                                    ? "Disabled: Selected tools are already not printed"
-                                                                    : "Select printed tools to unprint"
-                                                            : `Unprint ${selectedToolIds.size} tool(s) (Reset to Not Printed)`}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-
-                                            <TooltipProvider delay={100}>
-                                                <Tooltip>
-                                                    <TooltipTrigger>
-                                                        <span
-                                                            className={`w-full block ${(!areAllSelectedPrinted || hasRepairTool || hasMovingTool) ? "cursor-not-allowed" : ""}`}
-                                                            title={
-                                                                hasMovingTool
-                                                                    ? "Disabled: Selected tool(s) are currently Moving on a Delivery Challan"
-                                                                    : hasRepairTool
-                                                                        ? "Disabled: Selected tool(s) are under Repair and cannot be transferred"
-                                                                        : !areAllSelectedPrinted
-                                                                            ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
-                                                                            : `Transfer ${selectedToolIds.size} tool(s)`
-                                                            }
-                                                        >
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                disabled={!areAllSelectedPrinted || hasRepairTool || hasMovingTool}
-                                                                className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                                                                    areAllSelectedPrinted && !hasRepairTool && !hasMovingTool
-                                                                        ? "text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 cursor-pointer"
-                                                                        : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
-                                                                }`}
-                                                                onClick={() => {
-                                                                    if (!areAllSelectedPrinted || hasRepairTool || hasMovingTool) return;
-                                                                    setIsTransferModalOpen(true);
-                                                                    setIsBulkActionsOpen(false);
-                                                                }}
-                                                            >
-                                                                <ArrowRightLeft className="size-3.5 shrink-0" />
-                                                                <span className="truncate">Transfer ({selectedToolIds.size})</span>
-                                                            </Button>
-                                                        </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                        {hasMovingTool
-                                                            ? "Disabled: Selected tool(s) are currently Moving on a Delivery Challan"
-                                                            : hasRepairTool
-                                                                ? "Disabled: Selected tool(s) are under Repair and cannot be transferred"
-                                                                : !areAllSelectedPrinted
-                                                                    ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
-                                                                    : `Transfer ${selectedToolIds.size} tool(s)`}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </>
-                                    )}
-
-                                    {isAdmin && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 border-border/80"
-                                            onClick={() => {
-                                                setIsBulkEditModalOpen(true);
-                                                setIsBulkActionsOpen(false);
-                                            }}
-                                            title="Bulk Edit"
-                                        >
-                                            <Edit3 className="size-3.5 text-primary shrink-0" />
-                                            <span className="truncate">Bulk Edit ({selectedToolIds.size})</span>
-                                        </Button>
-                                    )}
-
-                                    {!isInspectionRestricted && (
-                                        <TooltipProvider delay={100}>
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <span
-                                                        className={`w-full block ${(!areAllSelectedPrinted || hasRepairTool || hasMovingTool) ? "cursor-not-allowed" : ""}`}
-                                                        title={
-                                                            hasMovingTool
-                                                                ? "Disabled: Selected tool(s) are currently Moving and cannot be moved to Scrap"
-                                                                : hasRepairTool
-                                                                    ? "Disabled: Selected tool(s) are already under Repair and cannot be moved to Scrap"
-                                                                    : !areAllSelectedPrinted
-                                                                        ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
-                                                                        : `Scrap ${selectedToolIds.size} selected tool(s)`
-                                                        }
-                                                    >
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            disabled={!areAllSelectedPrinted || hasRepairTool || hasMovingTool}
-                                                            className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                                                                areAllSelectedPrinted && !hasRepairTool && !hasMovingTool
-                                                                    ? "text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
-                                                                    : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
-                                                            }`}
-                                                            onClick={() => {
-                                                                if (!areAllSelectedPrinted || hasRepairTool || hasMovingTool) return;
-                                                                setIsMoveToScrapModalOpen(true);
-                                                                setIsBulkActionsOpen(false);
-                                                            }}
-                                                        >
-                                                            <Archive className="size-3.5 text-amber-600 shrink-0" />
-                                                            <span className="truncate">Scrap Selected ({selectedToolIds.size})</span>
-                                                        </Button>
-                                                    </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
-                                                    {hasMovingTool
-                                                        ? "Disabled: Selected tool(s) are currently Moving and cannot be moved to Scrap"
-                                                        : hasRepairTool
-                                                            ? "Disabled: Selected tool(s) are already under Repair and cannot be moved to Scrap"
-                                                            : !areAllSelectedPrinted
-                                                                ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
-                                                                : `Scrap ${selectedToolIds.size} selected tool(s)`}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    )}
 
                                     {isAdmin && (
                                         <TooltipProvider delay={100}>
@@ -2053,6 +1713,346 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         </TooltipProvider>
                                     )}
                                 </div>
+                            ) : (
+                                <>
+                                    {/* Primary Action: Delivery Challan / Sub Contractor (Hidden for Inspection Users) */}
+                                    {!isInspectionRestricted && (
+                                        hasRepairTool ? (
+                                            <TooltipProvider delay={100}>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <span className="w-full block cursor-not-allowed" title="Cannot create Delivery Challan: Selected tool(s) are under Repair">
+                                                            <Button
+                                                                size="sm"
+                                                                disabled
+                                                                className="w-full h-10 text-xs rounded-xl bg-muted text-muted-foreground shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                                                            >
+                                                                <Truck className="size-4 opacity-50" />
+                                                                <span>Tool Under Repair</span>
+                                                            </Button>
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                        Cannot create Delivery Challan: Selected tool(s) are under Repair
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ) : (
+                                            <TooltipProvider delay={100}>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <span
+                                                            className={`w-full block ${!areAllSelectedPrinted ? "cursor-not-allowed" : ""}`}
+                                                            title={
+                                                                !areAllSelectedPrinted
+                                                                    ? "Disabled: All selected tools must be marked as Printed before creating a Delivery Challan"
+                                                                    : `Create Subcontractor DC (${selectedToolIds.size} tools)`
+                                                            }
+                                                        >
+                                                            <Button
+                                                                size="sm"
+                                                                disabled={!areAllSelectedPrinted}
+                                                                className={`w-full h-10 text-xs rounded-xl flex items-center justify-center gap-2 font-semibold transition-all ${
+                                                                    areAllSelectedPrinted
+                                                                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md cursor-pointer"
+                                                                        : "bg-muted text-muted-foreground shadow-none cursor-not-allowed opacity-50 border border-border/60"
+                                                                }`}
+                                                                onClick={() => {
+                                                                    if (!areAllSelectedPrinted) return;
+                                                                    setIsVendorModalOpen(true);
+                                                                    setIsBulkActionsOpen(false);
+                                                                }}
+                                                            >
+                                                                <Truck className="size-4" />
+                                                                <span>Sub Contractor</span>
+                                                            </Button>
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                        {!areAllSelectedPrinted
+                                                            ? "Disabled: All selected tools must be marked as Printed before creating a Delivery Challan"
+                                                            : `Create Subcontractor DC (${selectedToolIds.size} tools)`}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )
+                                    )}
+
+                                    {/* Inspection Action (Authorized users only) */}
+                                    {canInspect && (
+                                        <TooltipProvider delay={100}>
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <span
+                                                        className={`w-full block ${hasRepairTool ? "cursor-not-allowed" : ""}`}
+                                                        title={
+                                                            hasRepairTool
+                                                                ? "Inspection blocked: Selected tool(s) are already under Repair"
+                                                                : `Start Inspection (${selectedToolIds.size} tools)`
+                                                        }
+                                                    >
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={hasRepairTool}
+                                                            className={`w-full h-10 text-xs rounded-xl flex items-center justify-center gap-2 font-semibold transition-all ${
+                                                                !hasRepairTool
+                                                                    ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white shadow-md shadow-emerald-500/20 cursor-pointer"
+                                                                    : "bg-muted text-muted-foreground shadow-none cursor-not-allowed opacity-50 border border-border/60"
+                                                            }`}
+                                                            onClick={() => {
+                                                                if (hasRepairTool) return;
+                                                                setIsInspectionModalOpen(true);
+                                                                setIsBulkActionsOpen(false);
+                                                            }}
+                                                        >
+                                                            <ClipboardCheck className="size-4 shrink-0" />
+                                                            <span>Quality Inspection ({selectedToolIds.size})</span>
+                                                        </Button>
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                    {hasRepairTool
+                                                        ? "Inspection blocked: Selected tool(s) are already under Repair"
+                                                        : `Start Quality Inspection for ${selectedToolIds.size} selected tool(s)`}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    )}
+
+                                    {/* Grid of Action Buttons (Hidden for Inspection Users, Visible for Admin & Regular Users) */}
+                                    {(!isInspectionRestricted || isAdmin) && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                                            {!isInspectionRestricted && (
+                                                <>
+                                                    <TooltipProvider delay={100}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <span
+                                                                    className={`w-full block ${!canMarkAsPrinted ? "cursor-not-allowed" : ""}`}
+                                                                    title={
+                                                                        !canMarkAsPrinted
+                                                                            ? printedCount > 0 && unprintedCount > 0
+                                                                                ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                                                : printedCount > 0
+                                                                                    ? "Disabled: All selected tools are already printed"
+                                                                                    : "Select not printed tools to mark as printed"
+                                                                            : `Mark ${selectedToolIds.size} tool(s) as Printed`
+                                                                    }
+                                                                >
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                                            canMarkAsPrinted
+                                                                                ? "text-emerald-700 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
+                                                                                : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                                        }`}
+                                                                        onClick={handleMarkPrinted}
+                                                                        disabled={markingPrinted || !canMarkAsPrinted}
+                                                                    >
+                                                                        {markingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <Printer className="size-3.5 shrink-0" />}
+                                                                        <span className="truncate">Mark as Printed ({selectedToolIds.size})</span>
+                                                                    </Button>
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                                {!canMarkAsPrinted
+                                                                    ? printedCount > 0 && unprintedCount > 0
+                                                                        ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                                        : printedCount > 0
+                                                                            ? "Disabled: All selected tools are already printed"
+                                                                            : "Select not printed tools to mark as printed"
+                                                                    : `Mark ${selectedToolIds.size} tool(s) as Printed`}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+
+                                                    <TooltipProvider delay={100}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <span
+                                                                    className={`w-full block ${!canUnprint ? "cursor-not-allowed" : ""}`}
+                                                                    title={
+                                                                        !canUnprint
+                                                                            ? printedCount > 0 && unprintedCount > 0
+                                                                                ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                                                : unprintedCount > 0
+                                                                                    ? "Disabled: Selected tools are already not printed"
+                                                                                    : "Select printed tools to unprint"
+                                                                            : `Unprint ${selectedToolIds.size} tool(s) (Reset to Not Printed)`
+                                                                    }
+                                                                >
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                                            canUnprint
+                                                                                ? "text-amber-700 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+                                                                                : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                                        }`}
+                                                                        onClick={() => handleUnmarkPrinted()}
+                                                                        disabled={unmarkingPrinted || !canUnprint}
+                                                                    >
+                                                                        {unmarkingPrinted ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RotateCcw className="size-3.5 shrink-0" />}
+                                                                        <span className="truncate">Unprint ({selectedToolIds.size})</span>
+                                                                    </Button>
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                                {!canUnprint
+                                                                    ? printedCount > 0 && unprintedCount > 0
+                                                                        ? "Disabled: Selection contains mixed printed and not printed tools"
+                                                                        : unprintedCount > 0
+                                                                            ? "Disabled: Selected tools are already not printed"
+                                                                            : "Select printed tools to unprint"
+                                                                    : `Unprint ${selectedToolIds.size} tool(s) (Reset to Not Printed)`}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+
+                                                    <TooltipProvider delay={100}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <span
+                                                                    className={`w-full block ${(!areAllSelectedPrinted || hasRepairTool) ? "cursor-not-allowed" : ""}`}
+                                                                    title={
+                                                                        hasRepairTool
+                                                                            ? "Disabled: Selected tool(s) are under Repair and cannot be transferred"
+                                                                            : !areAllSelectedPrinted
+                                                                                ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
+                                                                                : `Transfer ${selectedToolIds.size} tool(s)`
+                                                                    }
+                                                                >
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        disabled={!areAllSelectedPrinted || hasRepairTool}
+                                                                        className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                                            areAllSelectedPrinted && !hasRepairTool
+                                                                                ? "text-indigo-600 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 cursor-pointer"
+                                                                                : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                                        }`}
+                                                                        onClick={() => {
+                                                                            if (!areAllSelectedPrinted || hasRepairTool) return;
+                                                                            setIsTransferModalOpen(true);
+                                                                            setIsBulkActionsOpen(false);
+                                                                        }}
+                                                                    >
+                                                                        <ArrowRightLeft className="size-3.5 shrink-0" />
+                                                                        <span className="truncate">Transfer ({selectedToolIds.size})</span>
+                                                                    </Button>
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                                {hasRepairTool
+                                                                    ? "Disabled: Selected tool(s) are under Repair and cannot be transferred"
+                                                                    : !areAllSelectedPrinted
+                                                                        ? "Disabled: All selected tools must be marked as Printed before performing an inter-store Transfer"
+                                                                        : `Transfer ${selectedToolIds.size} tool(s)`}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </>
+                                            )}
+
+                                            {isAdmin && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 border-border/80"
+                                                    onClick={() => {
+                                                        setIsBulkEditModalOpen(true);
+                                                        setIsBulkActionsOpen(false);
+                                                    }}
+                                                    title="Bulk Edit"
+                                                >
+                                                    <Edit3 className="size-3.5 text-primary shrink-0" />
+                                                    <span className="truncate">Bulk Edit ({selectedToolIds.size})</span>
+                                                </Button>
+                                            )}
+
+                                            {!isInspectionRestricted && (
+                                                <TooltipProvider delay={100}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            <span
+                                                                className={`w-full block ${(!areAllSelectedPrinted || hasRepairTool) ? "cursor-not-allowed" : ""}`}
+                                                                title={
+                                                                    hasRepairTool
+                                                                        ? "Disabled: Selected tool(s) are already under Repair and cannot be moved to Scrap"
+                                                                        : !areAllSelectedPrinted
+                                                                            ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
+                                                                            : `Scrap ${selectedToolIds.size} selected tool(s)`
+                                                                }
+                                                            >
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    disabled={!areAllSelectedPrinted || hasRepairTool}
+                                                                    className={`w-full h-9 text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                                                        areAllSelectedPrinted && !hasRepairTool
+                                                                            ? "text-amber-600 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
+                                                                            : "text-muted-foreground/50 border-border/60 bg-muted/20 cursor-not-allowed opacity-50"
+                                                                    }`}
+                                                                    onClick={() => {
+                                                                        if (!areAllSelectedPrinted || hasRepairTool) return;
+                                                                        setIsMoveToScrapModalOpen(true);
+                                                                        setIsBulkActionsOpen(false);
+                                                                    }}
+                                                                >
+                                                                    <Archive className="size-3.5 text-amber-600 shrink-0" />
+                                                                    <span className="truncate">Scrap Selected ({selectedToolIds.size})</span>
+                                                                </Button>
+                                                            </span>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                            {hasRepairTool
+                                                                ? "Disabled: Selected tool(s) are already under Repair and cannot be moved to Scrap"
+                                                                : !areAllSelectedPrinted
+                                                                    ? "Disabled: All selected tools must be marked as Printed before moving to Scrap"
+                                                                    : `Scrap ${selectedToolIds.size} selected tool(s)`}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+
+                                            {isAdmin && (
+                                                <TooltipProvider delay={100}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            <span className={`sm:col-span-2 block w-full ${hasNonDeletableTool ? "cursor-not-allowed" : ""}`}>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    disabled={hasNonDeletableTool}
+                                                                    className={`h-9 w-full text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 ${
+                                                                        hasNonDeletableTool
+                                                                            ? "text-slate-400 border-border bg-muted/40 cursor-not-allowed opacity-50"
+                                                                            : "text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                                                    }`}
+                                                                    onClick={() => {
+                                                                        if (hasNonDeletableTool) return;
+                                                                        handleBulkDelete();
+                                                                        setIsBulkActionsOpen(false);
+                                                                    }}
+                                                                    title={hasNonDeletableTool ? "Only Available and Missing tools can be deleted" : "Delete Selected"}
+                                                                >
+                                                                    <Trash2 className="size-3.5 shrink-0" />
+                                                                    <span className="truncate">Delete Selected ({selectedToolIds.size})</span>
+                                                                </Button>
+                                                            </span>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
+                                                            {hasNonDeletableTool
+                                                                ? "Disabled: Selected tool(s) include Moving or non-deletable equipment. Only Available and Missing tools can be deleted."
+                                                                : `Delete ${selectedToolIds.size} selected tool(s)`}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}

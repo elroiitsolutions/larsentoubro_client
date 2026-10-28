@@ -18,14 +18,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
-import { Mail, KeyRound, ArrowRight, ArrowLeft, RotateCw, ShieldCheck, CheckCircle2 } from "lucide-react"
+import { Mail, KeyRound, ArrowRight, ArrowLeft, RotateCw, ShieldCheck } from "lucide-react"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const { login } = useAuth()
-  
+
   // Steps: 'email' (Step 1) | 'otp' (Step 2)
   const [step, setStep] = React.useState<"email" | "otp">("email")
   const [email, setEmail] = React.useState("gdking00724@gmail.com")
@@ -34,7 +34,7 @@ export function LoginForm({
   const [loading, setLoading] = React.useState(false)
   const [resending, setResending] = React.useState(false)
   const [cooldown, setCooldown] = React.useState(0)
-  const [devOtpHint, setDevOtpHint] = React.useState<string | null>(null)
+  const [_devOtpHint, setDevOtpHint] = React.useState<string | null>(null)
 
   // Resend countdown timer
   React.useEffect(() => {
@@ -156,7 +156,7 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="border border-slate-200/90 shadow-[0_20px_50px_rgba(15,23,42,0.07)] rounded-3xl bg-white overflow-hidden">
         <CardHeader className="space-y-1.5 pt-6 pb-2 px-6 sm:px-8">
-          
+
           <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
             {step === "email" ? "Sign in to your account" : "Enter Verification Code"}
           </CardTitle>
