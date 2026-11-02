@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import {
     CheckCircle2,
     AlertTriangle,
     ArrowRightLeft,
-    RotateCcw
+    RotateCcw,
+    Loader2
 } from "lucide-react";
 import type { ChallanRecord } from "@/services/challan.service";
 import {
@@ -29,9 +30,30 @@ interface ChallanDetailModalProps {
     challan: ChallanRecord | null;
 }
 
-export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetailModalProps) {
+export function ChallanDetailModal({ open, onOpenChange, challan: initialChallan }: ChallanDetailModalProps) {
     const navigate = useNavigate();
     const [isReturnSelectModalOpen, setIsReturnSelectModalOpen] = useState(false);
+    const [challan, setChallan] = useState<ChallanRecord | null>(initialChallan);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
+    // Keep state in sync and fetch authoritative fresh details on open
+    useEffect(() => {
+        setChallan(initialChallan);
+        if (open && initialChallan?._id) {
+            setLoadingDetails(true);
+            challanService.getChallanById(initialChallan._id)
+                .then(res => {
+                    if (res?.data) {
+                        setChallan(res.data);
+                    }
+                })
+                .catch(err => {
+                    console.error("Error refreshing challan details:", err);
+                })
+                .finally(() => setLoadingDetails(false));
+        }
+    }, [initialChallan?._id, open]);
+
     if (!challan) return null;
 
     const isScrap = challan.isScrapDC || challan.challanType === "Scrap" || (challan.challanNumber && challan.challanNumber.startsWith("SDC-"));
@@ -57,8 +79,8 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 space-y-5">
-                <DialogHeader className="pr-10 sm:pr-12 border-b border-border/50 pb-4">
+            <DialogContent className="w-full max-w-3xl lg:max-w-4xl max-h-[92vh] overflow-y-auto p-4 sm:p-5 space-y-3.5">
+                <DialogHeader className="pr-10 sm:pr-12 border-b border-border/50 pb-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                         <div className="flex items-start sm:items-center gap-3 min-w-0">
                             <div className="size-11 sm:size-12 rounded-xl bg-background border border-border/80 flex items-center justify-center p-1.5 shadow-xs shrink-0 mt-0.5 sm:mt-0">
@@ -204,13 +226,21 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                 )}
 
                 {/* Items Table */}
-                <div className="border rounded-xl overflow-hidden">
-                    <div className="bg-muted px-4 py-2.5 border-b font-semibold text-xs uppercase text-muted-foreground">
-                        Challan Tool Items ({challan.items?.length || 0})
+                <div className="border border-border/70 rounded-xl overflow-hidden bg-card shadow-xs">
+                    <div className="bg-muted/70 px-4 py-2.5 border-b font-semibold text-xs uppercase text-muted-foreground flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                            <Package className="size-3.5 text-primary" />
+                            Challan Tool Items ({challan.items?.length || challan.toolCount || 0})
+                        </span>
+                        {loadingDetails && (
+                            <span className="flex items-center gap-1.5 text-[11px] font-normal text-muted-foreground normal-case">
+                                <Loader2 className="size-3 animate-spin text-primary" /> Syncing tools...
+                            </span>
+                        )}
                     </div>
-                    <div className="max-h-64 overflow-y-auto">
+                    <div className="max-h-[440px] overflow-y-auto overflow-x-auto overscroll-contain pb-2">
                         <table className="min-w-full text-sm text-left whitespace-nowrap">
-                            <thead className="bg-card sticky top-0 border-b text-xs text-muted-foreground font-semibold">
+                            <thead className="bg-muted/40 sticky top-0 border-b text-xs text-muted-foreground font-semibold backdrop-blur-xs z-10">
                                 <tr>
                                     <th className="px-4 py-2.5">#</th>
                                     <th className="px-4 py-2.5">Tool ID</th>
@@ -221,36 +251,54 @@ export function ChallanDetailModal({ open, onOpenChange, challan }: ChallanDetai
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/40">
-                                {(challan.items || []).map((item, idx) => (
-                                    <tr key={item.tool || idx} className="hover:bg-muted/20">
-                                        <td className="px-4 py-2.5 font-semibold text-muted-foreground">{idx + 1}</td>
-                                        <td className="px-4 py-2.5 font-mono text-xs font-bold text-primary">{item.toolId}</td>
-                                        <td className="px-4 py-2.5 font-medium text-foreground">{item.description || "-"}</td>
-                                        <td className="px-4 py-2.5 font-mono text-xs">{item.toolCode || "-"}</td>
-                                        <td className="px-4 py-2.5 text-center font-semibold">{item.quantity || 1} {item.unit || "NOS"}</td>
-                                        <td className="px-4 py-2.5 text-center">
-                                            {item.returnStatus === "Returned" ? (
-                                                <span className="inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-xs font-semibold">
-                                                    <CheckCircle2 className="size-3" /> Returned {item.returnChallanNumber ? `(${item.returnChallanNumber})` : ""}
-                                                </span>
-                                            ) : item.returnStatus === "Missing" ? (
-                                                <span className="inline-flex items-center gap-1 bg-rose-500/15 text-rose-700 dark:text-rose-400 px-2 py-0.5 rounded-full text-xs font-semibold">
-                                                    <AlertTriangle className="size-3" /> Missing {item.returnChallanNumber ? `(${item.returnChallanNumber})` : ""}
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full text-xs font-semibold">
-                                                    Sent (In Use)
-                                                </span>
-                                            )}
+                                {(challan.items || []).length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-xs">
+                                            No tool items recorded in this challan.
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    <>
+                                        {(challan.items || []).map((item: any, idx: number) => {
+                                            const uniqueKey = `${item.toolId || (typeof item.tool === 'string' ? item.tool : item.tool?._id) || 'tool'}-${idx}`;
+                                            return (
+                                                <tr key={uniqueKey} className="hover:bg-muted/20 transition-colors">
+                                                    <td className="px-4 py-2.5 font-semibold text-muted-foreground">{idx + 1}</td>
+                                                    <td className="px-4 py-2.5 font-mono text-xs font-bold text-primary">{item.toolId || "-"}</td>
+                                                    <td className="px-4 py-2.5 font-medium text-foreground">{item.description || "-"}</td>
+                                                    <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{item.toolCode || item.materialCode || "-"}</td>
+                                                    <td className="px-4 py-2.5 text-center font-semibold">{item.quantity || 1} {item.unit || "NOS"}</td>
+                                                    <td className="px-4 py-2.5 text-center">
+                                                        {item.returnStatus === "Returned" ? (
+                                                            <span className="inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                                                <CheckCircle2 className="size-3" /> Returned {item.returnChallanNumber ? `(${item.returnChallanNumber})` : ""}
+                                                            </span>
+                                                        ) : item.returnStatus === "Missing" ? (
+                                                            <span className="inline-flex items-center gap-1 bg-rose-500/15 text-rose-700 dark:text-rose-400 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                                                <AlertTriangle className="size-3" /> Missing {item.returnChallanNumber ? `(${item.returnChallanNumber})` : ""}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                                                Sent (In Use)
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                        <tr className="bg-muted/10 border-t border-border/40 select-none">
+                                            <td colSpan={6} className="px-4 py-2.5 text-center text-xs text-muted-foreground font-medium">
+                                                Showing all {challan.items?.length || 0} items
+                                            </td>
+                                        </tr>
+                                    </>
+                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t pt-4">
+                <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t pt-3 mt-1">
                     <Button onClick={() => onOpenChange(false)} variant="outline" className="w-full sm:w-24">
                         Close
                     </Button>

@@ -39,11 +39,21 @@ export function ChallanHistoryPage() {
 
     // Filters
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [vendor, setVendor] = useState("All");
     const [status, setStatus] = useState("All");
     const [challanType, setChallanType] = useState("All");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+
+    // Debounce search input by 350ms to prevent rapid server calls on every keystroke
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1);
+        }, 350);
+        return () => clearTimeout(timer);
+    }, [search]);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -61,11 +71,10 @@ export function ChallanHistoryPage() {
 
     const fetchVendors = async () => {
         try {
-            const [vendorRes, profileRes, userRes, challanRes] = await Promise.all([
+            const [vendorRes, profileRes, userRes] = await Promise.all([
                 vendorService.getVendors({ limit: 500 }).catch(() => ({ data: [] })),
                 profileService.getProfiles({ limit: 1000 }).catch(() => ({ data: [] })),
-                userService.getUsers().catch(() => ({ success: false, data: [] })),
-                challanService.getChallans({ limit: 500 }).catch(() => ({ data: [] }))
+                userService.getUsers().catch(() => ({ success: false, data: [] }))
             ]);
 
             const vendorMap = new Map<string, { _id: string; name: string; vendorCode: string }>();
@@ -103,16 +112,6 @@ export function ChallanHistoryPage() {
                 addVendor(id, u?.name, u?.user_id || u?.vendorCode);
             });
 
-            // 4. Extract from existing challans vendor snapshots
-            const cList = Array.isArray(challanRes?.data) ? challanRes.data : [];
-            cList.forEach((c: any) => {
-                if (c?.vendor) {
-                    const v = c.vendor;
-                    const id = v?._id || v?.id || v?.name;
-                    addVendor(id, v?.name, v?.vendorCode);
-                }
-            });
-
             setVendors(Array.from(vendorMap.values()));
         } catch (err) {
             console.error("Error fetching vendors:", err);
@@ -125,16 +124,39 @@ export function ChallanHistoryPage() {
             const res = await challanService.getChallans({
                 page,
                 limit,
-                search,
+                search: debouncedSearch,
                 vendor,
                 status,
                 challanType,
                 startDate,
                 endDate
             });
-            setChallans(res.data || []);
+            const challanList = res.data || [];
+            setChallans(challanList);
             setTotal(res.total || 0);
             setTotalPages(res.totalPages || 1);
+
+            // Dynamically enrich vendor filter list from fetched challans if not already present
+            if (challanList.length > 0) {
+                setVendors(prev => {
+                    const map = new Map(prev.map(v => [v._id, v]));
+                    let changed = false;
+                    challanList.forEach((c: any) => {
+                        if (c?.vendor) {
+                            const id = String(c.vendor._id || c.vendor.id || c.vendor.name || '').trim();
+                            if (id && !map.has(id)) {
+                                map.set(id, {
+                                    _id: id,
+                                    name: String(c.vendor.name || id).trim(),
+                                    vendorCode: String(c.vendor.vendorCode || c.vendor.name || '').trim()
+                                });
+                                changed = true;
+                            }
+                        }
+                    });
+                    return changed ? Array.from(map.values()) : prev;
+                });
+            }
         } catch (err) {
             toast.error("Failed to fetch challan history");
         } finally {
@@ -148,10 +170,11 @@ export function ChallanHistoryPage() {
 
     useEffect(() => {
         fetchChallans();
-    }, [page, search, vendor, status, challanType, startDate, endDate]);
+    }, [page, debouncedSearch, vendor, status, challanType, startDate, endDate]);
 
     const resetFilters = () => {
         setSearch("");
+        setDebouncedSearch("");
         setVendor("All");
         setStatus("All");
         setChallanType("All");
