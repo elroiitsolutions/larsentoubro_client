@@ -27,7 +27,6 @@ import {
     PhoneIcon,
     BadgeCheckIcon,
     XIcon,
-    KeyIcon,
     QrCode,
     Building2,
     ClipboardCheck
@@ -74,7 +73,6 @@ export function UserAccessPage() {
     const [name, setName] = React.useState("")
     const [email, setEmail] = React.useState("")
     const [phone, setPhone] = React.useState("")
-    const [password, setPassword] = React.useState("")
 
     // Permissions and scopes state
     const [allowedPages, setAllowedPages] = React.useState<string[]>([])
@@ -379,10 +377,6 @@ export function UserAccessPage() {
                 stores: selectedStores,
             }
 
-            if (password && password.trim()) {
-                payload.password = password.trim()
-            }
-
             const res = await userService.updateUser(userRecord._id, payload)
             if (res.success && res.data) {
                 toast.success("User permissions and access updated successfully!")
@@ -552,20 +546,7 @@ export function UserAccessPage() {
                                 className="h-9 rounded-xl text-xs"
                             />
                         </div>
-                        <div>
-                            <label className="text-xs font-bold text-foreground flex items-center gap-1 mb-1">
-                                <KeyIcon className="size-3 text-primary" />
-                                Admin Reset Password
-                            </label>
-                            <Input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="New password (blank to keep)"
-                                className="h-9 rounded-xl text-xs"
-                            />
                         </div>
-                    </div>
                 )}
             </div>
 

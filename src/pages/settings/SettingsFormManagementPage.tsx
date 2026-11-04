@@ -32,7 +32,12 @@ export function SettingsFormManagementPage() {
             const data = await formService.getForms()
             if (data.success) {
                 const filtered = (data.data || []).filter(
-                    (f: any) => f.slug !== 'tool-quick-view' && f.slug !== 'tool-details-view'
+                    (f: any) =>
+                        f.slug !== 'create-user' &&
+                        f.slug !== 'user-form' &&
+                        f.slug !== 'vendor-form' &&
+                        f.slug !== 'tool-quick-view' &&
+                        f.slug !== 'tool-details-view'
                 );
                 setForms(filtered);
             }

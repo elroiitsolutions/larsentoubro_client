@@ -8,27 +8,27 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-    SelectSeparator
 } from "@/components/ui/select"
 import {
     UserPlusIcon,
     UserIcon,
     Loader2,
     ArrowRightIcon,
-    ShieldCheckIcon,
-    KeyIcon,
-    ClipboardCheck
+    ShieldCheckIcon
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import userService from "@/services/user.service"
 import type { UserRecord } from "@/services/user.service"
+import formService from "@/services/form.service"
 import { toast } from "sonner"
+import { validateEmail } from "@/utils/validation"
 
 interface UserFormModalProps {
     isOpen: boolean
@@ -36,6 +36,15 @@ interface UserFormModalProps {
     editingUser?: UserRecord | null
     onSuccess: () => void
 }
+
+const DEFAULT_USER_FIELDS = [
+    { id: 'name', name: 'name', label: 'Full Name', type: 'text', placeholder: 'e.g. Rajesh Kumar', validations: [{ type: 'required' }], order: 0 },
+    { id: 'user_id', name: 'user_id', label: 'Employee / User ID', type: 'text', placeholder: 'e.g. EMP-10492', validations: [{ type: 'required' }], order: 1 },
+    { id: 'email', name: 'email', label: 'Email Address', type: 'email', placeholder: 'e.g. rajesh.k@larsentoubro.com', validations: [{ type: 'required' }, { type: 'email' }], order: 2 },
+    { id: 'phonenumber', name: 'phonenumber', label: 'Phone Number', type: 'text', placeholder: 'e.g. +91 98765 43210', validations: [{ type: 'required' }], order: 3 },
+    { id: 'role', name: 'role', label: 'System Role (RBAC)', type: 'select', options: [{ label: 'User', value: 'User' }, { label: 'Admin', value: 'Admin' }], validations: [{ type: 'required' }], order: 4 },
+    { id: 'status', name: 'status', label: 'Account Status', type: 'select', options: [{ label: 'Active', value: 'Active' }, { label: 'Inactive', value: 'Inactive' }], order: 5 }
+]
 
 export function UserFormModal({
     isOpen,
@@ -46,64 +55,157 @@ export function UserFormModal({
     const isEdit = Boolean(editingUser)
     const navigate = useNavigate()
 
-    const [name, setName] = React.useState("")
-    const [email, setEmail] = React.useState("")
-    const [userId, setUserId] = React.useState("")
-    const [phone, setPhone] = React.useState("")
-    const [password, setPassword] = React.useState("")
-    const [role, setRole] = React.useState<"Admin" | "User">("User")
-    const [status, setStatus] = React.useState<"Active" | "Inactive">("Active")
-    const [hasInspectionAccess, setHasInspectionAccess] = React.useState(false)
+    const [formFields, setFormFields] = React.useState<any[]>([])
+    const [loadingForm, setLoadingForm] = React.useState(false)
     const [saving, setSaving] = React.useState(false)
 
+    const [formData, setFormData] = React.useState<Record<string, any>>({
+        name: "",
+        user_id: "",
+        email: "",
+        phonenumber: "",
+        role: "User",
+        status: "Active"
+    })
+
+    // Fetch dynamic form schema from Forms Management whenever modal opens
+    React.useEffect(() => {
+        if (!isOpen) return
+
+        let isMounted = true
+        const fetchFormSchema = async () => {
+            setLoadingForm(true)
+            try {
+                const res = await formService.getFormBySlug("user-admin-form")
+                if (isMounted && res.success && res.data && Array.isArray(res.data.fields)) {
+                    // Filter out obsolete password field if still present in old schemas
+                    const cleanFields = res.data.fields.filter(
+                        (f: any) => f.name !== "password" && f.id !== "password"
+                    )
+                    setFormFields(cleanFields.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)))
+                }
+            } catch (err) {
+                console.error("Failed to load user-admin-form schema:", err)
+            } finally {
+                if (isMounted) setLoadingForm(false)
+            }
+        }
+
+        fetchFormSchema()
+        return () => {
+            isMounted = false
+        }
+    }, [isOpen])
+
+    // Load initial values on open or when editingUser changes
     React.useEffect(() => {
         if (!isOpen) return
 
         if (editingUser) {
-            setName(editingUser.name || "")
-            setEmail(editingUser.email || "")
-            setUserId(editingUser.user_id || "")
-            setPhone(editingUser.phonenumber || "")
-            setPassword("")
-            setRole(editingUser.role === "Admin" ? "Admin" : "User")
-            setStatus("Active")
-            setHasInspectionAccess(Boolean(editingUser.role === "Admin" || editingUser.hasInspectionAccess))
+            const raw = editingUser as any
+            const initial: Record<string, any> = {
+                ...raw,
+                name: raw.name || "",
+                user_id: raw.user_id || "",
+                email: raw.email || "",
+                phonenumber: raw.phonenumber || raw.phone || "",
+                role: raw.role === "Admin" ? "Admin" : "User",
+                status: raw.status === "Inactive" ? "Inactive" : "Active"
+            }
+            if (raw.customFields && typeof raw.customFields === "object") {
+                Object.assign(initial, raw.customFields)
+            }
+            setFormData(initial)
         } else {
-            setName("")
-            setEmail("")
-            setUserId("")
-            setPhone("")
-            setPassword("")
-            setRole("User")
-            setStatus("Active")
-            setHasInspectionAccess(false)
+            setFormData({
+                name: "",
+                user_id: "",
+                email: "",
+                phonenumber: "",
+                role: "User",
+                status: "Active"
+            })
         }
     }, [isOpen, editingUser])
+
+    // Compute effective display fields: use formFields if loaded, else fallback to defaults
+    const displayFields = React.useMemo(() => {
+        if (formFields && formFields.length > 0) {
+            return formFields
+        }
+        return DEFAULT_USER_FIELDS
+    }, [formFields])
+
+    const handleFieldChange = (key: string, value: any) => {
+        setFormData(prev => ({ ...prev, [key]: value }))
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!name.trim() || !email.trim() || !userId.trim() || !phone.trim()) {
-            toast.error("Please fill in all required user profile fields.")
-            return
-        }
+        // Validate each active display field according to required rules configured in Forms Management
+        for (const field of displayFields) {
+            const isFieldRequired = Boolean(field.required) || Boolean(field.validations?.some((v: any) => v.type === "required"))
+            const val = formData[field.name]
 
-        if (!isEdit && (!password || password.trim().length < 6)) {
-            toast.error("Password must be at least 6 characters for new users.")
-            return
+            if (isFieldRequired) {
+                if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
+                    toast.error(`${field.label} is required.`)
+                    return
+                }
+            }
+
+            // Strict email validation
+            if (field.name === "email" || field.type === "email") {
+                const cleanEmail = String(val || "").trim().toLowerCase()
+                if (cleanEmail || isFieldRequired) {
+                    const emailCheck = validateEmail(cleanEmail)
+                    if (!emailCheck.isValid) {
+                        toast.error(emailCheck.error || "Email address must contain '@' and '.'.")
+                        return
+                    }
+                }
+            }
         }
 
         setSaving(true)
         try {
-            const payload: Record<string, unknown> = {
-                name: name.trim(),
-                email: email.trim(),
-                user_id: userId.trim(),
-                phonenumber: phone.trim(),
-                role: role,
-                status: status,
-                hasInspectionAccess: role === "Admin" ? true : hasInspectionAccess,
+            const role = formData.role || "User"
+            const cleanEmail = (formData.email || "").trim().toLowerCase()
+            if (cleanEmail) {
+                const emailCheck = validateEmail(cleanEmail)
+                if (!emailCheck.isValid) {
+                    toast.error(emailCheck.error || "Email address must contain '@' and '.'.")
+                    return
+                }
             }
+            const cleanUserId = (formData.user_id || "").trim()
+            const cleanName = (formData.name || "").trim()
+            const cleanPhone = (formData.phonenumber || formData.phone || "").trim()
+
+            const payload: Record<string, any> = {
+                ...formData,
+                name: cleanName,
+                email: cleanEmail,
+                user_id: cleanUserId,
+                phonenumber: cleanPhone,
+                role,
+                status: formData.status || "Active",
+                hasInspectionAccess: role === "Admin" ? true : Boolean(editingUser?.hasInspectionAccess),
+                canCreateUser: role === "Admin" ? true : Boolean(editingUser?.canCreateUser),
+            }
+
+            // Attach dynamic custom fields both by field.name and slugified label for maximum reliability
+            displayFields.forEach((field) => {
+                const standardNames = ["name", "user_id", "email", "phonenumber", "phone", "role", "status", "password"]
+                if (!standardNames.includes(field.name)) {
+                    payload[field.name] = formData[field.name]
+                    if (field.label) {
+                        const slugKey = field.label.toLowerCase().replace(/[^a-z0-9_]/gi, "_")
+                        payload[slugKey] = formData[field.name]
+                    }
+                }
+            })
 
             if (!isEdit) {
                 payload.allowedPages = role === "Admin"
@@ -111,10 +213,6 @@ export function UserFormModal({
                     : ["/qr-scanner", "/dashboard", "/projects", "/stores"]
                 payload.projects = []
                 payload.stores = []
-            }
-
-            if (password.trim()) {
-                payload.password = password.trim()
             }
 
             let res
@@ -181,190 +279,224 @@ export function UserFormModal({
                             Internal Member Identity & Profile
                         </h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Full Name */}
-                            <div className="md:col-span-2">
-                                <label className="text-xs font-bold text-foreground block mb-1.5">
-                                    Full Name <span className="text-rose-500">*</span>
-                                </label>
-                                <Input
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="e.g. Rajesh Kumar"
-                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                    required
-                                />
+                        {loadingForm ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                <Loader2 className="size-6 animate-spin text-primary mb-2" />
+                                <p className="text-xs font-medium">Loading form configuration...</p>
                             </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {displayFields.map((field) => {
+                                    const isRequired = Boolean(field.required) || Boolean(field.validations?.some((v: any) => v.type === "required"))
+                                    const fieldKey = field.name || field.id
+                                    const value = formData[fieldKey] ?? ""
 
-                            {/* Employee / User ID */}
-                            <div>
-                                <label className="text-xs font-bold text-foreground block mb-1.5">
-                                    Employee / User ID <span className="text-rose-500">*</span>
-                                </label>
-                                <Input
-                                    value={userId}
-                                    onChange={(e) => setUserId(e.target.value)}
-                                    placeholder="e.g. EMP-10492"
-                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono font-medium"
-                                    required
-                                    disabled={isEdit}
-                                />
-                                {isEdit && (
-                                    <p className="text-[10px] text-muted-foreground mt-1">
-                                        User ID is locked after initial registration.
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Email Address */}
-                            <div>
-                                <label className="text-xs font-bold text-foreground block mb-1.5">
-                                    Email Address <span className="text-rose-500">*</span>
-                                </label>
-                                <Input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="e.g. rajesh.k@larsentoubro.com"
-                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                    required
-                                />
-                            </div>
-
-                            {/* Phone Number */}
-                            <div>
-                                <label className="text-xs font-bold text-foreground block mb-1.5">
-                                    Phone Number <span className="text-rose-500">*</span>
-                                </label>
-                                <Input
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
-                                    placeholder="e.g. +91 98765 43210"
-                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                    required
-                                />
-                            </div>
-
-                            {/* Active Status */}
-                            <div>
-                                <label className="text-xs font-bold text-foreground block mb-1.5">
-                                    Account Status <span className="text-rose-500">*</span>
-                                </label>
-                                <Select value={status} onValueChange={(val: any) => setStatus(val)}>
-                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Active">Active — Member can log in & perform actions</SelectItem>
-                                        <SelectItem value="Inactive">Inactive — Account disabled</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Role Selection */}
-                            <div className="md:col-span-2">
-                                <label className="text-xs font-bold text-foreground block mb-1.5">
-                                    System Role (RBAC) <span className="text-rose-500">*</span>
-                                </label>
-                                <Select value={role} onValueChange={(val: any) => setRole(val)}>
-                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
-                                        <SelectValue placeholder="Select a role" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="User">User — Access controlled by Projects, Stores & Page Scope</SelectItem>
-                                        <SelectSeparator />
-                                        <SelectItem value="Admin">Admin — Full unrestricted platform & system management</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <div className="mt-2 p-2.5 rounded-xl border bg-muted/20 text-xs">
-                                    {role === "Admin" ? (
-                                        <p className="text-blue-600 dark:text-blue-400 font-medium">
-                                            <span className="font-bold">Admin:</span> Unrestricted access across all Projects, Stores, Tools, Reports, and System Settings.
-                                        </p>
-                                    ) : (
-                                        <p className="text-muted-foreground font-medium">
-                                            <span className="font-bold">User:</span> Standard access scope governed by assigned Projects, Stores, and Page Permissions.
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Inspection Access Option */}
-                            <div className="md:col-span-2">
-                                <div
-                                    onClick={() => {
-                                        if (role !== "Admin") {
-                                            setHasInspectionAccess(prev => !prev)
-                                        }
-                                    }}
-                                    className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
-                                        role === "Admin" ? "cursor-default opacity-95 bg-primary/5 border-primary/30" : "cursor-pointer hover:border-border"
-                                    } ${
-                                        (role === "Admin" || hasInspectionAccess)
-                                            ? "bg-emerald-500/10 border-emerald-500/30 text-foreground"
-                                            : "bg-muted/20 border-border/70 text-muted-foreground"
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`size-8 rounded-lg flex items-center justify-center border shrink-0 ${
-                                            (role === "Admin" || hasInspectionAccess)
-                                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                                                : "bg-muted border-border text-muted-foreground"
-                                        }`}>
-                                            <ClipboardCheck className="size-4" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                                <span>Tool Inspection Permission</span>
-                                                {(role === "Admin" || hasInspectionAccess) && (
-                                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
-                                                        Active
-                                                    </span>
-                                                )}
-                                            </p>
-                                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                                                {role === "Admin"
-                                                    ? "Admins automatically have full inspection privileges."
-                                                    : "Allows user to inspect tools and execute Pass / Fail / Repair / Scrap workflows."}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        checked={role === "Admin" || hasInspectionAccess}
-                                        disabled={role === "Admin"}
-                                        onChange={(e) => setHasInspectionAccess(e.target.checked)}
-                                        className="size-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer disabled:opacity-50"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Password */}
-                            <div className="md:col-span-2">
-                                <label className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-1.5">
-                                    <KeyIcon className="size-3.5 text-primary" />
-                                    <span>{isEdit ? "Admin Reset Password" : "Account Password"}</span>
-                                    {!isEdit && <span className="text-rose-500">*</span>}
-                                </label>
-                                <Input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder={
-                                        isEdit
-                                            ? "Leave blank to keep current password"
-                                            : "Enter at least 6 characters"
+                                    // 1. Role Selection Field
+                                    if (field.name === "role" || field.id === "role") {
+                                        return (
+                                            <div key={field.id || field.name} className="md:col-span-2">
+                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    {field.label} {isRequired && <span className="text-rose-500">*</span>}
+                                                </label>
+                                                <Select
+                                                    value={formData.role || "User"}
+                                                    onValueChange={(val: any) => handleFieldChange("role", val)}
+                                                >
+                                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
+                                                        <SelectValue placeholder="Select a role" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {(field.options && field.options.length > 0 ? field.options : [
+                                                            { label: "User — Access controlled by Projects, Stores & Page Scope", value: "User" },
+                                                            { label: "Admin — Full unrestricted platform & system management", value: "Admin" }
+                                                        ]).map((opt: any) => {
+                                                            const optVal = typeof opt === "string" ? opt : opt.value
+                                                            const optLabel = typeof opt === "string" ? opt : opt.label
+                                                            return (
+                                                                <SelectItem key={optVal} value={optVal}>
+                                                                    {optLabel}
+                                                                </SelectItem>
+                                                            )
+                                                        })}
+                                                    </SelectContent>
+                                                </Select>
+                                                <div className="mt-2 p-2.5 rounded-xl border bg-muted/20 text-xs">
+                                                    {formData.role === "Admin" ? (
+                                                        <p className="text-blue-600 dark:text-blue-400 font-medium">
+                                                            <span className="font-bold">Admin:</span> Unrestricted access across all Projects, Stores, Tools, Reports, and System Settings.
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-muted-foreground font-medium">
+                                                            <span className="font-bold">User:</span> Standard access scope governed by assigned Projects, Stores, and Page Permissions.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
                                     }
-                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
-                                    required={!isEdit}
-                                />
-                                <p className="text-[11px] text-muted-foreground mt-1">
-                                    {isEdit
-                                        ? "Only Admins can reset user passwords."
-                                        : "Member will use this password for login access."}
-                                </p>
+
+                                    // 2. Status Field
+                                    if (field.name === "status" || field.id === "status") {
+                                        return (
+                                            <div key={field.id || field.name}>
+                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    {field.label} {isRequired && <span className="text-rose-500">*</span>}
+                                                </label>
+                                                <Select
+                                                    value={formData.status || "Active"}
+                                                    onValueChange={(val: any) => handleFieldChange("status", val)}
+                                                >
+                                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
+                                                        <SelectValue placeholder="Select status" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {(field.options && field.options.length > 0 ? field.options : [
+                                                            { label: "Active — Member can log in & perform actions", value: "Active" },
+                                                            { label: "Inactive — Account disabled", value: "Inactive" }
+                                                        ]).map((opt: any) => {
+                                                            const optVal = typeof opt === "string" ? opt : opt.value
+                                                            const optLabel = typeof opt === "string" ? opt : opt.label
+                                                            return (
+                                                                <SelectItem key={optVal} value={optVal}>
+                                                                    {optLabel}
+                                                                </SelectItem>
+                                                            )
+                                                        })}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )
+                                    }
+
+                                    // 3. User ID Field
+                                    if (field.name === "user_id" || field.id === "user_id") {
+                                        return (
+                                            <div key={field.id || field.name}>
+                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    {field.label} {isRequired && <span className="text-rose-500">*</span>}
+                                                </label>
+                                                <Input
+                                                    value={formData.user_id || ""}
+                                                    onChange={(e) => handleFieldChange("user_id", e.target.value)}
+                                                    placeholder={field.placeholder?.trim() || "e.g. EMP-10492"}
+                                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono font-medium"
+                                                    disabled={isEdit}
+                                                />
+                                                {isEdit && (
+                                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                                        User ID is locked after initial registration.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )
+                                    }
+
+                                    // 4. Dropdown Select Field
+                                    if (field.type === "select") {
+                                        return (
+                                            <div key={field.id || field.name}>
+                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    {field.label} {isRequired && <span className="text-rose-500">*</span>}
+                                                </label>
+                                                <Select
+                                                    value={value || ""}
+                                                    onValueChange={(val) => handleFieldChange(fieldKey, val)}
+                                                >
+                                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-medium">
+                                                        <SelectValue placeholder={field.placeholder?.trim() || undefined} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {(field.options || []).map((opt: any) => {
+                                                            const optVal = typeof opt === "string" ? opt : opt.value
+                                                            const optLabel = typeof opt === "string" ? opt : opt.label
+                                                            return (
+                                                                <SelectItem key={optVal} value={optVal}>
+                                                                    {optLabel}
+                                                                </SelectItem>
+                                                            )
+                                                        })}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )
+                                    }
+
+                                    // 5. Textarea Field
+                                    if (field.type === "textarea") {
+                                        return (
+                                            <div key={field.id || field.name} className="md:col-span-2">
+                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    {field.label} {isRequired && <span className="text-rose-500">*</span>}
+                                                </label>
+                                                <Textarea
+                                                    value={value || ""}
+                                                    onChange={(e) => handleFieldChange(fieldKey, e.target.value)}
+                                                    placeholder={field.placeholder?.trim() || undefined}
+                                                    className="min-h-[80px] rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                />
+                                            </div>
+                                        )
+                                    }
+
+                                    // 6. Number Field
+                                    if (field.type === "number") {
+                                        return (
+                                            <div key={field.id || field.name}>
+                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    {field.label} {isRequired && <span className="text-rose-500">*</span>}
+                                                </label>
+                                                <Input
+                                                    type="number"
+                                                    value={value ?? ""}
+                                                    onChange={(e) => handleFieldChange(fieldKey, e.target.value === "" ? "" : Number(e.target.value))}
+                                                    placeholder={field.placeholder?.trim() || undefined}
+                                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                />
+                                            </div>
+                                        )
+                                    }
+
+                                    // 7. Date Field
+                                    if (field.type === "date") {
+                                        return (
+                                            <div key={field.id || field.name}>
+                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    {field.label} {isRequired && <span className="text-rose-500">*</span>}
+                                                </label>
+                                                <Input
+                                                    type="date"
+                                                    value={value || ""}
+                                                    onChange={(e) => handleFieldChange(fieldKey, e.target.value)}
+                                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                />
+                                            </div>
+                                        )
+                                    }
+
+                                    // 8. Default Text / Email Input
+                                    const isFullWidth = field.name === "name" || field.id === "name"
+                                    return (
+                                        <div key={field.id || field.name} className={isFullWidth ? "md:col-span-2" : ""}>
+                                            <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                {field.label} {isRequired && <span className="text-rose-500">*</span>}
+                                            </label>
+                                            <Input
+                                                type={field.type === "email" ? "email" : "text"}
+                                                value={value || ""}
+                                                onChange={(e) => handleFieldChange(fieldKey, e.target.value)}
+                                                placeholder={
+                                                    field.placeholder?.trim() ||
+                                                    (field.name === "name" || field.id === "name" ? "e.g. Rajesh Kumar" :
+                                                     field.name === "email" || field.id === "email" ? "e.g. rajesh.k@larsentoubro.com" :
+                                                     field.name === "phonenumber" || field.id === "phonenumber" ? "e.g. +91 98765 43210" : undefined)
+                                                }
+                                                className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                            />
+                                        </div>
+                                    )
+                                })}
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-start gap-3">
@@ -402,4 +534,4 @@ export function UserFormModal({
     )
 }
 
-export default UserFormModal;
+export default UserFormModal

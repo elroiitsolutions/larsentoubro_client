@@ -21,7 +21,6 @@ import {
   FolderOpenIcon,
   UsersIcon,
   Settings2Icon,
-  ShieldCheck,
   Trash2Icon,
   ArchiveIcon,
   Building2,
@@ -96,14 +95,7 @@ const data = {
       isActive: false,
       items: [],
     },
-    {
-      title: "Login Approvals",
-      url: "/admin/approvals",
-      icon: <ShieldCheck />,
-      isActive: false,
-      items: [],
-    },
-    // {
+        // {
     //   title: "Reports & Audit",
     //   url: "/reports",
     //   icon: <BarChart3 />,
@@ -158,9 +150,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         if (adminOnlyUrls.includes(item.url)) return false;
         if (item.url === "/users") {
           return Boolean(user?.canCreateUser);
-        }
-        if (item.url === "/admin/approvals") {
-          return user?.role === "Admin" || user?.role === "User" || Boolean(user?.canCreateUser);
         }
         if (item.url === "/qr-scanner") return true;
         if (item.url === "/dashboard") return allowed.includes("/dashboard");

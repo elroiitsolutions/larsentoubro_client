@@ -18,7 +18,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
-import { Mail, KeyRound, ArrowRight, ArrowLeft, RotateCw, ShieldCheck } from "lucide-react"
+import { Mail, KeyRound, ArrowRight, ArrowLeft, RotateCw, ShieldCheck, AlertCircle } from "lucide-react"
+import { validateEmail } from "@/utils/validation"
 
 export function LoginForm({
   className,
@@ -28,7 +29,7 @@ export function LoginForm({
 
   // Steps: 'email' (Step 1) | 'otp' (Step 2)
   const [step, setStep] = React.useState<"email" | "otp">("email")
-  const [email, setEmail] = React.useState("lntqr@gmail.com")
+  const [email, setEmail] = React.useState("chandruravichandran1536@gmail.com")
   const [otp, setOtp] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
@@ -51,8 +52,9 @@ export function LoginForm({
     setError(null)
 
     const normalizedEmail = email.trim().toLowerCase()
-    if (!normalizedEmail) {
-      setError("Please enter your registered email address.")
+    const emailCheck = validateEmail(normalizedEmail)
+    if (!emailCheck.isValid) {
+      setError(emailCheck.error || "Email address must contain '@' and '.'.")
       return
     }
 
@@ -71,8 +73,13 @@ export function LoginForm({
         throw new Error(res.message || "Failed to send verification code")
       }
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || "Failed to send verification code"
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.message ||
+        err.message ||
+        "Failed to send verification code"
       setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -82,6 +89,16 @@ export function LoginForm({
   const handleResendOtp = async () => {
     if (cooldown > 0 || resending) return
     setError(null)
+
+    const normalizedEmail = email.trim().toLowerCase()
+    const emailCheck = validateEmail(normalizedEmail)
+    if (!emailCheck.isValid) {
+      const err = emailCheck.error || "Email address must contain '@' and '.'."
+      setError(err)
+      toast.error(err)
+      return
+    }
+
     setResending(true)
 
     try {
@@ -97,21 +114,35 @@ export function LoginForm({
         throw new Error(res.message || "Failed to resend verification code")
       }
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || "Failed to resend code"
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.message ||
+        err?.message ||
+        "Failed to resend code"
       setError(message)
+      toast.error(message)
     } finally {
       setResending(false)
     }
   }
 
   // Step 2: Verify OTP
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setError(null)
 
     const cleanOtp = otp.trim()
+    if (!cleanOtp) {
+      const message = "Please enter the 6-digit verification code."
+      setError(message)
+      toast.error(message)
+      return
+    }
+
     if (cleanOtp.length !== 6) {
-      setError("Please enter the full 6-digit verification code.")
+      const message = "Please enter the full 6-digit verification code."
+      setError(message)
+      toast.error(message)
       return
     }
 
@@ -125,8 +156,13 @@ export function LoginForm({
       toast.success("Authentication successful! Welcome.")
       login(data.token, data.user)
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || "Invalid or expired verification code"
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.message ||
+        err.message ||
+        "Invalid or expired verification code"
       setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -145,8 +181,13 @@ export function LoginForm({
       toast.success("Logged in as Guest User!")
       login(data.token, data.user)
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || "Failed to log in as Guest"
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.message ||
+        err.message ||
+        "Failed to log in as Guest"
       setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -279,33 +320,31 @@ export function LoginForm({
                       autoComplete="one-time-code"
                       value={otp}
                       onChange={(e) => {
+                        setError(null)
                         const val = e.target.value.replace(/\D/g, "").slice(0, 6)
                         setOtp(val)
                       }}
                       disabled={loading}
-                      className="h-16 text-center font-mono text-3xl font-extrabold tracking-[0.5em] rounded-2xl bg-slate-50/70 border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 shadow-inner text-slate-900 transition-all"
+                      className={cn(
+                        "h-16 text-center font-mono text-3xl font-extrabold tracking-[0.5em] rounded-2xl bg-slate-50/70 border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 shadow-inner text-slate-900 transition-all",
+                        error && "border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20"
+                      )}
                     />
                     <KeyRound className="absolute left-4 top-5.5 size-5 text-slate-400 pointer-events-none" />
                   </div>
-                </Field>
 
-                {/* {devOtpHint && (
-                  <div
-                    onClick={() => setOtp(devOtpHint)}
-                    className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex items-center justify-between cursor-pointer hover:bg-blue-100/80 transition-colors"
-                  >
-                    <div className="flex items-center gap-2 font-medium">
-                      <CheckCircle2 className="size-4 text-blue-600 shrink-0" />
-                      <span>Local Test OTP: <strong>{devOtpHint}</strong></span>
+                  {error && (
+                    <div className="mt-2.5 flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600 animate-in fade-in-0 duration-200">
+                      <AlertCircle className="size-4 shrink-0 text-red-600" />
+                      <span>{error}</span>
                     </div>
-                    <span className="font-bold underline text-[11px] text-blue-700">Auto-fill</span>
-                  </div>
-                )} */}
+                  )}
+                </Field>
 
                 <Field className="pt-1">
                   <Button
                     type="submit"
-                    disabled={loading || otp.trim().length !== 6}
+                    disabled={loading}
                     className="w-full h-12 rounded-xl font-bold bg-[#0B2545] hover:bg-[#133E87] active:scale-[0.99] text-white shadow-md shadow-blue-950/20 transition-all hover:shadow-lg cursor-pointer text-sm gap-2"
                   >
                     {loading ? (
