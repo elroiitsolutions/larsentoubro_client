@@ -30,6 +30,7 @@ export interface FormField {
   name: string;
   label: string;
   type: FieldType;
+  required?: boolean;
   placeholder?: string;
   defaultValue?: any;
   helperText?: string;

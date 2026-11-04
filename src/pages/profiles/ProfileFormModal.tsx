@@ -38,6 +38,7 @@ import profileService, { type ProfileRecord, type ProfileType, type KeyPersonnel
 import formService from "@/services/form.service"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
+import { validateEmail } from "@/utils/validation"
 
 interface ProfileFormModalProps {
     isOpen: boolean
@@ -76,6 +77,72 @@ const formatAadhaarNumber = (val: string, prevVal: string = ""): string => {
         return `${digits.slice(0, 4)}-${digits.slice(4)}`;
     } else {
         return `${digits.slice(0, 4)}-${digits.slice(4, 8)}-${digits.slice(8)}`;
+    }
+};
+
+const DEFAULT_PROFILE_PLACEHOLDERS: Record<string, Record<string, string>> = {
+    Subcontractor: {
+        name: "e.g. RADHE SWAMI CONSTRUCTION",
+        code: "e.g. SUB-0001",
+        contactPerson: "e.g. Dinesh G",
+        contactDesignation: "e.g. Site Manager / Proprietor",
+        designation: "e.g. Site Manager / Proprietor",
+        contactPhone: "e.g. 9934110587",
+        phone: "e.g. 9934110587",
+        alternatePhone: "e.g. 9876543210",
+        contactEmail: "e.g. contact@company.com",
+        email: "e.g. contact@company.com",
+        gstNumber: "e.g. 27AAACL0140P1Z0",
+        gst: "e.g. 27AAACL0140P1Z0",
+        panNumber: "e.g. AAACL0140P",
+        pan: "e.g. AAACL0140P",
+        aadhaarNumber: "e.g. 1234-5678-9012",
+        aadhaar: "e.g. 1234-5678-9012",
+        licenseNumber: "e.g. LIC-2026-9812",
+        license: "e.g. LIC-2026-9812",
+        address: "Enter registered business or site address"
+    },
+    ScrapDealer: {
+        name: "e.g. SHREE METALS SCRAP DEALERS",
+        code: "e.g. SCR-0001",
+        contactPerson: "e.g. Ramesh Patel",
+        contactDesignation: "e.g. Proprietor / Manager",
+        designation: "e.g. Proprietor / Manager",
+        contactPhone: "e.g. 9820012345",
+        phone: "e.g. 9820012345",
+        alternatePhone: "e.g. 9876543210",
+        contactEmail: "e.g. ramesh@shreemetals.com",
+        email: "e.g. ramesh@shreemetals.com",
+        gstNumber: "e.g. 27AAACS1234P1Z5",
+        gst: "e.g. 27AAACS1234P1Z5",
+        panNumber: "e.g. AAACS1234P",
+        pan: "e.g. AAACS1234P",
+        aadhaarNumber: "e.g. 1234-5678-9012",
+        aadhaar: "e.g. 1234-5678-9012",
+        licenseNumber: "e.g. PCB/SCRAP/2026/0892",
+        license: "e.g. PCB/SCRAP/2026/0892",
+        address: "Enter scrap yard address"
+    },
+    Supplier: {
+        name: "e.g. HILTI INDIA PRIVATE LIMITED",
+        code: "e.g. SUP-0001",
+        contactPerson: "e.g. Amit Sharma",
+        contactDesignation: "e.g. Sales / Account Manager",
+        designation: "e.g. Sales / Account Manager",
+        contactPhone: "e.g. 1800 102 4400",
+        phone: "e.g. 1800 102 4400",
+        alternatePhone: "e.g. 9876543210",
+        contactEmail: "e.g. sales@hilti.com",
+        email: "e.g. sales@hilti.com",
+        gstNumber: "e.g. 07AAACH0042P1Z3",
+        gst: "e.g. 07AAACH0042P1Z3",
+        panNumber: "e.g. AAACH0042P",
+        pan: "e.g. AAACH0042P",
+        aadhaarNumber: "e.g. 1234-5678-9012",
+        aadhaar: "e.g. 1234-5678-9012",
+        licenseNumber: "e.g. IND-MFG-9842",
+        license: "e.g. IND-MFG-9842",
+        address: "Enter corporate address"
     }
 };
 
@@ -185,6 +252,71 @@ export function ProfileFormModal({
 
     const meta = getProfileTypeMeta()
 
+    // Helper to verify if a field is configured as required in Forms Management
+    const isFieldRequired = (fieldName: string, altNames: string[] = []): boolean => {
+        if (!formDefinition?.fields || !Array.isArray(formDefinition.fields)) return false
+        const candidates = [fieldName, ...altNames]
+        const field = formDefinition.fields.find(
+            (f: any) => candidates.includes(f.name) || candidates.includes(f.id)
+        )
+        if (!field) return false
+        return Boolean(
+            field.required ||
+            (Array.isArray(field.validations) && field.validations.some((v: any) => v.type === 'required'))
+        )
+    }
+
+    // Helper to get field definition from dynamic form schema
+    const getFieldDef = (fieldName: string, altNames: string[] = []): any => {
+        if (!formDefinition?.fields || !Array.isArray(formDefinition.fields)) return null
+        const candidates = [fieldName, ...altNames]
+        return formDefinition.fields.find(
+            (f: any) => candidates.includes(f.name) || candidates.includes(f.id)
+        ) || null
+    }
+
+    // Helper to dynamically read placeholder configured in Forms Management with proper defaults
+    const getFieldPlaceholder = (fieldName: string, altNames: string[] = []): string | undefined => {
+        const def = getFieldDef(fieldName, altNames)
+        if (def && typeof def.placeholder === 'string' && def.placeholder.trim()) {
+            return def.placeholder.trim()
+        }
+        const typeDefaults = DEFAULT_PROFILE_PLACEHOLDERS[profileType] || {}
+        return typeDefaults[fieldName] || altNames.map(a => typeDefaults[a]).find(Boolean) || undefined
+    }
+
+    // Helper to dynamically read field label configured in Forms Management
+    const getFieldLabel = (fieldName: string, fallback: string, altNames: string[] = []): string => {
+        const def = getFieldDef(fieldName, altNames)
+        if (def && typeof def.label === 'string' && def.label.trim()) {
+            return def.label.trim()
+        }
+        return fallback
+    }
+
+    // Helper to dynamically read helper description text configured in Forms Management
+    const getFieldHelperText = (fieldName: string, altNames: string[] = []): string | null => {
+        const def = getFieldDef(fieldName, altNames)
+        if (def && typeof def.helperText === 'string' && def.helperText.trim()) {
+            return def.helperText.trim()
+        }
+        return null
+    }
+
+    // Filter dynamic custom fields (fields not part of standard profile model)
+    const customFieldDefs = React.useMemo(() => {
+        if (!formDefinition?.fields || !Array.isArray(formDefinition.fields)) return []
+        const standardKeys = [
+            'name', 'code', 'contactPerson', 'contactDesignation',
+            'contactEmail', 'email', 'contactPhone', 'alternatePhone',
+            'keyPersonnel', 'address', 'gstNumber', 'panNumber',
+            'aadhaarNumber', 'licenseNumber', 'status'
+        ]
+        return formDefinition.fields.filter(
+            (f: any) => !standardKeys.includes(f.name) && !standardKeys.includes(f.id)
+        )
+    }, [formDefinition])
+
     // Fetch dynamic form schema
     React.useEffect(() => {
         if (!isOpen) return
@@ -263,22 +395,136 @@ export function ProfileFormModal({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
+        // 1. Business / Vendor Name
         if (!name.trim()) {
-            toast.error("Company / Person Name is required.")
+            toast.error(`${meta.title} Name is required.`)
             return
         }
 
+        // 2. Profile Code (if required by form settings)
+        if (isFieldRequired('code') && !code.trim()) {
+            toast.error("Profile Code is required.")
+            return
+        }
+
+        const primaryPerson = (keyPersonnel[0]?.name || "").trim()
+        const primaryDesignation = (keyPersonnel[0]?.designation || "").trim()
         const primaryPhone = (keyPersonnel[0]?.phone || "").trim()
         const primaryEmail = (keyPersonnel[0]?.email || "").trim()
 
+        // 3. Contact Person Name (if required)
+        if (isFieldRequired('contactPerson') && !primaryPerson) {
+            toast.error("Contact Person Name is required.")
+            return
+        }
+
+        // 4. Contact Designation (if required)
+        if (isFieldRequired('contactDesignation', ['designation']) && !primaryDesignation) {
+            toast.error("Designation is required.")
+            return
+        }
+
+        // 5. Contact Phone
+        const phoneRequired = isFieldRequired('contactPhone', ['phone'])
+        if (phoneRequired && !primaryPhone) {
+            toast.error("Primary Phone Number is required.")
+            return
+        }
+
+        // 6. Contact Email (Strictly enforce when marked required in Forms Management)
+        const emailRequired = isFieldRequired('contactEmail', ['email'])
+        if (emailRequired && !primaryEmail) {
+            toast.error("Email Address is required.")
+            return
+        }
+
+        // Baseline contact rule: at least phone or email must be present
         if (!primaryPhone && !primaryEmail) {
             toast.error("Please provide at least a phone number or email address.")
             return
         }
 
+        // 7. Validate Email Address format when provided (must contain '@' and '.')
+        if (primaryEmail) {
+            const emailCheck = validateEmail(primaryEmail)
+            if (!emailCheck.isValid) {
+                toast.error(emailCheck.error || "Email address must contain '@' and '.'.")
+                return
+            }
+        }
+
+        // Validate any additional key personnel email addresses
+        for (let i = 0; i < keyPersonnel.length; i++) {
+            const kpEmail = (keyPersonnel[i].email || "").trim()
+            if (kpEmail) {
+                const kpCheck = validateEmail(kpEmail)
+                if (!kpCheck.isValid) {
+                    toast.error(`Key Personnel #${i + 1}: ${kpCheck.error || "Email address must contain '@' and '.'."}`)
+                    return
+                }
+            }
+        }
+
+        // 8. Other standard profile fields if configured as required
+        if (isFieldRequired('gstNumber', ['gst']) && !gstNumber.trim()) {
+            toast.error("GST Number is required.")
+            return
+        }
+        if (isFieldRequired('panNumber', ['pan']) && !panNumber.trim()) {
+            toast.error("PAN Number is required.")
+            return
+        }
+        if (isFieldRequired('aadhaarNumber', ['aadhaar']) && !aadhaarNumber.trim()) {
+            toast.error("Aadhaar Number is required.")
+            return
+        }
+        if (isFieldRequired('licenseNumber', ['license']) && !licenseNumber.trim()) {
+            toast.error("License Number is required.")
+            return
+        }
+        if (isFieldRequired('address') && !address.trim()) {
+            toast.error("Office / Site / Yard Address is required.")
+            return
+        }
+
+        // 9. Dynamic Custom Fields validation
+        for (const field of customFieldDefs) {
+            const isReq = Boolean(
+                field.required ||
+                (Array.isArray(field.validations) && field.validations.some((v: any) => v.type === 'required'))
+            )
+            const fieldKey = field.name || field.id
+            const val = customFields[fieldKey] ?? customFields[field.name] ?? customFields[field.id]
+
+            if (isReq && (val === undefined || val === null || String(val).trim() === '')) {
+                const reqMsg = (field.validations && field.validations.find((v: any) => v.type === 'required')?.message)
+                    || `${field.label || field.name} is required.`
+                toast.error(reqMsg)
+                return
+            }
+
+            if ((field.type === 'email' || field.name?.toLowerCase().includes('email')) && val) {
+                const emailCheck = validateEmail(String(val).trim())
+                if (!emailCheck.isValid) {
+                    toast.error(`${field.label}: ${emailCheck.error || "Must contain '@' and '.'."}`)
+                    return
+                }
+            }
+        }
+
         setSaving(true)
         try {
             const primaryContact = keyPersonnel[0] || emptyContact
+
+            const normalizedCustomFields: Record<string, any> = { ...customFields }
+            customFieldDefs.forEach((field: any) => {
+                const key = field.name || field.id
+                if (customFields[key] !== undefined) {
+                    normalizedCustomFields[key] = customFields[key]
+                    if (field.name) normalizedCustomFields[field.name] = customFields[key]
+                    if (field.id) normalizedCustomFields[field.id] = customFields[key]
+                }
+            })
 
             const payload: Partial<ProfileRecord> = {
                 profileType,
@@ -302,7 +548,7 @@ export function ProfileFormModal({
                 aadhaarNumber: aadhaarNumber.trim(),
                 licenseNumber: licenseNumber.trim(),
                 status,
-                customFields,
+                customFields: normalizedCustomFields,
                 ...(!isEdit && {
                     createdBy: {
                         _id: currentUser?.id || (currentUser as any)?._id,
@@ -480,28 +726,34 @@ export function ProfileFormModal({
                                     {/* Name */}
                                     <div className="md:col-span-2">
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            {profileType === "Subcontractor" ? "Subcontractor / Vendor Name" : profileType === "ScrapDealer" ? "Scrap Dealer / Firm Name" : "Supplier / Purchaser Name"} <span className="text-rose-500">*</span>
+                                            {getFieldLabel('name', profileType === "Subcontractor" ? "Subcontractor / Vendor Name" : profileType === "ScrapDealer" ? "Scrap Dealer / Firm Name" : "Supplier / Purchaser Name")} <span className="text-rose-500">*</span>
                                         </label>
                                         <Input
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
-                                            placeholder="e.g. RADHE SWAMI CONSTRUCTION"
+                                            placeholder={getFieldPlaceholder('name')}
                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-semibold"
                                             required
                                         />
+                                        {getFieldHelperText('name') && (
+                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('name')}</p>
+                                        )}
                                     </div>
 
                                     {/* Code */}
                                     <div className="md:col-span-2">
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            Profile Code <span className="text-muted-foreground font-normal">(Auto-generated if left blank)</span>
+                                            {getFieldLabel('code', 'Profile Code')} {isFieldRequired('code') && <span className="text-rose-500">*</span>} <span className="text-muted-foreground font-normal">(Auto-generated if left blank)</span>
                                         </label>
                                         <Input
                                             value={code}
                                             onChange={(e) => setCode(e.target.value)}
-                                            placeholder={profileType === "Subcontractor" ? "e.g. SUB-0001" : profileType === "ScrapDealer" ? "e.g. SCR-0001" : "e.g. SUP-0001"}
+                                            placeholder={getFieldPlaceholder('code')}
                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono uppercase font-medium"
                                         />
+                                        {getFieldHelperText('code') && (
+                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('code')}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -568,67 +820,86 @@ export function ProfileFormModal({
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="text-xs font-bold text-foreground block mb-1.5">
-                                                        Contact Person Name
+                                                        {getFieldLabel('contactPerson', 'Contact Person Name')} {isFieldRequired('contactPerson') && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     <Input
                                                         value={contact.name}
                                                         onChange={(e) => handlePersonnelChange(idx, "name", e.target.value)}
-                                                        placeholder="e.g. Dinesh G"
+                                                        placeholder={getFieldPlaceholder('contactPerson')}
                                                         className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                                     />
+                                                    {getFieldHelperText('contactPerson') && (
+                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('contactPerson')}</p>
+                                                    )}
                                                 </div>
 
                                                 <div>
                                                     <label className="text-xs font-bold text-foreground block mb-1.5">
-                                                        Designation
+                                                        {getFieldLabel('contactDesignation', 'Designation', ['designation'])} {isFieldRequired('contactDesignation', ['designation']) && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     <Input
                                                         value={contact.designation}
                                                         onChange={(e) => handlePersonnelChange(idx, "designation", e.target.value)}
-                                                        placeholder="e.g. Site Manager / Proprietor"
+                                                        placeholder={getFieldPlaceholder('contactDesignation', ['designation'])}
                                                         className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                                     />
+                                                    {getFieldHelperText('contactDesignation', ['designation']) && (
+                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('contactDesignation', ['designation'])}</p>
+                                                    )}
                                                 </div>
 
                                                 <div>
                                                     <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
                                                         <PhoneCall className="size-3.5 text-primary" />
-                                                        Primary Phone Number {idx === 0 && <span className="text-rose-500">*</span>}
+                                                        <span>{getFieldLabel('contactPhone', 'Primary Phone Number', ['phone'])}</span>
+                                                        {(idx === 0 && (isFieldRequired('contactPhone', ['phone']) || true)) && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     <Input
                                                         value={contact.phone}
                                                         onChange={(e) => handlePersonnelChange(idx, "phone", e.target.value)}
-                                                        placeholder="e.g. 9934110587"
+                                                        placeholder={getFieldPlaceholder('contactPhone', ['phone'])}
                                                         className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                                         required={idx === 0}
                                                     />
+                                                    {getFieldHelperText('contactPhone', ['phone']) && (
+                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('contactPhone', ['phone'])}</p>
+                                                    )}
                                                 </div>
 
                                                 <div>
                                                     <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
                                                         <PhoneCall className="size-3.5 text-muted-foreground" />
-                                                        Alternate Phone Number
+                                                        <span>{getFieldLabel('alternatePhone', 'Alternate Phone Number')}</span>
+                                                        {isFieldRequired('alternatePhone') && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     <Input
                                                         value={contact.alternatePhone}
                                                         onChange={(e) => handlePersonnelChange(idx, "alternatePhone", e.target.value)}
-                                                        placeholder="e.g. 9876543210"
+                                                        placeholder={getFieldPlaceholder('alternatePhone')}
                                                         className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                                     />
+                                                    {getFieldHelperText('alternatePhone') && (
+                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('alternatePhone')}</p>
+                                                    )}
                                                 </div>
 
                                                 <div className="md:col-span-2">
                                                     <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
                                                         <Mail className="size-3.5 text-primary" />
-                                                        Email Address
+                                                        <span>{getFieldLabel('contactEmail', 'Email Address', ['email'])}</span>
+                                                        {(idx === 0 && isFieldRequired('contactEmail', ['email'])) && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     <Input
                                                         type="email"
                                                         value={contact.email}
                                                         onChange={(e) => handlePersonnelChange(idx, "email", e.target.value)}
-                                                        placeholder="e.g. contact@company.com"
+                                                        placeholder={getFieldPlaceholder('contactEmail', ['email'])}
                                                         className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                        required={idx === 0 && isFieldRequired('contactEmail', ['email'])}
                                                     />
+                                                    {getFieldHelperText('contactEmail', ['email']) && (
+                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('contactEmail', ['email'])}</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -661,64 +932,80 @@ export function ProfileFormModal({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            GST Number
+                                            {getFieldLabel('gstNumber', 'GST Number', ['gst'])} {isFieldRequired('gstNumber', ['gst']) && <span className="text-rose-500">*</span>}
                                         </label>
                                         <Input
                                             value={gstNumber}
                                             onChange={(e) => setGstNumber(e.target.value)}
-                                            placeholder="e.g. 27AAACL0140P1Z0"
+                                            placeholder={getFieldPlaceholder('gstNumber', ['gst'])}
                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono uppercase font-medium"
                                         />
+                                        {getFieldHelperText('gstNumber', ['gst']) && (
+                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('gstNumber', ['gst'])}</p>
+                                        )}
                                     </div>
 
                                     <div>
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            PAN Number
+                                            {getFieldLabel('panNumber', 'PAN Number', ['pan'])} {isFieldRequired('panNumber', ['pan']) && <span className="text-rose-500">*</span>}
                                         </label>
                                         <Input
                                             value={panNumber}
                                             onChange={(e) => setPanNumber(e.target.value)}
-                                            placeholder="e.g. AAACL0140P"
+                                            placeholder={getFieldPlaceholder('panNumber', ['pan'])}
                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono uppercase font-medium"
                                         />
+                                        {getFieldHelperText('panNumber', ['pan']) && (
+                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('panNumber', ['pan'])}</p>
+                                        )}
                                     </div>
 
                                     <div>
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            Aadhaar Number <span className="text-muted-foreground font-normal">(Proprietor/Contact)</span>
+                                            {getFieldLabel('aadhaarNumber', 'Aadhaar Number', ['aadhaar'])} {isFieldRequired('aadhaarNumber', ['aadhaar']) && <span className="text-rose-500">*</span>} <span className="text-muted-foreground font-normal">(Proprietor/Contact)</span>
                                         </label>
                                         <Input
                                             value={aadhaarNumber}
                                             onChange={(e) => setAadhaarNumber(formatAadhaarNumber(e.target.value, aadhaarNumber))}
-                                            placeholder="e.g. 1234-5678-9012"
+                                            placeholder={getFieldPlaceholder('aadhaarNumber', ['aadhaar'])}
                                             maxLength={14}
                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono font-medium"
                                         />
+                                        {getFieldHelperText('aadhaarNumber', ['aadhaar']) && (
+                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('aadhaarNumber', ['aadhaar'])}</p>
+                                        )}
                                     </div>
 
                                     <div>
                                         <label className="text-xs font-bold text-foreground block mb-1.5">
-                                            {profileType === "ScrapDealer" ? "Scrap Trade License No." : "Trade / Operating License No."}
+                                            {getFieldLabel('licenseNumber', profileType === "ScrapDealer" ? "Scrap Trade License No." : "Trade / Operating License No.", ['license'])} {isFieldRequired('licenseNumber', ['license']) && <span className="text-rose-500">*</span>}
                                         </label>
                                         <Input
                                             value={licenseNumber}
                                             onChange={(e) => setLicenseNumber(e.target.value)}
-                                            placeholder={profileType === "ScrapDealer" ? "e.g. PCB/SCRAP/2026/0892" : "e.g. LIC-2026-9812"}
+                                            placeholder={getFieldPlaceholder('licenseNumber', ['license'])}
                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono font-medium"
                                         />
+                                        {getFieldHelperText('licenseNumber', ['license']) && (
+                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('licenseNumber', ['license'])}</p>
+                                        )}
                                     </div>
 
                                     <div className="md:col-span-2">
                                         <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
                                             <MapPin className="size-3.5 text-primary" />
-                                            Office / Site / Yard Address
+                                            <span>{getFieldLabel('address', 'Office / Site / Yard Address')}</span>
+                                            {isFieldRequired('address') && <span className="text-rose-500">*</span>}
                                         </label>
                                         <Textarea
                                             value={address}
                                             onChange={(e) => setAddress(e.target.value)}
-                                            placeholder="Enter registered business or site address"
+                                            placeholder={getFieldPlaceholder('address')}
                                             className="min-h-[70px] rounded-xl bg-background border-border/70 text-sm font-medium"
                                         />
+                                        {getFieldHelperText('address') && (
+                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('address')}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -730,55 +1017,77 @@ export function ProfileFormModal({
                                     <span>Loading custom fields...</span>
                                 </div>
                             )}
-                            {formDefinition && formDefinition.fields && formDefinition.fields.length > 0 && (
+                            {customFieldDefs.length > 0 && (
                                 <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
                                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
                                         <FileCheck className="size-4 text-primary" />
-                                        Custom Fields (Configured in Forms Management)
+                                        <span>Additional Information (Custom Fields)</span>
                                     </h3>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {formDefinition.fields
-                                            .filter((f: any) => !['name', 'code', 'contactPerson', 'contactDesignation', 'contactEmail', 'contactPhone', 'alternatePhone', 'keyPersonnel', 'address', 'gstNumber', 'panNumber', 'aadhaarNumber', 'licenseNumber', 'status'].includes(f.name))
-                                            .map((field: any) => (
-                                                <div key={field.id} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                                        {customFieldDefs.map((field: any) => {
+                                            const isReq = Boolean(
+                                                field.required ||
+                                                (Array.isArray(field.validations) && field.validations.some((v: any) => v.type === 'required'))
+                                            )
+                                            const fieldKey = field.name || field.id
+                                            const val = customFields[fieldKey] ?? customFields[field.name] ?? customFields[field.id] ?? ''
+
+                                            return (
+                                                <div key={field.id || field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
                                                     <label className="text-xs font-bold text-foreground block mb-1.5">
-                                                        {field.label}
+                                                        {field.label || field.name} {isReq && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     {field.type === 'select' ? (
                                                         <Select
-                                                            value={customFields[field.name] || ''}
-                                                            onValueChange={(val) => handleCustomFieldChange(field.name, val)}
+                                                            value={val}
+                                                            onValueChange={(selectedVal) => {
+                                                                handleCustomFieldChange(fieldKey, selectedVal)
+                                                                if (field.name) handleCustomFieldChange(field.name, selectedVal)
+                                                            }}
                                                         >
                                                             <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-medium">
-                                                                <SelectValue placeholder={`Select ${field.label}`} />
+                                                                <SelectValue placeholder={field.placeholder?.trim() || undefined} />
                                                             </SelectTrigger>
                                                             <SelectContent>
-                                                                {(field.options || []).map((opt: any) => (
-                                                                    <SelectItem key={opt.value} value={opt.value}>
-                                                                        {opt.label}
-                                                                    </SelectItem>
-                                                                ))}
+                                                                {(field.options || []).map((opt: any) => {
+                                                                    const optVal = typeof opt === 'string' ? opt : opt.value
+                                                                    const optLabel = typeof opt === 'string' ? opt : opt.label
+                                                                    return (
+                                                                        <SelectItem key={optVal} value={optVal}>
+                                                                            {optLabel}
+                                                                        </SelectItem>
+                                                                    )
+                                                                })}
                                                             </SelectContent>
                                                         </Select>
                                                     ) : field.type === 'textarea' ? (
                                                         <Textarea
-                                                            value={customFields[field.name] || ''}
-                                                            onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
-                                                            placeholder={field.placeholder || ''}
+                                                            value={val}
+                                                            onChange={(e) => {
+                                                                handleCustomFieldChange(fieldKey, e.target.value)
+                                                                if (field.name) handleCustomFieldChange(field.name, e.target.value)
+                                                            }}
+                                                            placeholder={field.placeholder?.trim() || undefined}
+                                                            required={isReq}
                                                             className="min-h-[60px] rounded-xl bg-background border-border/70 text-sm font-medium"
                                                         />
                                                     ) : (
                                                         <Input
-                                                            type={field.type === 'number' ? 'number' : 'text'}
-                                                            value={customFields[field.name] || ''}
-                                                            onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
-                                                            placeholder={field.placeholder || ''}
+                                                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
+                                                            value={val}
+                                                            onChange={(e) => {
+                                                                handleCustomFieldChange(fieldKey, e.target.value)
+                                                                if (field.name) handleCustomFieldChange(field.name, e.target.value)
+                                                            }}
+                                                            placeholder={field.placeholder?.trim() || undefined}
+                                                            required={isReq}
                                                             className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                                         />
                                                     )}
                                                 </div>
-                                            ))}
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             )}

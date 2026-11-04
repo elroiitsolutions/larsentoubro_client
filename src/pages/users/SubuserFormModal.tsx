@@ -13,7 +13,6 @@ import {
     UserIcon,
     Loader2,
     ShieldCheckIcon,
-    KeyIcon,
     ClipboardCheck,
     FolderOpenIcon,
     StoreIcon,
@@ -26,6 +25,7 @@ import projectService from "@/services/project.service"
 import storeService from "@/services/store.service"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
+import { validateEmail } from "@/utils/validation"
 
 interface SubuserFormModalProps {
     isOpen: boolean
@@ -58,8 +58,7 @@ export function SubuserFormModal({
     const [email, setEmail] = React.useState("")
     const [userId, setUserId] = React.useState("")
     const [phone, setPhone] = React.useState("")
-    const [password, setPassword] = React.useState("")
-    const [allowedPages, setAllowedPages] = React.useState<string[]>([])
+        const [allowedPages, setAllowedPages] = React.useState<string[]>([])
     const [hasInspectionAccess, setHasInspectionAccess] = React.useState(false)
     const [selectedProjects, setSelectedProjects] = React.useState<string[]>([])
     const [selectedStores, setSelectedStores] = React.useState<string[]>([])
@@ -134,8 +133,7 @@ export function SubuserFormModal({
             setEmail(editingSubuser.email || "")
             setUserId(editingSubuser.user_id || "")
             setPhone(editingSubuser.phonenumber || "")
-            setPassword("")
-            setAllowedPages(editingSubuser.allowedPages || ["/dashboard"])
+                        setAllowedPages(editingSubuser.allowedPages || ["/dashboard"])
             setHasInspectionAccess(Boolean(editingSubuser.hasInspectionAccess))
 
             const pIds = (editingSubuser.projects || []).map((p: any) =>
@@ -154,8 +152,7 @@ export function SubuserFormModal({
             const randomCode = Math.floor(1000 + Math.random() * 9000)
             setUserId(`SUB-${randomCode}`)
             setPhone("")
-            setPassword("")
-            // Default to subset of parent's pages
+                        // Default to subset of parent's pages
             const defaultPages = parentAllowedPages.slice(0, 3).map(p => p.url)
             setAllowedPages(defaultPages)
             setHasInspectionAccess(false)
@@ -185,13 +182,20 @@ export function SubuserFormModal({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!name.trim() || !email.trim() || !userId.trim() || !phone.trim()) {
-            toast.error("Please fill in all required fields.")
+        const cleanEmail = email.trim().toLowerCase()
+        if (!name.trim()) {
+            toast.error("Please enter subuser name.")
             return
         }
 
-        if (!isEdit && (!password || password.trim().length < 6)) {
-            toast.error("Password must be at least 6 characters for new subuser.")
+        const emailCheck = validateEmail(cleanEmail)
+        if (!emailCheck.isValid) {
+            toast.error(emailCheck.error || "Email address must contain '@' and '.'.")
+            return
+        }
+
+        if (!userId.trim()) {
+            toast.error("Subuser ID / code is required.")
             return
         }
 
@@ -212,10 +216,6 @@ export function SubuserFormModal({
                 stores: selectedStores,
                 role: "Subuser",
                 canCreateUser: false
-            }
-
-            if (password.trim()) {
-                payload.password = password.trim()
             }
 
             let res
@@ -322,21 +322,7 @@ export function SubuserFormModal({
                                 />
                             </div>
 
-                            <div className="md:col-span-2">
-                                <label className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-1.5">
-                                    <KeyIcon className="size-3.5 text-primary" />
-                                    <span>{isEdit ? "Reset Password (Leave blank to keep current)" : "Subuser Password"}</span>
-                                    {!isEdit && <span className="text-rose-500">*</span>}
-                                </label>
-                                <Input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder={isEdit ? "Leave blank to keep current password" : "At least 6 characters"}
-                                    className="h-9 rounded-xl text-xs font-medium"
-                                    required={!isEdit}
-                                />
-                            </div>
+
                         </div>
                     </div>
 

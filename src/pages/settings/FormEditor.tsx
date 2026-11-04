@@ -22,11 +22,46 @@ import {
     ShieldCheck, 
     ListFilter, 
     XIcon,
-    InfoIcon
+    InfoIcon,
+    Lock
 } from "lucide-react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import formService from "@/services/form.service"
+
+export const isPermanentRequiredField = (field: any): boolean => {
+    const name = String(field?.name || field?.id || '').toLowerCase().trim();
+    const label = String(field?.label || '').toLowerCase().trim();
+
+    const isName = (
+        name === 'name' ||
+        label === 'name' ||
+        label.includes('vendor name') ||
+        label.includes('firm name') ||
+        label.includes('purchaser name') ||
+        label.includes('subcontractor name') ||
+        label.includes('company name') ||
+        label.includes('full name') ||
+        label.includes('supplier name') ||
+        label === 'subcontractor / vendor name' ||
+        label === 'scrap dealer / firm name' ||
+        label === 'supplier / purchaser name'
+    );
+
+    const isPrimaryPhone = (
+        name === 'contactphone' ||
+        name === 'phone' ||
+        name === 'phonenumber' ||
+        name === 'mobile' ||
+        name === 'mobilenumber' ||
+        label.includes('primary phone') ||
+        label.includes('mobile number') ||
+        label === 'phone number' ||
+        label.includes('primary phone number')
+    ) && !name.includes('alternate') && !label.includes('alternate');
+
+    return isName || isPrimaryPhone;
+};
 
 export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => void; onSave: (updatedForm: any) => void }) {
     const { fields, loadForm, addField, updateField, removeField, reorderFields } = useFormBuilderStore()
@@ -40,7 +75,21 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
     const bottomRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        loadForm(form)
+        if (form && Array.isArray(form.fields)) {
+            const patched = form.fields.map((f: any) => {
+                if (isPermanentRequiredField(f)) {
+                    let vals = f.validations ? [...f.validations] : [];
+                    if (!vals.some((v: any) => v.type === 'required')) {
+                        vals.push({ type: 'required', message: `${(f.label || f.name).trim()} is required` });
+                    }
+                    return { ...f, required: true, validations: vals };
+                }
+                return f;
+            });
+            loadForm({ ...form, fields: patched });
+        } else {
+            loadForm(form);
+        }
     }, [form, loadForm])
 
     const handleSave = async () => {
@@ -50,12 +99,28 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
             return
         }
 
-        const sanitizedFields = fields.map((f, idx) => ({
-            ...f,
-            order: idx,
-            name: (f.name && f.name.trim()) || (f.label && f.label.toLowerCase().replace(/[^a-z0-9_]/gi, '_')) || `field_${idx}`,
-            label: f.label.trim()
-        }))
+        const sanitizedFields = fields.map((f, idx) => {
+            const isPermanent = isPermanentRequiredField(f);
+            const isReq = isPermanent || Boolean(f.required || (Array.isArray(f.validations) && f.validations.some(v => v.type === 'required')));
+            let vals = f.validations ? [...f.validations] : [];
+            if (isReq) {
+                if (!vals.some((v: any) => v.type === 'required')) {
+                    vals.push({ type: 'required', message: `${f.label.trim()} is required` });
+                }
+            } else {
+                vals = vals.filter((v: any) => v.type !== 'required');
+            }
+            return {
+                ...f,
+                order: idx,
+                name: (f.name && f.name.trim()) || (f.label && f.label.toLowerCase().replace(/[^a-z0-9_]/gi, '_')) || `field_${idx}`,
+                label: f.label.trim(),
+                placeholder: typeof f.placeholder === 'string' ? f.placeholder.trim() : '',
+                helperText: typeof f.helperText === 'string' ? f.helperText.trim() : '',
+                required: isReq,
+                validations: vals
+            };
+        })
 
         try {
             setSaving(true)
@@ -107,6 +172,12 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
     }
 
     const handleRemoveField = async (id: string, label: string) => {
+        const field = fields.find(f => f.id === id);
+        if (field && isPermanentRequiredField(field)) {
+            toast.error(`"${label}" is a core required field and cannot be deleted.`);
+            return;
+        }
+
         removeField(id)
         if (expandedSettingsId === id) setExpandedSettingsId(null)
         if (expandedOptionsId === id) setExpandedOptionsId(null)
@@ -222,7 +293,8 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
 
                         {/* Horizontal Field Rows */}
                         {fields.sort((a, b) => a.order - b.order).map((field, index) => {
-                            const isRequired = field.validations?.some(v => v.type === 'required') || false
+                            const isPermanent = isPermanentRequiredField(field)
+                            const isRequired = isPermanent || Boolean(field.required || (field.validations && field.validations.some(v => v.type === 'required')))
                             const isOptionsOpen = expandedOptionsId === field.id
                             const isSettingsOpen = expandedSettingsId === field.id
                             const isChoiceField = field.type === 'select' || field.type === 'radio' || field.type === 'checkbox'
@@ -304,33 +376,50 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
 
                                         {/* Col 8-12: Required Toggle, Options Button, Settings Button, Delete (41.6% width - generous room!) */}
                                         <div className="sm:col-span-5 flex items-center justify-end gap-2.5 w-full">
-                                            <label 
-                                                title="Toggle whether this field is mandatory"
-                                                className={`inline-flex items-center gap-1.5 cursor-pointer select-none px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shrink-0 ${
-                                                    isRequired 
-                                                        ? 'bg-primary/15 border-primary/40 text-primary shadow-xs' 
-                                                        : 'bg-background border-border/60 text-muted-foreground hover:text-foreground hover:border-border'
-                                                }`}
-                                            >
-                                                <input 
-                                                    type="checkbox" 
-                                                    className="size-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                                                    checked={isRequired}
-                                                    onChange={(e) => {
-                                                        const isReq = e.target.checked
-                                                        let vals = field.validations ? [...field.validations] : []
-                                                        if (isReq) {
-                                                            if (!vals.some(v => v.type === 'required')) {
-                                                                vals.push({ type: 'required', message: 'This field is required' })
+                                            {isPermanent ? (
+                                                <div 
+                                                    title="System Core Field: Name and Mobile Number are always required and cannot be changed"
+                                                    className="inline-flex items-center gap-1.5 cursor-not-allowed select-none px-3 py-1.5 rounded-xl border text-xs font-semibold shrink-0 bg-primary/15 border-primary/40 text-primary shadow-xs opacity-95"
+                                                >
+                                                    <Lock className="size-3.5 text-primary shrink-0" />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="size-3.5 rounded border-border text-primary cursor-not-allowed"
+                                                        checked={true}
+                                                        disabled={true}
+                                                        readOnly
+                                                    />
+                                                    <span>Required (Always)</span>
+                                                </div>
+                                            ) : (
+                                                <label 
+                                                    title="Toggle whether this field is mandatory"
+                                                    className={`inline-flex items-center gap-1.5 cursor-pointer select-none px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shrink-0 ${
+                                                        isRequired 
+                                                            ? 'bg-primary/15 border-primary/40 text-primary shadow-xs' 
+                                                            : 'bg-background border-border/60 text-muted-foreground hover:text-foreground hover:border-border'
+                                                    }`}
+                                                >
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="size-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                                                        checked={isRequired}
+                                                        onChange={(e) => {
+                                                            const isReq = e.target.checked
+                                                            let vals = field.validations ? [...field.validations] : []
+                                                            if (isReq) {
+                                                                if (!vals.some(v => v.type === 'required')) {
+                                                                    vals.push({ type: 'required', message: 'This field is required' })
+                                                                }
+                                                            } else {
+                                                                vals = vals.filter(v => v.type !== 'required')
                                                             }
-                                                        } else {
-                                                            vals = vals.filter(v => v.type !== 'required')
-                                                        }
-                                                        updateField(field.id, { validations: vals })
-                                                    }}
-                                                />
-                                                <span>Required</span>
-                                            </label>
+                                                            updateField(field.id, { validations: vals, required: isReq })
+                                                        }}
+                                                    />
+                                                    <span>Required</span>
+                                                </label>
+                                            )}
 
                                             {isChoiceField && (
                                                 <Button
@@ -363,16 +452,29 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                 <span>Settings</span>
                                             </Button>
 
-                                            <Button 
-                                                type="button"
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl shrink-0 cursor-pointer" 
-                                                onClick={() => setFieldToDelete({ id: field.id, label: field.label })}
-                                                title="Delete Field"
-                                            >
-                                                <TrashIcon className="size-4" />
-                                            </Button>
+                                            {isPermanent ? (
+                                                <Button 
+                                                    type="button"
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    disabled
+                                                    className="h-9 w-9 text-muted-foreground/30 cursor-not-allowed rounded-xl shrink-0" 
+                                                    title="Core required field cannot be deleted"
+                                                >
+                                                    <Lock className="size-3.5 text-muted-foreground/40" />
+                                                </Button>
+                                            ) : (
+                                                <Button 
+                                                    type="button"
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl shrink-0 cursor-pointer" 
+                                                    onClick={() => setFieldToDelete({ id: field.id, label: field.label })}
+                                                    title="Delete Field"
+                                                >
+                                                    <TrashIcon className="size-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
 
