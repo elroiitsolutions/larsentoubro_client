@@ -6,6 +6,16 @@ export interface LoginRequest {
     otp?: string;
 }
 
+export interface RequestGuestOtpResponse {
+    success: boolean;
+    message: string;
+    phone: string;
+    formattedPhone?: string;
+    resendCooldown?: number;
+    expiresIn?: number;
+    devOtp?: string;
+}
+
 export interface RequestOtpResponse {
     success: boolean;
     message: string;
@@ -65,6 +75,16 @@ export const authService = {
     /**
      * Authenticates as Guest User with restricted access to QR Scanner only
      */
+    requestGuestOtp: async (phone: string): Promise<RequestGuestOtpResponse> => {
+        const response = await api.post<RequestGuestOtpResponse>("/api/users/guest/request-otp", { phone });
+        return response.data;
+    },
+
+    verifyGuestOtp: async (phone: string, otp: string): Promise<LoginResponse> => {
+        const response = await api.post<LoginResponse>("/api/users/guest/verify-otp", { phone, otp });
+        return response.data;
+    },
+
     guestLogin: async (): Promise<LoginResponse> => {
         const response = await api.post<LoginResponse>("/api/users/guest-login");
         return response.data;

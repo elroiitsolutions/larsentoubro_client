@@ -142,7 +142,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const adminOnlyUrls = [
       "/tools/trash",
       "/reports/logins",
-      "/settings"
+
     ];
     const allowed = user?.allowedPages || [];
     return data.navMain

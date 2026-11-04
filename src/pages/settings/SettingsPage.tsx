@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useNavigate } from "react-router-dom"
-import { FileTextIcon, ArrowLeftIcon, BarChart3Icon, SlidersIcon } from "lucide-react"
+import { FileTextIcon, ArrowLeftIcon, BarChart3Icon, SlidersIcon, UserCheckIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -57,7 +57,7 @@ export function SettingsPage() {
     const isRestricted = Boolean(
         user &&
         user.role !== "Admin" &&
-        (!user.allowedPages || !user.allowedPages.includes("/settings"))
+        (!user.allowedPages || !user.allowedPages.includes("/settings")) && !user.canCreateUser
     )
 
     if (isRestricted) {
@@ -79,6 +79,20 @@ export function SettingsPage() {
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
                             Configure dynamic forms like Create Project, Store, and User.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/settings/guest-users')}>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2.5 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+                                <UserCheckIcon className="size-5" />
+                            </div>
+                            <h3 className="font-semibold">Guest User Management</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            Manage 15-day guest accounts, mobile numbers, and 14th-day access extensions.
                         </p>
                     </CardContent>
                 </Card>

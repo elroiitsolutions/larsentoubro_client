@@ -14,6 +14,7 @@ import { ImportToolsPage } from "@/pages/stores/ImportToolsPage"
 import { QuickToolViewPage } from "@/pages/stores/QuickToolViewPage"
 import { SettingsPage } from "@/pages/settings/SettingsPage"
 import { SettingsFormManagementPage } from "@/pages/settings/SettingsFormManagementPage"
+import { GuestUserManagementPage } from "@/pages/settings/GuestUserManagementPage"
 import { DeliveryChallanPreviewPage } from "@/pages/challans/DeliveryChallanPreviewPage"
 import { ChallanHistoryPage } from "@/pages/challans/ChallanHistoryPage"
 import { ReturnChallanPreviewPage } from "@/pages/challans/ReturnChallanPreviewPage"
@@ -71,6 +72,24 @@ function AdminRoute() {
     }
 
     if (!user || user.role !== "Admin") {
+        return <Navigate to={getDefaultAllowedPath(user)} replace />
+    }
+
+    return <Outlet />
+}
+
+function SettingsRoute() {
+    const { user, loading } = useAuth()
+
+    if (loading) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center bg-background">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        )
+    }
+
+    if (!user || (user.role !== "Admin" && !user.canCreateUser && (!user.allowedPages || !user.allowedPages.includes("/settings")))) {
         return <Navigate to={getDefaultAllowedPath(user)} replace />
     }
 
@@ -155,6 +174,11 @@ function AppRoutes() {
                         <Route path="/users/:id/access" element={<UserAccessPage />} />
                         <Route path="/admin/approvals" element={<AdminApprovalDashboard />} />
                         <Route path="/approvals" element={<AdminApprovalDashboard />} />
+
+                        {/* Settings & Guest User Management (Admin & authorized users) */}
+                        <Route element={<SettingsRoute />}>
+                            <Route path="/settings/guest-users" element={<GuestUserManagementPage />} />
+                        </Route>
 
                         {/* Admin-only Protected Routes */}
                         <Route element={<AdminRoute />}>
