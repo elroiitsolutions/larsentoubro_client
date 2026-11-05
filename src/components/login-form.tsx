@@ -288,15 +288,15 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="border border-slate-200/90 shadow-[0_20px_50px_rgba(15,23,42,0.07)] rounded-3xl bg-white overflow-hidden">
-        <CardHeader className="space-y-1.5 pt-6 pb-2 px-6 sm:px-8">
-          <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+      <Card className="border border-white/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] rounded-3xl bg-slate-950/40 backdrop-blur-xl ring-1 ring-white/15 overflow-hidden">
+        <CardHeader className="space-y-1.5 pt-7 pb-2 px-6 sm:px-8">
+          <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-white drop-shadow-sm">
             {step === "email" && "Sign in to your account"}
             {step === "otp" && "Enter Verification Code"}
             {step === "guest-phone" && "Guest Scanner Verification"}
             {step === "guest-otp" && "Enter SMS Verification Code"}
           </CardTitle>
-          <CardDescription className="text-xs text-slate-500 leading-relaxed">
+          <CardDescription className="text-xs text-slate-300 leading-relaxed font-normal">
             {step === "email" && "Enter your registered L&T company email to receive a single-use login code."}
             {step === "otp" && `We sent a 6-digit verification code to ${email}.`}
             {step === "guest-phone" && "Enter your 10-digit mobile number to receive a verification code via SMS to access the equipment QR scanner."}
@@ -306,8 +306,9 @@ export function LoginForm({
 
         <CardContent className="px-6 sm:px-8 pb-7">
           {error && (
-            <div className="mb-4 rounded-xl bg-destructive/15 border border-destructive/20 p-2 text-xs font-semibold text-destructive animate-in fade-in-0 duration-200">
-              {error}
+            <div className="mb-4 rounded-xl bg-red-500/20 border border-red-500/30 p-2.5 text-xs font-semibold text-red-200 animate-in fade-in-0 duration-200 backdrop-blur-sm flex items-start gap-2">
+              <AlertCircle className="size-4 shrink-0 text-red-400 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -316,7 +317,7 @@ export function LoginForm({
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="email" className="text-xs font-semibold text-slate-700">
+                  <FieldLabel htmlFor="email" className="text-xs font-semibold text-slate-200">
                     Registered Email Address
                   </FieldLabel>
                   <div className="relative">
@@ -330,9 +331,9 @@ export function LoginForm({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
-                      className="h-12 rounded-xl bg-slate-50/70 text-sm pl-11 border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-slate-900"
+                      className="h-12 rounded-xl bg-white/10 text-sm pl-11 border-white/20 focus:bg-white/15 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/25 transition-all font-medium text-white placeholder:text-slate-400 backdrop-blur-sm"
                     />
-                    <Mail className="absolute left-3.5 top-4 size-4 text-slate-400 pointer-events-none" />
+                    <Mail className="absolute left-3.5 top-4 size-4 text-slate-300 pointer-events-none" />
                   </div>
                 </Field>
 
@@ -340,7 +341,7 @@ export function LoginForm({
                   <Button
                     type="submit"
                     disabled={loading || !email.trim()}
-                    className="w-full h-12 rounded-xl font-bold bg-[#0B2545] hover:bg-[#133E87] active:scale-[0.99] text-white shadow-md shadow-blue-950/20 transition-all hover:shadow-lg cursor-pointer text-sm gap-2"
+                    className="w-full h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white shadow-lg shadow-blue-600/30 border border-blue-400/30 transition-all hover:shadow-blue-500/40 cursor-pointer text-sm gap-2 disabled:opacity-50"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -357,9 +358,9 @@ export function LoginForm({
 
                   <div className="relative my-3 flex items-center justify-center">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-slate-200" />
+                      <span className="w-full border-t border-white/15" />
                     </div>
-                    <span className="relative bg-white px-2 text-[10px] uppercase font-bold text-slate-400">
+                    <span className="relative bg-slate-900/80 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/10 text-[10px] uppercase font-bold text-slate-300 tracking-wider">
                       Or access as Guest
                     </span>
                   </div>
@@ -369,13 +370,13 @@ export function LoginForm({
                     variant="outline"
                     onClick={handleStartGuestFlow}
                     disabled={loading}
-                    className="w-full h-11 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100/90 font-bold border-emerald-300/80 cursor-pointer text-xs transition-colors gap-2"
+                    className="w-full h-11 rounded-xl bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 font-bold border border-emerald-400/30 cursor-pointer text-xs transition-all gap-2 backdrop-blur-sm"
                   >
                     <Smartphone className="size-4" />
                     Continue as Guest User (Mobile OTP)
                   </Button>
 
-                  <FieldDescription className="text-center mt-3 text-[11px] text-slate-400">
+                  <FieldDescription className="text-center mt-3 text-[11px] text-slate-300/80">
                     Access restricted to registered L&T personnel and authorized guest inspectors.
                   </FieldDescription>
                 </Field>
@@ -389,7 +390,7 @@ export function LoginForm({
               <FieldGroup>
                 <Field>
                   <div className="flex items-center justify-between mb-1">
-                    <FieldLabel htmlFor="otp" className="text-xs font-semibold text-slate-700">
+                    <FieldLabel htmlFor="otp" className="text-xs font-semibold text-slate-200">
                       6-Digit Security Code
                     </FieldLabel>
                     <button
@@ -399,7 +400,7 @@ export function LoginForm({
                         setError(null)
                         setDevOtpHint(null)
                       }}
-                      className="text-xs font-semibold text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-blue-300 hover:text-blue-200 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <ArrowLeft className="size-3" />
                       Change email
@@ -425,16 +426,16 @@ export function LoginForm({
                       }}
                       disabled={loading}
                       className={cn(
-                        "h-16 text-center font-mono text-3xl font-extrabold tracking-[0.5em] rounded-2xl bg-slate-50/70 border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 shadow-inner text-slate-900 transition-all",
-                        error && "border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20"
+                        "h-16 text-center font-mono text-3xl font-extrabold tracking-[0.5em] rounded-2xl bg-white/10 border-white/20 focus:bg-white/15 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/25 shadow-inner text-white transition-all backdrop-blur-sm placeholder:text-slate-500",
+                        error && "border-red-400 focus:border-red-400 focus:ring-red-500/25 bg-red-500/15"
                       )}
                     />
-                    <KeyRound className="absolute left-4 top-5.5 size-5 text-slate-400 pointer-events-none" />
+                    <KeyRound className="absolute left-4 top-5.5 size-5 text-slate-300 pointer-events-none" />
                   </div>
 
                   {error && (
-                    <div className="mt-2.5 flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600 animate-in fade-in-0 duration-200">
-                      <AlertCircle className="size-4 shrink-0 text-red-600" />
+                    <div className="mt-2.5 flex items-center gap-2 p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-200 animate-in fade-in-0 duration-200 backdrop-blur-sm">
+                      <AlertCircle className="size-4 shrink-0 text-red-400" />
                       <span>{error}</span>
                     </div>
                   )}
@@ -444,7 +445,7 @@ export function LoginForm({
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-12 rounded-xl font-bold bg-[#0B2545] hover:bg-[#133E87] active:scale-[0.99] text-white shadow-md shadow-blue-950/20 transition-all hover:shadow-lg cursor-pointer text-sm gap-2"
+                    className="w-full h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white shadow-lg shadow-blue-600/30 border border-blue-400/30 transition-all hover:shadow-blue-500/40 cursor-pointer text-sm gap-2 disabled:opacity-50"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -459,10 +460,10 @@ export function LoginForm({
                     )}
                   </Button>
 
-                  <div className="flex items-center justify-between pt-3 text-xs text-slate-500">
+                  <div className="flex items-center justify-between pt-3 text-xs text-slate-300">
                     <span>Didn't receive the email?</span>
                     {cooldown > 0 ? (
-                      <span className="font-semibold text-slate-500">
+                      <span className="font-semibold text-slate-400">
                         Resend in {cooldown}s
                       </span>
                     ) : (
@@ -470,7 +471,7 @@ export function LoginForm({
                         type="button"
                         onClick={handleResendOtp}
                         disabled={resending}
-                        className="font-bold text-blue-700 hover:underline cursor-pointer disabled:opacity-50"
+                        className="font-bold text-blue-300 hover:text-blue-200 hover:underline cursor-pointer disabled:opacity-50 transition-colors"
                       >
                         {resending ? "Sending..." : "Resend Code"}
                       </button>
@@ -487,7 +488,7 @@ export function LoginForm({
               <FieldGroup>
                 <Field>
                   <div className="flex items-center justify-between mb-1">
-                    <FieldLabel htmlFor="phone" className="text-xs font-semibold text-slate-700">
+                    <FieldLabel htmlFor="phone" className="text-xs font-semibold text-slate-200">
                       Mobile Number
                     </FieldLabel>
                     <button
@@ -496,7 +497,7 @@ export function LoginForm({
                         setStep("email")
                         setError(null)
                       }}
-                      className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <ArrowLeft className="size-3" />
                       Back to Staff Login
@@ -504,7 +505,7 @@ export function LoginForm({
                   </div>
 
                   <div className="relative flex items-center">
-                    <div className="absolute left-3 flex items-center gap-1.5 text-slate-500 font-semibold text-xs border-r border-slate-300 pr-2.5 pointer-events-none">
+                    <div className="absolute left-3 flex items-center gap-1.5 text-slate-300 font-semibold text-xs border-r border-white/20 pr-2.5 pointer-events-none">
                       <Phone className="size-3.5 text-slate-400" />
                       <span>+91</span>
                     </div>
@@ -522,10 +523,10 @@ export function LoginForm({
                         setPhone(val)
                       }}
                       disabled={loading}
-                      className="h-12 rounded-xl bg-slate-50/70 text-sm pl-20 border-slate-300 focus:bg-white focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all font-medium text-slate-900 tracking-wider"
+                      className="h-12 rounded-xl bg-white/10 text-sm pl-20 border-white/20 focus:bg-white/15 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/25 transition-all font-medium text-white tracking-wider placeholder:text-slate-400 backdrop-blur-sm"
                     />
                   </div>
-                  <FieldDescription className="text-[11px] text-slate-400 mt-1.5">
+                  <FieldDescription className="text-[11px] text-slate-300/80 mt-1.5">
                     We'll send a 6-digit SMS verification code to this mobile number.
                   </FieldDescription>
                 </Field>
@@ -534,7 +535,7 @@ export function LoginForm({
                   <Button
                     type="submit"
                     disabled={loading || phone.replace(/\D/g, "").length !== 10}
-                    className="w-full h-12 rounded-xl font-bold bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white shadow-md shadow-emerald-950/20 transition-all hover:shadow-lg cursor-pointer text-sm gap-2"
+                    className="w-full h-12 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white shadow-lg shadow-emerald-600/30 border border-emerald-400/30 transition-all hover:shadow-emerald-500/40 cursor-pointer text-sm gap-2 disabled:opacity-50"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -559,7 +560,7 @@ export function LoginForm({
               <FieldGroup>
                 <Field>
                   <div className="flex items-center justify-between mb-1">
-                    <FieldLabel htmlFor="guest-otp" className="text-xs font-semibold text-slate-700">
+                    <FieldLabel htmlFor="guest-otp" className="text-xs font-semibold text-slate-200">
                       6-Digit SMS Verification Code
                     </FieldLabel>
                     <button
@@ -569,7 +570,7 @@ export function LoginForm({
                         setError(null)
                         setDevOtpHint(null)
                       }}
-                      className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-emerald-300 hover:text-emerald-200 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <ArrowLeft className="size-3" />
                       Change number
@@ -593,22 +594,22 @@ export function LoginForm({
                         setOtp(val)
                       }}
                       disabled={loading}
-                      className="h-16 text-center font-mono text-3xl font-extrabold tracking-[0.5em] rounded-2xl bg-slate-50/70 border-slate-300 focus:bg-white focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 shadow-inner text-slate-900 transition-all"
+                      className="h-16 text-center font-mono text-3xl font-extrabold tracking-[0.5em] rounded-2xl bg-white/10 border-white/20 focus:bg-white/15 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/25 shadow-inner text-white transition-all backdrop-blur-sm placeholder:text-slate-500"
                     />
-                    <KeyRound className="absolute left-4 top-5.5 size-5 text-slate-400 pointer-events-none" />
+                    <KeyRound className="absolute left-4 top-5.5 size-5 text-slate-300 pointer-events-none" />
                   </div>
                 </Field>
 
                 {devOtpHint && (
                   <div
                     onClick={() => setOtp(devOtpHint)}
-                    className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between cursor-pointer hover:bg-emerald-100/80 transition-colors"
+                    className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-xs text-emerald-200 flex items-center justify-between cursor-pointer hover:bg-emerald-500/25 transition-colors backdrop-blur-sm"
                   >
                     <div className="flex items-center gap-2 font-medium">
-                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                      <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
                       <span>Local Test SMS OTP: <strong>{devOtpHint}</strong></span>
                     </div>
-                    <span className="font-bold underline text-[11px] text-emerald-700">Auto-fill</span>
+                    <span className="font-bold underline text-[11px] text-emerald-300">Auto-fill</span>
                   </div>
                 )}
 
@@ -616,7 +617,7 @@ export function LoginForm({
                   <Button
                     type="submit"
                     disabled={loading || otp.trim().length !== 6}
-                    className="w-full h-12 rounded-xl font-bold bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white shadow-md shadow-emerald-950/20 transition-all hover:shadow-lg cursor-pointer text-sm gap-2"
+                    className="w-full h-12 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white shadow-lg shadow-emerald-600/30 border border-emerald-400/30 transition-all hover:shadow-emerald-500/40 cursor-pointer text-sm gap-2 disabled:opacity-50"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -631,10 +632,10 @@ export function LoginForm({
                     )}
                   </Button>
 
-                  <div className="flex items-center justify-between pt-3 text-xs text-slate-500">
+                  <div className="flex items-center justify-between pt-3 text-xs text-slate-300">
                     <span>Didn't receive the SMS?</span>
                     {cooldown > 0 ? (
-                      <span className="font-semibold text-slate-500">
+                      <span className="font-semibold text-slate-400">
                         Resend in {cooldown}s
                       </span>
                     ) : (
@@ -642,7 +643,7 @@ export function LoginForm({
                         type="button"
                         onClick={handleResendGuestOtp}
                         disabled={resending}
-                        className="font-bold text-emerald-700 hover:underline cursor-pointer disabled:opacity-50"
+                        className="font-bold text-emerald-300 hover:text-emerald-200 hover:underline cursor-pointer disabled:opacity-50 transition-colors"
                       >
                         {resending ? "Sending..." : "Resend SMS Code"}
                       </button>
