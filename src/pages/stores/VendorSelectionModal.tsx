@@ -17,7 +17,7 @@ import {
     Phone, 
     Mail, 
     PlusCircle, 
-    Calendar, 
+    Calendar as CalendarIcon, 
     ArrowRight, 
     MapPin, 
     Hash, 
@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -49,6 +51,23 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
     const [challanDate, setChallanDate] = useState<string>(new Date().toISOString().split("T")[0]);
     const [deliveryDate, setDeliveryDate] = useState<string>(new Date().toISOString().split("T")[0]);
     const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+    const [challanCalendarOpen, setChallanCalendarOpen] = useState(false);
+    const [deliveryCalendarOpen, setDeliveryCalendarOpen] = useState(false);
+
+    const formatDateDisplay = (dateStr?: string) => {
+        if (!dateStr) return "-";
+        try {
+            const parts = dateStr.split("-");
+            if (parts.length === 3) {
+                const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+            }
+            const d = new Date(dateStr);
+            return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+        } catch {
+            return dateStr;
+        }
+    };
     const [remarks, setRemarks] = useState("");
     const [notes, setNotes] = useState("");
 
@@ -126,6 +145,8 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
 
     useEffect(() => {
         if (open) {
+            setChallanCalendarOpen(false);
+            setDeliveryCalendarOpen(false);
             fetchProfiles();
         }
     }, [open, fetchProfiles]);
@@ -423,28 +444,67 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
                     <div>
                         <Label className="text-xs flex items-center gap-1.5 mb-1.5 font-medium">
-                            <Calendar className="size-3.5 text-primary shrink-0" /> Challan Date *
+                            <CalendarIcon className="size-3.5 text-primary shrink-0" /> Challan Date *
                         </Label>
-                        <Input
-                            type="date"
-                            className="h-9 text-xs sm:text-sm w-full"
-                            value={challanDate}
-                            onChange={e => setChallanDate(e.target.value)}
-                        />
+                        <Popover open={challanCalendarOpen} onOpenChange={setChallanCalendarOpen}>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={() => setChallanCalendarOpen(prev => !prev)}
+                                    className="h-9 px-3 text-xs sm:text-sm w-full rounded-lg border border-input bg-background flex items-center justify-between font-mono hover:bg-muted/30 focus:ring-2 focus:ring-primary/40 shadow-xs outline-none transition-all cursor-pointer text-left"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
+                                        <span>{challanDate ? formatDateDisplay(challanDate) : "Select challan date"}</span>
+                                    </div>
+                                    <span className="text-[10px] text-primary font-semibold px-1.5 py-0.5 rounded bg-primary/10">
+                                        {challanCalendarOpen ? "Close" : "Change"}
+                                    </span>
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-2xl overflow-hidden bg-background" align="start">
+                                <Calendar
+                                    selected={challanDate}
+                                    onSelect={(_d, dateStr) => {
+                                        setChallanDate(dateStr);
+                                        setChallanCalendarOpen(false);
+                                    }}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
                     <div>
                         <Label className="text-xs flex items-center gap-1.5 mb-1.5 font-medium">
-                            <Calendar className="size-3.5 text-primary shrink-0" /> Expected Delivery Date
+                            <CalendarIcon className="size-3.5 text-primary shrink-0" /> Expected Delivery Date
                         </Label>
-                        <Input
-                            type="date"
-                            className="h-9 text-xs sm:text-sm w-full"
-                            value={deliveryDate}
-                            onChange={e => {
-                                setDeliveryDate(e.target.value);
-                                setSelectedPreset(null);
-                            }}
-                        />
+                        <Popover open={deliveryCalendarOpen} onOpenChange={setDeliveryCalendarOpen}>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={() => setDeliveryCalendarOpen(prev => !prev)}
+                                    className="h-9 px-3 text-xs sm:text-sm w-full rounded-lg border border-input bg-background flex items-center justify-between font-mono hover:bg-muted/30 focus:ring-2 focus:ring-primary/40 shadow-xs outline-none transition-all cursor-pointer text-left"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
+                                        <span>{deliveryDate ? formatDateDisplay(deliveryDate) : "Select return date"}</span>
+                                    </div>
+                                    <span className="text-[10px] text-primary font-semibold px-1.5 py-0.5 rounded bg-primary/10">
+                                        {deliveryCalendarOpen ? "Close" : "Change"}
+                                    </span>
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-2xl overflow-hidden bg-background" align="start">
+                                <Calendar
+                                    selected={deliveryDate}
+                                    minDate={challanDate || undefined}
+                                    onSelect={(_d, dateStr) => {
+                                        setDeliveryDate(dateStr);
+                                        setSelectedPreset(null);
+                                        setDeliveryCalendarOpen(false);
+                                    }}
+                                />
+                            </PopoverContent>
+                        </Popover>
                         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                             {[
                                 { label: "1 week", value: "1week" as const },

@@ -64,6 +64,7 @@ export interface UpdateGuestUserDto {
     organization?: string;
     purpose?: string;
     status?: 'Active' | 'Expired' | 'Disabled';
+    expiresAt?: string;
     customFields?: Record<string, any>;
 }
 
@@ -103,8 +104,12 @@ export const guestUserService = {
     /**
      * Confirm access extension for a guest user with specified duration
      */
-    async extendGuestUser(id: string, duration: ExtensionDuration): Promise<{ success: boolean; message: string; data: GuestUserRecord }> {
-        const response = await api.post(`/api/guest-users/${id}/extend`, { duration });
+    async extendGuestUser(
+        id: string,
+        duration: ExtensionDuration | string,
+        customDate?: string
+    ): Promise<{ success: boolean; message: string; data: GuestUserRecord }> {
+        const response = await api.post(`/api/guest-users/${id}/extend`, { duration, customDate });
         return response.data;
     },
 
@@ -113,6 +118,14 @@ export const guestUserService = {
      */
     async rejectGuestUser(id: string, reason?: string): Promise<{ success: boolean; message: string; data: GuestUserRecord }> {
         const response = await api.post(`/api/guest-users/${id}/reject`, { reason });
+        return response.data;
+    },
+
+    /**
+     * Delete a guest user account permanently
+     */
+    async deleteGuestUser(id: string): Promise<{ success: boolean; message: string }> {
+        const response = await api.delete(`/api/guest-users/${id}`);
         return response.data;
     },
 
