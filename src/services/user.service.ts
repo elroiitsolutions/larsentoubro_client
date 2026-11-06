@@ -4,17 +4,25 @@ export interface UserRecord {
     _id: string;
     name: string;
     phonenumber?: string;
+    phone?: string;
     email: string;
     role: "Admin" | "User" | "Subuser" | "Vendor" | "Guest" | string;
     user_id: string;
+    status?: string;
+    expires_at?: string;
     parentUser?: any;
+    parent_id?: any;
     canCreateUser?: boolean;
     isVendor?: boolean;
     vendorCode?: string;
     allowedPages?: string[];
+    pagePermissions?: any[];
     hasInspectionAccess?: boolean;
+    canInspect?: boolean;
     projects?: any[];
     stores?: any[];
+    assignedProjects?: any[];
+    assignedStores?: any[];
     createdAt?: string;
     updatedAt?: string;
 }
