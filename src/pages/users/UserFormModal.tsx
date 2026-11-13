@@ -28,7 +28,8 @@ import userService from "@/services/user.service"
 import type { UserRecord } from "@/services/user.service"
 import formService from "@/services/form.service"
 import { toast } from "sonner"
-import { validateEmail } from "@/utils/validation"
+import { validateEmail, validateIndianMobile } from "@/utils/validation"
+import { DatePickerField } from "@/components/DynamicForm/DynamicField"
 
 interface UserFormModalProps {
     isOpen: boolean
@@ -137,7 +138,11 @@ export function UserFormModal({
     }, [formFields])
 
     const handleFieldChange = (key: string, value: any) => {
-        setFormData(prev => ({ ...prev, [key]: value }))
+        let val = value
+        if (key === 'phonenumber' || key === 'phone' || key.toLowerCase().includes('phone')) {
+            val = typeof value === 'string' ? value.replace(/\D/g, '').slice(0, 10) : value
+        }
+        setFormData(prev => ({ ...prev, [key]: val }))
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -182,6 +187,13 @@ export function UserFormModal({
             const cleanUserId = (formData.user_id || "").trim()
             const cleanName = (formData.name || "").trim()
             const cleanPhone = (formData.phonenumber || formData.phone || "").trim()
+            if (cleanPhone) {
+                const phoneCheck = validateIndianMobile(cleanPhone, "Phone Number")
+                if (!phoneCheck.isValid) {
+                    toast.error(phoneCheck.error || "Phone number must be a valid 10-digit Indian number.")
+                    return
+                }
+            }
 
             const payload: Record<string, any> = {
                 ...formData,
@@ -457,24 +469,26 @@ export function UserFormModal({
                                     }
 
                                     // 7. Date Field
-                                    if (field.type === "date") {
+                                    const fieldTypeLower = String(field.type || "").toLowerCase()
+                                    if (fieldTypeLower === "date" || fieldTypeLower === "calendar" || fieldTypeLower === "calender") {
                                         return (
                                             <div key={field.id || field.name}>
                                                 <label className="text-xs font-bold text-foreground block mb-1.5">
                                                     {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                                 </label>
-                                                <Input
-                                                    type="date"
+                                                <DatePickerField
+                                                    id={field.id || field.name}
                                                     value={value || ""}
-                                                    onChange={(e) => handleFieldChange(fieldKey, e.target.value)}
-                                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                    onChange={(val) => handleFieldChange(fieldKey, val)}
+                                                    placeholder={field.placeholder?.trim()}
                                                 />
                                             </div>
                                         )
                                     }
 
-                                    // 8. Default Text / Email Input
+                                    // 8. Default Text / Email / Phone Input
                                     const isFullWidth = field.name === "name" || field.id === "name"
+                                    const isPhoneField = field.name === "phonenumber" || field.id === "phonenumber" || field.name?.toLowerCase().includes("phone")
                                     return (
                                         <div key={field.id || field.name} className={isFullWidth ? "md:col-span-2" : ""}>
                                             <label className="text-xs font-bold text-foreground block mb-1.5">
@@ -484,11 +498,13 @@ export function UserFormModal({
                                                 type={field.type === "email" ? "email" : "text"}
                                                 value={value || ""}
                                                 onChange={(e) => handleFieldChange(fieldKey, e.target.value)}
+                                                maxLength={isPhoneField ? 10 : undefined}
+                                                inputMode={isPhoneField ? "numeric" : undefined}
                                                 placeholder={
                                                     field.placeholder?.trim() ||
                                                     (field.name === "name" || field.id === "name" ? "e.g. Rajesh Kumar" :
                                                      field.name === "email" || field.id === "email" ? "e.g. rajesh.k@larsentoubro.com" :
-                                                     field.name === "phonenumber" || field.id === "phonenumber" ? "e.g. +91 98765 43210" : undefined)
+                                                     isPhoneField ? "e.g. 9876543210" : undefined)
                                                 }
                                                 className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                             />

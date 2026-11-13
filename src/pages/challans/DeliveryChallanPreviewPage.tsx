@@ -25,6 +25,7 @@ import {
 import challanService from "@/services/challan.service";
 import { generateDeliveryChallanPDF, formatDateDDMMYYYY, formatDCNumber } from "@/utils/pdf/challanPdfGenerator";
 import { calculateChallanSummary } from "@/utils/challan/challanCalculations";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 import { toast } from "sonner";
 import logoUrl from "@/assets/logo.png"; 
 
@@ -496,11 +497,12 @@ export function DeliveryChallanPreviewPage() {
                                 </div>
                                 <div className="p-2 space-y-1">
                                     <span className="font-bold text-[10px] block">DATE (DD-MM-YYYY)</span>
-                                    <Input
-                                        type="date"
+                                    <DatePickerField
                                         value={challanDate}
-                                        onChange={e => setChallanDate(e.target.value)}
+                                        onChange={val => setChallanDate(val)}
+                                        placeholder="Select date"
                                         className="h-7 text-xs font-bold border-slate-400 bg-white"
+                                        hideActionBadge={true}
                                     />
                                     <span className="text-[10px] font-mono text-slate-500 font-bold">{formatDateDDMMYYYY(challanDate)}</span>
                                 </div>
@@ -814,7 +816,13 @@ export function DeliveryChallanPreviewPage() {
                                 </div>
                                 <div>
                                     <span className="font-bold text-[9px] text-slate-500">RECEIPT DATE</span>
-                                    <Input type="date" value={receiptDate} onChange={e => setReceiptDate(e.target.value)} className="h-6 text-[10px] font-bold border-slate-300" />
+                                    <DatePickerField
+                                        value={receiptDate}
+                                        onChange={val => setReceiptDate(val)}
+                                        placeholder="Receipt date"
+                                        className="h-6 text-[10px] font-bold border-slate-300 bg-white"
+                                        hideActionBadge={true}
+                                    />
                                 </div>
                             </div>
                         </div>

@@ -387,6 +387,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [category, setCategory] = useState("All");
     const [status, setStatus] = useState("All");
     const [printStatus, setPrintStatus] = useState("All");
+    const [expiryFilter, setExpiryFilter] = useState("All"); // "All" | "expired" | "expiring_soon" | "valid"
 
     const requestedSearchTokens = useMemo(() => {
         if (!search || !search.trim()) return [];
@@ -434,7 +435,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 const tId = (t.toolId || '').toLowerCase();
                 const tCode = (t.toolCode || '').toLowerCase();
                 const tDesc = (t.description || '').toLowerCase();
-                return tId.includes(lowerTok) || tCode.includes(lowerTok) || tDesc.includes(lowerTok);
+                const tStatus = (t.status || '').toLowerCase();
+                const isPrintedMatch = (lowerTok === 'printed' && t.isPrinted) ||
+                    ((lowerTok === 'unprint' || lowerTok === 'unprinted' || lowerTok === 'not printed') && !t.isPrinted);
+                const isExpiredMatch = lowerTok === 'expired' && t.nextInspectionDueDate && new Date(t.nextInspectionDueDate) < new Date();
+                const isExpiringMatch = (lowerTok === 'expiry' || lowerTok === 'soon' || lowerTok === 'expiring' || lowerTok === 'expiring soon' || lowerTok === 'expiry soon') &&
+                    t.nextInspectionDueDate && new Date(t.nextInspectionDueDate) >= new Date() && new Date(t.nextInspectionDueDate) <= new Date(Date.now() + 90 * 86400000);
+                return tId.includes(lowerTok) || tCode.includes(lowerTok) || tDesc.includes(lowerTok) || tStatus === lowerTok || isPrintedMatch || isExpiredMatch || isExpiringMatch;
             });
 
             if (isMatch) {
@@ -490,6 +497,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [draftCategory, setDraftCategory] = useState("All");
     const [draftStatus, setDraftStatus] = useState("All");
     const [draftPrintStatus, setDraftPrintStatus] = useState("All");
+    const [draftExpiryFilter, setDraftExpiryFilter] = useState("All");
 
     useEffect(() => {
         if (isFilterSheetOpen) {
@@ -497,14 +505,16 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             setDraftCategory(category);
             setDraftStatus(status);
             setDraftPrintStatus(printStatus);
+            setDraftExpiryFilter(expiryFilter);
         }
-    }, [isFilterSheetOpen, advancedFilters, category, status, printStatus]);
+    }, [isFilterSheetOpen, advancedFilters, category, status, printStatus, expiryFilter]);
 
     const activeFilterCount =
         Object.values(advancedFilters).filter(val => val.trim() !== "").length +
         (category !== "All" ? 1 : 0) +
         (status !== "All" ? 1 : 0) +
-        (printStatus !== "All" ? 1 : 0);
+        (printStatus !== "All" ? 1 : 0) +
+        (expiryFilter !== "All" ? 1 : 0);
 
     const resetAllFilters = () => {
         const emptyFilters = {
@@ -528,10 +538,12 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         setCategory("All");
         setStatus("All");
         setPrintStatus("All");
+        setExpiryFilter("All");
         setAdvancedFilters(emptyFilters);
         setDraftCategory("All");
         setDraftStatus("All");
         setDraftPrintStatus("All");
+        setDraftExpiryFilter("All");
         setDraftAdvancedFilters(emptyFilters);
         setPage(1);
         toast.success("Filters reset");
@@ -549,6 +561,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         setCategory(draftCategory);
         setStatus(draftStatus);
         setPrintStatus(draftPrintStatus);
+        setExpiryFilter(draftExpiryFilter);
         setPage(1);
         setIsFilterSheetOpen(false);
         toast.success("Filters applied");
@@ -581,10 +594,10 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             return ["1 Year", "2 Years", "3 Years"];
         }
         if (field === 'status') {
-            return ["Available", "Moving", "Repair", "Printed", "Not Printed"];
+            return ["Available", "Moving", "Missing", "Repair"];
         }
         if (field === 'printStatus') {
-            return ["Printed", "Not Printed"];
+            return ["Printed", "Unprinted", "Not Printed"];
         }
         const backendOpts = filterOptions[field] || [];
         const stateOpts = Array.from(
@@ -604,7 +617,14 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     }, [filterOptions, tools]);
 
     const toolTypeOptions = useMemo(() => getOptionsForField('toolType'), [getOptionsForField]);
-    const statusOptions = useMemo(() => getOptionsForField('status'), [getOptionsForField]);
+    const statusAndPrintOptions = useMemo(() => [
+        { label: "Available", value: "Available" },
+        { label: "Moving", value: "Moving" },
+        { label: "Missing", value: "Missing" },
+        { label: "Printed", value: "Printed" },
+        { label: "Unprinted", value: "Unprinted" },
+        { label: "Repair", value: "Repair" },
+    ], []);
 
     const renderFilterInput = (label: string, field: string, placeholder?: string) => {
         const value = draftAdvancedFilters[field] ? draftAdvancedFilters[field] : "";
@@ -666,6 +686,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             if (printStatus && printStatus !== "All") {
                 queryParams.printStatus = printStatus;
             }
+            if (expiryFilter && expiryFilter !== "All") {
+                queryParams.expiryStatus = expiryFilter;
+            }
             const data = await toolService.getToolsByStore(storeId, queryParams);
             if (data?.success) {
                 setTools(data.data || []);
@@ -700,7 +723,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         } finally {
             setLoading(false);
         }
-    }, [storeId, page, limit, search, category, status, printStatus, sortBy, sortOrder, advancedFilters]);
+    }, [storeId, page, limit, search, category, status, printStatus, expiryFilter, sortBy, sortOrder, advancedFilters]);
 
     // On initial mount/refresh, fetch immediately without 300ms penalty; debounce subsequent filter/search keystrokes
     useEffect(() => {
@@ -1045,7 +1068,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         <div className="relative group flex-1 w-full">
                             <SearchIcon className="absolute left-3 top-2.5 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <Input
-                                placeholder="Search single or multiple Tool IDs (comma, space, or newline separated)..."
+                                placeholder="Search Tool IDs, Status, Print, Expiry (Expired, Soon)..."
                                 className="pl-10 h-10 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-sm rounded-xl"
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -1064,29 +1087,55 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     className="h-10 text-sm rounded-xl bg-background/50 border-border/60"
                                 />
                             </div>
-                            <div className="w-full sm:w-44">
+                            <div className="w-full sm:w-48">
                                 <SearchableSelect
                                     value={
                                         status !== "All"
                                             ? status
-                                            : printStatus !== "All"
-                                                ? printStatus
-                                                : "All"
+                                            : printStatus === "Printed"
+                                                ? "Printed"
+                                                : (printStatus === "Not Printed" || printStatus === "Unprinted" || printStatus === "Unprint")
+                                                    ? "Unprinted"
+                                                    : "All"
                                     }
                                     onValueChange={(val) => {
-                                        if (val === "Printed" || val === "Not Printed") {
+                                        if (val === "Printed") {
                                             setStatus("All");
-                                            setPrintStatus(val);
+                                            setPrintStatus("Printed");
+                                        } else if (val === "Unprinted" || val === "Unprint" || val === "Not Printed") {
+                                            setStatus("All");
+                                            setPrintStatus("Not Printed");
+                                        } else if (val === "All") {
+                                            setStatus("All");
+                                            setPrintStatus("All");
                                         } else {
                                             setStatus(val);
                                             setPrintStatus("All");
                                         }
                                         setPage(1);
                                     }}
-                                    options={statusOptions}
-                                    placeholder="All Statuses"
-                                    searchPlaceholder="Search status..."
-                                    allLabel="All Statuses"
+                                    options={statusAndPrintOptions}
+                                    placeholder="All Status / Print"
+                                    searchPlaceholder="Search status (Available, Moving, Missing, Printed, Unprint)..."
+                                    allLabel="All Status / Print"
+                                    allValue="All"
+                                    className="h-10 text-sm rounded-xl bg-background/50 border-border/60"
+                                />
+                            </div>
+                            <div className="w-full sm:w-48">
+                                <SearchableSelect
+                                    value={expiryFilter}
+                                    onValueChange={(val) => {
+                                        setExpiryFilter(val);
+                                        setPage(1);
+                                    }}
+                                    options={[
+                                        { label: "Already Expired", value: "expired" },
+                                        { label: "Expired within 3 Months", value: "expiring_soon" }
+                                    ]}
+                                    placeholder="All Validity / Expiry"
+                                    searchPlaceholder="Filter validity or expiry..."
+                                    allLabel="All Validity / Expiry"
                                     allValue="All"
                                     className="h-10 text-sm rounded-xl bg-background/50 border-border/60"
                                 />
@@ -1125,6 +1174,29 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {renderFilterInput("Tool ID", "toolId", "e.g. SSSSCP0050825UE0081")}
                                                 {renderFilterInput("Validation", "validityPeriod", "e.g. 1 Year, 3 Years...")}
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <label className="text-xs font-medium text-muted-foreground block">Expiry Status</label>
+                                                        {draftExpiryFilter !== "All" && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDraftExpiryFilter("All")}
+                                                                className="text-[10px] text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer"
+                                                            >
+                                                                Clear
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <select
+                                                        value={draftExpiryFilter}
+                                                        onChange={(e) => setDraftExpiryFilter(e.target.value)}
+                                                        className="w-full h-9 text-xs rounded-xl bg-background/50 border border-border/60 px-3 hover:bg-background focus:bg-background transition-all"
+                                                    >
+                                                        <option value="All">All Expiry Statuses</option>
+                                                        <option value="expired">Already Expired</option>
+                                                        <option value="expiring_soon">Expired within 3 Months</option>
+                                                    </select>
+                                                </div>
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1.5">
                                                         <label className="text-xs font-medium text-muted-foreground block">Category / Tool Type</label>
@@ -1474,7 +1546,39 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
                                             {TOOL_COLUMNS.map((col) => (
                                                 <td key={col.key} className="px-6 py-4 text-foreground/80">
-                                                    {renderFieldValue(t, col.key)}
+                                                    {col.key === 'validation' ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span>{renderFieldValue(t, col.key)}</span>
+                                                            {(() => {
+                                                                const dueDate = t.nextInspectionDueDate ? new Date(t.nextInspectionDueDate) : null;
+                                                                if (!dueDate || isNaN(dueDate.getTime())) return null;
+                                                                const now = new Date();
+                                                                const threeMonthsAhead = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+                                                                if (dueDate < now) {
+                                                                    return (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 shrink-0"
+                                                                            title={`Expired on ${dueDate.toLocaleDateString('en-IN')}`}
+                                                                        >
+                                                                            Expired
+                                                                        </span>
+                                                                    );
+                                                                } else if (dueDate <= threeMonthsAhead) {
+                                                                    return (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 shrink-0"
+                                                                            title={`Expires on ${dueDate.toLocaleDateString('en-IN')}`}
+                                                                        >
+                                                                            Expiring Soon
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
+                                                        </div>
+                                                    ) : (
+                                                        renderFieldValue(t, col.key)
+                                                    )}
                                                 </td>
                                             ))}
                                         </tr>
@@ -1501,7 +1605,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => { setSearch(""); setCategory("All"); setStatus("All"); }}
+                                        onClick={() => { setSearch(""); setCategory("All"); setStatus("All"); setPrintStatus("All"); }}
                                     >
                                         Clear all filters
                                     </Button>

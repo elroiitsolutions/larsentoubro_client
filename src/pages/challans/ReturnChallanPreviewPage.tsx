@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import challanService, { type ChallanRecord } from "@/services/challan.service";
 import { generateReturnChallanPDF } from "@/utils/pdf/challanPdfGenerator";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 import { toast } from "sonner";
 import logoUrl from "@/assets/logo.png";
 
@@ -452,12 +453,14 @@ export function ReturnChallanPreviewPage() {
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <Label className="text-xs">Return Date *</Label>
-                        <Input
-                            type="date"
-                            className="h-9 mt-1 text-sm"
-                            value={challanDate}
-                            onChange={e => setChallanDate(e.target.value)}
-                        />
+                        <div className="mt-1">
+                            <DatePickerField
+                                value={challanDate}
+                                onChange={val => setChallanDate(val)}
+                                placeholder="Select return date"
+                                className="h-9 text-sm"
+                            />
+                        </div>
                     </div>
                     <div>
                         <Label className="text-xs">Reference DC Number</Label>

@@ -31,7 +31,7 @@ import {
   Smartphone,
   AlertCircle
 } from "lucide-react"
-import { validateEmail } from "@/utils/validation"
+import { validateEmail, cleanAndFormatIndianMobile } from "@/utils/validation"
 
 export function LoginForm({
   className,
@@ -516,10 +516,16 @@ export function LoginForm({
                       placeholder="98765 43210"
                       required
                       autoFocus
-                      maxLength={10}
+                      maxLength={16}
                       value={phone}
+                      onPaste={(e) => {
+                        e.preventDefault()
+                        const pasted = e.clipboardData.getData("text")
+                        const cleaned = cleanAndFormatIndianMobile(pasted)
+                        setPhone(cleaned)
+                      }}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "").slice(0, 10)
+                        const val = cleanAndFormatIndianMobile(e.target.value)
                         setPhone(val)
                       }}
                       disabled={loading}

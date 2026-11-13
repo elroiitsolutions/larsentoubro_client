@@ -35,6 +35,7 @@ import projectService from "@/services/project.service"
 import storeService from "@/services/store.service"
 import userService from "@/services/user.service"
 import type { UserRecord } from "@/services/user.service"
+import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 
 const AVAILABLE_PAGES = [
@@ -63,6 +64,7 @@ const avatarColors = [
 export function UserAccessPage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
+    const { user: currentUser } = useAuth()
 
     const [userRecord, setUserRecord] = React.useState<UserRecord | null>(null)
     const [loading, setLoading] = React.useState(true)
@@ -377,7 +379,9 @@ export function UserAccessPage() {
                 stores: selectedStores,
             }
 
-            const res = await userService.updateUser(userRecord._id, payload)
+            const res = (userRecord.role === "Subuser" && currentUser?.role !== "Admin")
+                ? await userService.updateSubuser(userRecord._id, payload)
+                : await userService.updateUser(userRecord._id, payload)
             if (res.success && res.data) {
                 toast.success("User permissions and access updated successfully!")
                 navigate("/users")

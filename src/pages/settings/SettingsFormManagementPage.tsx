@@ -101,8 +101,8 @@ export function SettingsFormManagementPage() {
     }
 
     return (
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1">
-            <div className="w-full space-y-6 pb-12">
+        <div className="flex-1 min-h-0 flex flex-col w-full pr-1">
+            <div className="w-full space-y-6 pb-12 pt-5 sm:pt-6">
                 {/* Header Section */}
                 {/* <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-card to-card/60 border border-border/60 rounded-2xl p-6 shadow-sm">
                     <div className="space-y-1.5">
@@ -132,7 +132,7 @@ export function SettingsFormManagementPage() {
                         <p className="font-medium">Loading form schemas...</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 p-1">
                         {forms.map((form) => (
                             <Card 
                                 key={form.slug} 

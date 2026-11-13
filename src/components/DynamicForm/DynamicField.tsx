@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useFormContext, Controller, useWatch } from 'react-hook-form';
 import type { FormField } from '@/store/useFormBuilderStore';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,129 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue} from "@/components/ui/select"
+    SelectValue
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarIcon, X as XIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export interface DatePickerFieldProps {
+  value: any;
+  onChange: (val: string) => void;
+  disabled?: boolean;
+  readOnly?: boolean;
+  placeholder?: string;
+  hasError?: boolean;
+  id?: string;
+  className?: string;
+  hideActionBadge?: boolean;
+}
+
+export function DatePickerField({
+  value,
+  onChange,
+  disabled,
+  readOnly,
+  placeholder,
+  hasError,
+  id,
+  className,
+  hideActionBadge
+}: DatePickerFieldProps) {
+  const [open, setOpen] = useState(false);
+
+  const formatDateDisplay = (dateStr?: string) => {
+    if (!dateStr) return "";
+    try {
+      const parts = String(dateStr).split("-");
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const dt = new Date(y, m, d);
+        if (!isNaN(dt.getTime())) {
+          return dt.toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+          });
+        }
+      }
+      const dt = new Date(dateStr);
+      return isNaN(dt.getTime())
+        ? String(dateStr)
+        : dt.toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+          });
+    } catch {
+      return String(dateStr);
+    }
+  };
+
+  const displayText = value ? formatDateDisplay(value) : "";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          id={id}
+          disabled={disabled || readOnly}
+          onClick={() => !disabled && !readOnly && setOpen((prev) => !prev)}
+          className={cn(
+            "h-9 w-full min-w-0 rounded-lg border border-input bg-background/60 px-3 py-1 text-sm transition-[color,box-shadow,border-color] duration-200 outline-none flex items-center justify-between text-left cursor-pointer hover:bg-muted/30 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 shadow-xs",
+            hasError ? "border-destructive focus-visible:ring-destructive/20 text-destructive" : "",
+            !displayText ? "text-muted-foreground/70" : "text-foreground font-medium",
+            className
+          )}
+        >
+          <div className="flex items-center gap-2 truncate">
+            <CalendarIcon className="size-3.5 text-primary shrink-0" />
+            <span className="truncate">
+              {displayText || placeholder || "Select date (DD/MM/YYYY)"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
+            {displayText && !disabled && !readOnly && (
+              <span
+                role="button"
+                tabIndex={0}
+                title="Clear date"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange("");
+                }}
+                className="p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <XIcon className="size-3.5" />
+              </span>
+            )}
+            {!hideActionBadge && (
+              <span className="text-[11px] font-semibold text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">
+                {open ? "Close" : "Pick Date"}
+              </span>
+            )}
+          </div>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-auto p-0 border border-border/80 shadow-2xl rounded-2xl overflow-hidden bg-background z-50"
+        align="start"
+      >
+        <Calendar
+          selected={value}
+          onSelect={(_d, dateStr) => {
+            onChange(dateStr);
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function DynamicField({ field }: { field: FormField }) {
   const { control, formState: { errors } } = useFormContext();
@@ -32,6 +154,8 @@ export function DynamicField({ field }: { field: FormField }) {
   if (!isVisible) return null;
 
   const error = errors[field.name];
+  const fieldTypeLower = String(field.type || '').toLowerCase();
+  const isDateField = fieldTypeLower === 'date' || fieldTypeLower === 'calendar' || fieldTypeLower === 'calender';
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 w-full">
@@ -45,12 +169,25 @@ export function DynamicField({ field }: { field: FormField }) {
         name={field.name}
         control={control}
         render={({ field: hookField }) => {
+          if (isDateField) {
+            return (
+              <DatePickerField
+                id={field.name}
+                value={hookField.value}
+                onChange={(val) => hookField.onChange(val)}
+                disabled={field.disabled}
+                readOnly={field.readOnly}
+                placeholder={field.placeholder}
+                hasError={Boolean(error)}
+              />
+            );
+          }
+
           switch (field.type) {
             case 'text':
             case 'email':
             case 'password':
             case 'number':
-            case 'date':
               return (
                 <Input
                   {...hookField}

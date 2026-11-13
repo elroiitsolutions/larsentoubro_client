@@ -18,7 +18,9 @@ import {
     PlusIcon, 
     Loader2, 
     WrenchIcon, 
-    InfoIcon} from "lucide-react";
+    InfoIcon
+} from "lucide-react";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 
 interface ToolFormModalProps {
     storeId: string;
@@ -65,6 +67,7 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [selectedSupplierName, setSelectedSupplierName] = useState<string>("");
     const [formSchema, setFormSchema] = useState<any>(null);
+    const [dateValues, setDateValues] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (open) {
@@ -80,8 +83,18 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
             if (initialPurchaser) {
                 setSelectedSupplierName(initialPurchaser);
             }
+            const dates: Record<string, string> = {};
+            if (tool.dateOfSupply) dates.dateOfSupply = tool.dateOfSupply;
+            if (tool.customFields) {
+                Object.entries(tool.customFields).forEach(([k, v]) => {
+                    if (typeof v === 'string') dates[k] = v;
+                });
+            }
+            setDateValues(dates);
+        } else {
+            setDateValues({});
         }
-    }, [tool]);
+    }, [tool, open]);
 
     const fetchProjects = async () => {
         try {
@@ -294,12 +307,32 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
              );
         }
         
+        const fieldTypeLower = String(field.type || '').toLowerCase();
+        const isDateField = fieldTypeLower === 'date' || fieldTypeLower === 'calendar' || fieldTypeLower === 'calender';
+
+        if (isDateField) {
+            const currentVal = dateValues[field.name] !== undefined ? dateValues[field.name] : (defaultValue || "");
+            return (
+                <HorizontalField key={field.id} label={field.label} required={isRequired} hint={field.helperText}>
+                    <DatePickerField
+                        id={`picker_${field.name}`}
+                        value={currentVal}
+                        onChange={(newDate) => {
+                            setDateValues(prev => ({ ...prev, [field.name]: newDate }));
+                        }}
+                        placeholder={field.placeholder || "Select date"}
+                    />
+                    <input type="hidden" name={field.name} value={currentVal} />
+                </HorizontalField>
+            );
+        }
+
         return (
             <HorizontalField key={field.id} label={field.label} required={isRequired} hint={field.helperText}>
                 <Input 
                     id={field.name} 
                     name={field.name} 
-                    type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
+                    type={field.type === 'number' ? 'number' : 'text'}
                     defaultValue={defaultValue || ""} 
                     placeholder={field.placeholder || ""} 
                     required={isRequired} 

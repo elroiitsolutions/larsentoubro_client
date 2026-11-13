@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import vendorService, { type VendorRecord } from "@/services/vendor.service"
 import { toast } from "sonner"
+import { validateEmail, validateIndianMobile } from "@/utils/validation"
 
 interface VendorFormModalProps {
     isOpen: boolean
@@ -99,6 +100,30 @@ export function VendorFormModal({
         if (!contactPhone.trim() && !contactEmail.trim()) {
             toast.error("Please provide at least a contact phone number or email address.")
             return
+        }
+
+        if (contactPhone.trim()) {
+            const phoneCheck = validateIndianMobile(contactPhone.trim(), "Primary Phone Number")
+            if (!phoneCheck.isValid) {
+                toast.error(phoneCheck.error || "Primary Phone Number must be a valid 10-digit Indian number starting with 6, 7, 8, or 9.")
+                return
+            }
+        }
+
+        if (alternatePhone.trim()) {
+            const altCheck = validateIndianMobile(alternatePhone.trim(), "Alternate Phone Number")
+            if (!altCheck.isValid) {
+                toast.error(altCheck.error || "Alternate Phone Number must be a valid 10-digit Indian number starting with 6, 7, 8, or 9.")
+                return
+            }
+        }
+
+        if (contactEmail.trim()) {
+            const emailCheck = validateEmail(contactEmail.trim())
+            if (!emailCheck.isValid) {
+                toast.error(emailCheck.error || "Please enter a valid email address.")
+                return
+            }
         }
 
         setSaving(true)
@@ -299,11 +324,16 @@ export function VendorFormModal({
                                 </label>
                                 <Input
                                     value={contactPhone}
-                                    onChange={(e) => setContactPhone(e.target.value)}
+                                    onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                                     placeholder="e.g. 9934110587"
+                                    maxLength={10}
+                                    inputMode="numeric"
                                     className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                     required
                                 />
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                    10-digit Indian number starting with 6-9 (no country code)
+                                </p>
                             </div>
 
                             {/* Alternate Phone */}
@@ -314,10 +344,15 @@ export function VendorFormModal({
                                 </label>
                                 <Input
                                     value={alternatePhone}
-                                    onChange={(e) => setAlternatePhone(e.target.value)}
+                                    onChange={(e) => setAlternatePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                                     placeholder="e.g. 9876543210"
+                                    maxLength={10}
+                                    inputMode="numeric"
                                     className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                 />
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                    Optional 10-digit Indian number starting with 6-9
+                                </p>
                             </div>
 
                             {/* Portal Access Password */}

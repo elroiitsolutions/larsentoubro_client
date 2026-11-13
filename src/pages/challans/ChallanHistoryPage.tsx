@@ -28,6 +28,7 @@ import {
 import { generateDeliveryChallanPDF, generateReturnChallanPDF, generateTransferChallanPDF } from "@/utils/pdf/challanPdfGenerator";
 import { ChallanDetailModal } from "./ChallanDetailModal";
 import { ReturnToolSelectModal } from "./ReturnToolSelectModal";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 import { toast } from "sonner";
 
 export function ChallanHistoryPage() {
@@ -430,29 +431,35 @@ export function ChallanHistoryPage() {
 
                 {/* Date Range Row */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t text-xs">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-muted-foreground flex items-center gap-1">
                             <Calendar className="size-3.5" /> Date Range:
                         </span>
-                        <Input
-                            type="date"
-                            className="h-8 w-36 text-xs"
-                            value={startDate}
-                            onChange={e => {
-                                setStartDate(e.target.value);
-                                setPage(1);
-                            }}
-                        />
-                        <span className="text-muted-foreground">to</span>
-                        <Input
-                            type="date"
-                            className="h-8 w-36 text-xs"
-                            value={endDate}
-                            onChange={e => {
-                                setEndDate(e.target.value);
-                                setPage(1);
-                            }}
-                        />
+                        <div className="w-36 sm:w-40">
+                            <DatePickerField
+                                value={startDate}
+                                onChange={val => {
+                                    setStartDate(val);
+                                    setPage(1);
+                                }}
+                                placeholder="Start date"
+                                className="h-8 text-xs rounded-lg px-2.5 bg-background border-border/80"
+                                hideActionBadge={true}
+                            />
+                        </div>
+                        <span className="text-muted-foreground font-medium">to</span>
+                        <div className="w-36 sm:w-40">
+                            <DatePickerField
+                                value={endDate}
+                                onChange={val => {
+                                    setEndDate(val);
+                                    setPage(1);
+                                }}
+                                placeholder="End date"
+                                className="h-8 text-xs rounded-lg px-2.5 bg-background border-border/80"
+                                hideActionBadge={true}
+                            />
+                        </div>
                     </div>
                       {(search || vendor !== "All" || status !== "All" || challanType !== "All" || startDate || endDate) && (
                         <Button

@@ -5,9 +5,6 @@ import NoAccessPage from "../NoAccessPage";
 import { getDefaultAllowedPath } from "@/utils/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import {
-    SlidersHorizontal} from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 import dashboardService from "@/services/dashboard.service";
 import type {
@@ -88,29 +85,6 @@ export function DashboardPage() {
         }
     }, [user]);
 
-    const handleFilterChange = (key: keyof DashboardFilterParams, value: string) => {
-        setFilters((prev) => ({ ...prev, [key]: value }));
-    };
-
-    const handleResetFilters = () => {
-        const userStore = user && user.role !== "Admin" && user.stores && user.stores.length === 1 ? user.stores[0] : null;
-        const storeIdStr = userStore ? String(typeof userStore === 'object' ? userStore._id : userStore) : "All";
-
-        const userProject = user && user.role !== "Admin" && user.projects && user.projects.length === 1 ? user.projects[0] : null;
-        const projIdStr = userProject ? String(typeof userProject === 'object' ? userProject._id : userProject) : "All";
-
-        setFilters({
-            division: "All",
-            project: projIdStr,
-            store: storeIdStr,
-            hub: "All",
-            category: "All",
-            status: "All",
-            startDate: "",
-            endDate: ""
-        });
-    };
-
     const handleAlertClick = (alert: AlertItem) => {
         if (alert.type.includes("Inspection") || alert.type.includes("Expired")) {
             setSelectedToolForExtension({
@@ -153,53 +127,10 @@ export function DashboardPage() {
         );
     }
 
-    const allProjectsList = dashboardData?.hierarchyTree?.flatMap((d) => d.projects) || [];
-    const activeProj = allProjectsList.find((p) => p.id === filters.project);
-    const activeProjectName = activeProj ? activeProj.name : filters.project;
-
-    const allStoresList = allProjectsList.flatMap((p) => p.stores);
-    const activeSt = allStoresList.find((s) => s.id === filters.store);
-    const activeStoreName = activeSt ? activeSt.name : filters.store;
-
     return (
         <div className="w-full mx-auto p-3 sm:p-5 space-y-6 pb-16 print:p-0">
-
-            {/* Active Filter Indicator Tag */}
-            {(filters.division !== "All" || filters.project !== "All" || filters.store !== "All" || filters.hub !== "All" || filters.status !== "All" || filters.category !== "All") && (
-                <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary font-semibold print:hidden">
-                    <div className="flex items-center gap-2">
-                        <SlidersHorizontal className="size-4" />
-                        <span>Active View Filters:</span>
-                        <div className="flex flex-wrap items-center gap-1.5 font-sans">
-                            {filters.division !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Div: {filters.division}</span>}
-                            {filters.project !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Project: {activeProjectName}</span>}
-                            {filters.store !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Store: {activeStoreName}</span>}
-                            {filters.hub !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">HUB Filter Active</span>}
-                            {filters.status !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Status: {filters.status}</span>}
-                            {filters.category !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Category: {filters.category}</span>}
-                        </div>
-                    </div>
-
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleResetFilters}
-                        className="h-6 text-[11px] px-2 text-primary hover:bg-primary/20"
-                    >
-                        Clear Filters
-                    </Button>
-                </div>
-            )}
-
             {/* 1. Main Summary Cards Grid */}
-            <SummaryCardsGrid
-                data={dashboardData.summaryCards}
-                hierarchyData={dashboardData.hierarchyTree}
-                filters={filters}
-                activeStatus={filters.status}
-                onCardClick={(statusVal) => handleFilterChange('status', filters.status === statusVal ? 'All' : statusVal)}
-                onChangeFilter={handleFilterChange}
-            />
+            <SummaryCardsGrid data={dashboardData.summaryCards} />
 
             {/* 2. Critical Operational Alerts & Recent Activity Feed */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

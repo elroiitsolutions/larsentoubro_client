@@ -32,13 +32,15 @@ import {
     ShieldCheck,
     FileCheck,
     Hash,
-    Plus
+    Plus,
+    X
 } from "lucide-react"
 import profileService, { type ProfileRecord, type ProfileType, type KeyPersonnelContact } from "@/services/profile.service"
 import formService from "@/services/form.service"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
-import { validateEmail } from "@/utils/validation"
+import { validateEmail, validateIndianMobile } from "@/utils/validation"
+import { DatePickerField } from "@/components/DynamicForm/DynamicField"
 
 interface ProfileFormModalProps {
     isOpen: boolean
@@ -129,8 +131,8 @@ const DEFAULT_PROFILE_PLACEHOLDERS: Record<string, Record<string, string>> = {
         contactPerson: "e.g. Amit Sharma",
         contactDesignation: "e.g. Sales / Account Manager",
         designation: "e.g. Sales / Account Manager",
-        contactPhone: "e.g. 1800 102 4400",
-        phone: "e.g. 1800 102 4400",
+        contactPhone: "e.g. 9812345678",
+        phone: "e.g. 9812345678",
         alternatePhone: "e.g. 9876543210",
         contactEmail: "e.g. sales@hilti.com",
         email: "e.g. sales@hilti.com",
@@ -193,7 +195,12 @@ export function ProfileFormModal({
     const handlePersonnelChange = (index: number, field: keyof KeyPersonnelContact, value: string) => {
         setKeyPersonnel(prev => {
             const updated = [...prev]
-            updated[index] = { ...updated[index], [field]: value }
+            let val = value
+            if (field === 'phone' || field === 'alternatePhone') {
+                // Enforce only digits and maximum 10 digits without country code
+                val = val.replace(/\D/g, '').slice(0, 10)
+            }
+            updated[index] = { ...updated[index], [field]: val }
             return updated
         })
     }
@@ -424,11 +431,29 @@ export function ProfileFormModal({
             return
         }
 
-        // 5. Contact Phone
+        // 5. Contact Phone (Only 10 numbers, Indian starting with 6-9, no country code)
+        const primaryAltPhone = (keyPersonnel[0]?.alternatePhone || "").trim()
         const phoneRequired = isFieldRequired('contactPhone', ['phone'])
+
         if (phoneRequired && !primaryPhone) {
             toast.error("Primary Phone Number is required.")
             return
+        }
+
+        if (primaryPhone) {
+            const phoneCheck = validateIndianMobile(primaryPhone, "Primary Phone Number")
+            if (!phoneCheck.isValid) {
+                toast.error(phoneCheck.error || "Primary Phone Number must be a valid 10-digit Indian number starting with 6, 7, 8, or 9.")
+                return
+            }
+        }
+
+        if (primaryAltPhone) {
+            const altPhoneCheck = validateIndianMobile(primaryAltPhone, "Alternate Phone Number")
+            if (!altPhoneCheck.isValid) {
+                toast.error(altPhoneCheck.error || "Alternate Phone Number must be a valid 10-digit Indian number starting with 6, 7, 8, or 9.")
+                return
+            }
         }
 
         // 6. Contact Email (Strictly enforce when marked required in Forms Management)
@@ -453,13 +478,31 @@ export function ProfileFormModal({
             }
         }
 
-        // Validate any additional key personnel email addresses
+        // Validate all key personnel phone numbers and email addresses
         for (let i = 0; i < keyPersonnel.length; i++) {
-            const kpEmail = (keyPersonnel[i].email || "").trim()
-            if (kpEmail) {
-                const kpCheck = validateEmail(kpEmail)
+            const kp = keyPersonnel[i]
+            const prefix = keyPersonnel.length > 1 ? `Key Personnel #${i + 1}: ` : ""
+
+            if (i > 0 && kp.phone && kp.phone.trim()) {
+                const kpPhoneCheck = validateIndianMobile(kp.phone.trim(), `${prefix}Phone Number`)
+                if (!kpPhoneCheck.isValid) {
+                    toast.error(kpPhoneCheck.error)
+                    return
+                }
+            }
+
+            if (i > 0 && kp.alternatePhone && kp.alternatePhone.trim()) {
+                const kpAltCheck = validateIndianMobile(kp.alternatePhone.trim(), `${prefix}Alternate Phone Number`)
+                if (!kpAltCheck.isValid) {
+                    toast.error(kpAltCheck.error)
+                    return
+                }
+            }
+
+            if (kp.email && kp.email.trim()) {
+                const kpCheck = validateEmail(kp.email.trim())
                 if (!kpCheck.isValid) {
-                    toast.error(`Key Personnel #${i + 1}: ${kpCheck.error || "Email address must contain '@' and '.'."}`)
+                    toast.error(`${prefix}${kpCheck.error || "Email address must contain '@' and '.'."}`)
                     return
                 }
             }
@@ -579,7 +622,7 @@ export function ProfileFormModal({
                     formData.append("file", selectedFile)
                     formData.append("title", docTitle || selectedFile.name)
                     formData.append("documentType", docCategory)
-                    await profileService.uploadDocument(res.data._id, formData).catch(() => {})
+                    await profileService.uploadDocument(res.data._id, formData, profileType).catch(() => {})
                 }
 
                 onSuccess()
@@ -616,7 +659,7 @@ export function ProfileFormModal({
             formData.append("title", docTitle.trim() || selectedFile.name)
             formData.append("documentType", docCategory)
 
-            const res = await profileService.uploadDocument(editingProfile._id, formData)
+            const res = await profileService.uploadDocument(editingProfile._id, formData, profileType)
             if (res.success && res.data) {
                 toast.success("Document uploaded successfully!")
                 setDocuments(res.data.documents || [])
@@ -651,54 +694,83 @@ export function ProfileFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl">
+            <DialogContent hideClose={true} className="w-[calc(100%-1rem)] sm:w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl">
                 {/* Header */}
-                <DialogHeader className="p-3.5 sm:px-6 sm:py-4 border-b border-border/60 bg-muted/20 shrink-0 pr-10 sm:pr-6">
+                <DialogHeader className="p-3.5 sm:px-6 sm:py-4 border-b border-border/60 bg-muted/20 shrink-0">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                            <div className={`p-2 sm:p-2.5 rounded-xl ${meta.bgColor} ${meta.color} shrink-0`}>
-                                <Building2 className="size-5 sm:size-6" />
+                        {/* Title & Icon (with mobile-only close button) */}
+                        <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 min-w-0">
+                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div className={`p-2 sm:p-2.5 rounded-xl ${meta.bgColor} ${meta.color} shrink-0`}>
+                                    <Building2 className="size-5 sm:size-6" />
+                                </div>
+                                <div className="min-w-0">
+                                    <DialogTitle className="text-base sm:text-xl font-bold text-foreground leading-snug">
+                                        {isEdit ? `Edit ${meta.title} Record` : `Create ${meta.title} Profile`}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-normal truncate sm:whitespace-normal">
+                                        Manage contact profile, tax identifiers, and legal document uploads.
+                                    </DialogDescription>
+                                </div>
                             </div>
-                            <div className="min-w-0">
-                                <DialogTitle className="text-base sm:text-xl font-bold text-foreground leading-snug">
-                                    {isEdit ? `Edit ${meta.title} Record` : `Create ${meta.title} Profile`}
-                                </DialogTitle>
-                                <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-normal truncate sm:whitespace-normal">
-                                    Manage contact profile, tax identifiers, and legal document uploads.
-                                </DialogDescription>
-                            </div>
+
+                            {/* Mobile-only Close / Cancel (✕) button */}
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="sm:hidden rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
+                                aria-label="Close modal"
+                            >
+                                <X className="size-5" />
+                            </button>
                         </div>
 
-                        {/* Navigation Tabs */}
-                        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl w-full sm:w-auto shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab("details")}
-                                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
-                                    activeTab === "details"
-                                        ? "bg-background text-foreground shadow-xs"
-                                        : "text-muted-foreground hover:text-foreground"
-                                }`}
-                            >
-                                Profile Details
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab("documents")}
-                                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                    activeTab === "documents"
-                                        ? "bg-background text-foreground shadow-xs"
-                                        : "text-muted-foreground hover:text-foreground"
-                                }`}
-                            >
-                                <FileText className="size-3.5" />
-                                <span>Documents</span>
-                                {documents.length > 0 && (
-                                    <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px] font-extrabold">
-                                        {documents.length}
-                                    </span>
-                                )}
-                            </button>
+                        {/* Navigation Tabs & Desktop Close / Cancel (✕) button */}
+                        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
+                            {/* Navigation Tabs */}
+                            <div className="flex items-center gap-1 bg-muted/80 p-1 rounded-xl w-full sm:w-auto shrink-0 border border-border/50">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab("details")}
+                                    className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                                        activeTab === "details"
+                                            ? "bg-background text-foreground shadow-xs"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                >
+                                    Profile Details
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab("documents")}
+                                    className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        activeTab === "documents"
+                                            ? "bg-background text-foreground shadow-xs"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                >
+                                    <FileText className="size-3.5" />
+                                    <span>Documents</span>
+                                    {documents.length > 0 && (
+                                        <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px] font-extrabold">
+                                            {documents.length}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Desktop Close / Cancel (✕) button: Vertically centered with tabs */}
+                            <div className="hidden sm:flex items-center pl-1 border-l border-border/60">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                                    aria-label="Close modal"
+                                    title="Close"
+                                >
+                                    <X className="size-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </DialogHeader>
@@ -857,13 +929,15 @@ export function ProfileFormModal({
                                                     <Input
                                                         value={contact.phone}
                                                         onChange={(e) => handlePersonnelChange(idx, "phone", e.target.value)}
-                                                        placeholder={getFieldPlaceholder('contactPhone', ['phone'])}
+                                                        placeholder={getFieldPlaceholder('contactPhone', ['phone']) || "e.g. 9934110587"}
+                                                        maxLength={10}
+                                                        inputMode="numeric"
                                                         className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                                         required={idx === 0}
                                                     />
-                                                    {getFieldHelperText('contactPhone', ['phone']) && (
-                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('contactPhone', ['phone'])}</p>
-                                                    )}
+                                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                                        {getFieldHelperText('contactPhone', ['phone']) || "10-digit Indian number starting with 6-9 (no country code)"}
+                                                    </p>
                                                 </div>
 
                                                 <div>
@@ -875,12 +949,14 @@ export function ProfileFormModal({
                                                     <Input
                                                         value={contact.alternatePhone}
                                                         onChange={(e) => handlePersonnelChange(idx, "alternatePhone", e.target.value)}
-                                                        placeholder={getFieldPlaceholder('alternatePhone')}
+                                                        placeholder={getFieldPlaceholder('alternatePhone') || "e.g. 9876543210"}
+                                                        maxLength={10}
+                                                        inputMode="numeric"
                                                         className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
                                                     />
-                                                    {getFieldHelperText('alternatePhone') && (
-                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('alternatePhone')}</p>
-                                                    )}
+                                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                                        {getFieldHelperText('alternatePhone') || "Optional 10-digit Indian number starting with 6-9"}
+                                                    </p>
                                                 </div>
 
                                                 <div className="md:col-span-2">
@@ -1032,6 +1108,8 @@ export function ProfileFormModal({
                                             )
                                             const fieldKey = field.name || field.id
                                             const val = customFields[fieldKey] ?? customFields[field.name] ?? customFields[field.id] ?? ''
+                                            const fieldTypeLower = String(field.type || '').toLowerCase()
+                                            const isDateField = fieldTypeLower === 'date' || fieldTypeLower === 'calendar' || fieldTypeLower === 'calender'
 
                                             return (
                                                 <div key={field.id || field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
@@ -1071,6 +1149,16 @@ export function ProfileFormModal({
                                                             placeholder={field.placeholder?.trim() || undefined}
                                                             required={isReq}
                                                             className="min-h-[60px] rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                        />
+                                                    ) : isDateField ? (
+                                                        <DatePickerField
+                                                            id={field.id || field.name}
+                                                            value={val}
+                                                            onChange={(selectedDate) => {
+                                                                handleCustomFieldChange(fieldKey, selectedDate)
+                                                                if (field.name) handleCustomFieldChange(field.name, selectedDate)
+                                                            }}
+                                                            placeholder={field.placeholder?.trim() || undefined}
                                                         />
                                                     ) : (
                                                         <Input

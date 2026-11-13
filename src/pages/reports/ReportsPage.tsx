@@ -38,6 +38,7 @@ import projectService, { type ProjectRecord } from "@/services/project.service";
 import storeService, { type StoreRecord } from "@/services/store.service";
 import vendorService, { type VendorRecord } from "@/services/vendor.service";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -1073,19 +1074,23 @@ export function ReportsPage({ defaultTab }: ReportsPageProps) {
                     <div className="flex items-center gap-2 flex-wrap">
                         <Calendar className="size-3.5 text-muted-foreground" />
                         <span className="font-semibold text-muted-foreground">Date Range:</span>
-                        <Input
-                            type="date"
-                            className="h-8 w-36 text-xs rounded-lg"
-                            value={startDate}
-                            onChange={e => { setStartDate(e.target.value); setPage(1); }}
-                        />
-                        <span className="text-muted-foreground">to</span>
-                        <Input
-                            type="date"
-                            className="h-8 w-36 text-xs rounded-lg"
-                            value={endDate}
-                            onChange={e => { setEndDate(e.target.value); setPage(1); }}
-                        />
+                        <div className="w-36 sm:w-40">
+                            <DatePickerField
+                                value={startDate}
+                                onChange={val => { setStartDate(val); setPage(1); }}
+                                placeholder="Start date"
+                                className="h-8 text-xs rounded-lg"
+                            />
+                        </div>
+                        <span className="text-muted-foreground font-medium">to</span>
+                        <div className="w-36 sm:w-40">
+                            <DatePickerField
+                                value={endDate}
+                                onChange={val => { setEndDate(val); setPage(1); }}
+                                placeholder="End date"
+                                className="h-8 text-xs rounded-lg"
+                            />
+                        </div>
 
                         <div className="flex items-center gap-1 ml-2">
                             <Button variant="ghost" size="sm" onClick={() => handleDatePreset("today")} className="h-7 text-[11px] px-2">

@@ -26,6 +26,7 @@ import reportService from "@/services/report.service";
 import projectService, { type ProjectRecord } from "@/services/project.service";
 import storeService, { type StoreRecord } from "@/services/store.service";
 import vendorService, { type VendorRecord } from "@/services/vendor.service";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 import { toast } from "sonner";
 
 export function ToolsReportPage() {
@@ -370,19 +371,23 @@ export function ToolsReportPage() {
                     <div className="flex flex-wrap items-center gap-2 pt-1 border-t text-xs">
                         <Calendar className="size-3.5 text-muted-foreground" />
                         <span className="font-semibold text-muted-foreground">Date Range:</span>
-                        <Input
-                            type="date"
-                            className="h-8 w-36 text-xs"
-                            value={startDate}
-                            onChange={e => { setStartDate(e.target.value); setPage(1); }}
-                        />
-                        <span className="text-muted-foreground">to</span>
-                        <Input
-                            type="date"
-                            className="h-8 w-36 text-xs"
-                            value={endDate}
-                            onChange={e => { setEndDate(e.target.value); setPage(1); }}
-                        />
+                        <div className="w-36 sm:w-40">
+                            <DatePickerField
+                                value={startDate}
+                                onChange={val => { setStartDate(val); setPage(1); }}
+                                placeholder="Start date"
+                                className="h-8 text-xs rounded-lg"
+                            />
+                        </div>
+                        <span className="text-muted-foreground font-medium">to</span>
+                        <div className="w-36 sm:w-40">
+                            <DatePickerField
+                                value={endDate}
+                                onChange={val => { setEndDate(val); setPage(1); }}
+                                placeholder="End date"
+                                className="h-8 text-xs rounded-lg"
+                            />
+                        </div>
                     </div>
                 </CardContent>
             </Card>

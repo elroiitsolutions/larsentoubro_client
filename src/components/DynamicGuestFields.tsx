@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { cleanAndFormatIndianMobile } from "@/utils/validation"
 import {
     Select,
     SelectContent,
@@ -7,6 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { DatePickerField } from "@/components/DynamicForm/DynamicField"
 
 export interface DynamicGuestFieldsProps {
     fields: any[];
@@ -114,10 +116,16 @@ export function DynamicGuestFields({
                                 <Input
                                     type="tel"
                                     placeholder={field.placeholder?.trim() || "9876543210"}
-                                    maxLength={10}
+                                    maxLength={16}
                                     value={value || ""}
+                                    onPaste={(e) => {
+                                        e.preventDefault();
+                                        const pasted = e.clipboardData.getData("text");
+                                        const clean = cleanAndFormatIndianMobile(pasted);
+                                        handleChange(clean);
+                                    }}
                                     onChange={(e) => {
-                                        const clean = e.target.value.replace(/\D/g, "").slice(0, 10);
+                                        const clean = cleanAndFormatIndianMobile(e.target.value);
                                         handleChange(clean);
                                     }}
                                     className="border-0 focus-visible:ring-0 rounded-none h-10 text-xs font-mono"
@@ -192,15 +200,16 @@ export function DynamicGuestFields({
                 }
 
                 // 5. Date Input
-                if (field.type === "date") {
+                if (field.type === "date" || field.type === "calendar" || String(field.type).toLowerCase() === "calender") {
                     return (
                         <div key={field.id || `field_${index}`} className="space-y-1.5">
                             {labelElement}
-                            <Input
-                                type="date"
+                            <DatePickerField
+                                id={field.id || field.name}
                                 value={value || ""}
-                                onChange={(e) => handleChange(e.target.value)}
-                                className={`rounded-xl h-10 text-xs font-mono ${error ? "border-rose-500" : ""}`}
+                                onChange={(newVal) => handleChange(newVal)}
+                                placeholder={field.placeholder?.trim()}
+                                hasError={Boolean(error)}
                             />
                             {error && <p className="text-[11px] text-rose-500 font-medium">{error}</p>}
                         </div>

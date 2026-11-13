@@ -26,7 +26,9 @@ import {
     ClockIcon,
     CalendarIcon,
     InfoIcon,
-    ClipboardCheck
+    ClipboardCheck,
+    Copy,
+    FileText
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
@@ -877,9 +879,9 @@ export function UsersPage() {
                                                             <div className="space-y-1">
                                                                 <span className="text-xs font-semibold text-indigo-500 bg-indigo-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                                                     <LayoutDashboardIcon className="size-3.5" />
-                                                                    {(u.pagePermissions || []).length} Pages Allowed
+                                                                    {(u.allowedPages || u.pagePermissions || []).length} Pages Allowed
                                                                 </span>
-                                                                {u.canInspect && (
+                                                                {(u.hasInspectionAccess || u.canInspect) && (
                                                                     <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                                                                         <ClipboardCheck className="size-3" />
                                                                         Inspection: Granted
@@ -898,11 +900,11 @@ export function UsersPage() {
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                                                     <FolderOpenIcon className="size-3.5" />
-                                                                    {(u.assignedProjects || []).length} Project{(u.assignedProjects || []).length === 1 ? "" : "s"}
+                                                                    {(u.projects || u.assignedProjects || []).length} Project{(u.projects || u.assignedProjects || []).length === 1 ? "" : "s"}
                                                                 </span>
                                                                 <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                                                     <StoreIcon className="size-3.5" />
-                                                                    {(u.assignedStores || []).length} Store{(u.assignedStores || []).length === 1 ? "" : "s"}
+                                                                    {(u.stores || u.assignedStores || []).length} Store{(u.stores || u.assignedStores || []).length === 1 ? "" : "s"}
                                                                 </span>
                                                             </div>
                                                         )}
@@ -1000,6 +1002,7 @@ export function UsersPage() {
                                                 <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Parent Account</th>
                                             )}
                                             <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Status & Expiry</th>
+                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Page Permissions</th>
                                             <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Assigned Scope</th>
                                             <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
                                         </tr>
@@ -1054,15 +1057,35 @@ export function UsersPage() {
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4">
+                                                        <div className="space-y-1">
+                                                            <span className="text-xs font-semibold text-indigo-500 bg-indigo-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                                                <LayoutDashboardIcon className="size-3.5" />
+                                                                {(sub.allowedPages || sub.pagePermissions || []).length} Pages Allowed
+                                                            </span>
+                                                            {(sub.hasInspectionAccess || sub.canInspect) && (
+                                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                                                    <ClipboardCheck className="size-3" />
+                                                                    Inspection: Granted
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
                                                                 <FolderOpenIcon className="size-3" />
-                                                                {(sub.assignedProjects || []).length} Projects
+                                                                {(sub.projects || sub.assignedProjects || []).length} Project{(sub.projects || sub.assignedProjects || []).length === 1 ? "" : "s"}
                                                             </span>
                                                             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
                                                                 <StoreIcon className="size-3" />
-                                                                {(sub.assignedStores || []).length} Stores
+                                                                {(sub.stores || sub.assignedStores || []).length} Store{(sub.stores || sub.assignedStores || []).length === 1 ? "" : "s"}
                                                             </span>
+                                                            {sub.documents && sub.documents.length > 0 && (
+                                                                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg inline-flex items-center gap-1" title={`${sub.documents.length} Document(s) attached`}>
+                                                                    <FileText className="size-3" />
+                                                                    {sub.documents.length} Doc{sub.documents.length === 1 ? "" : "s"}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
@@ -1215,10 +1238,23 @@ export function UsersPage() {
                                                     {/* Contact */}
                                                     <td className="px-6 py-4">
                                                         <div className="space-y-0.5">
-                                                            <p className="text-xs font-mono font-medium text-foreground flex items-center gap-1.5">
-                                                                <PhoneIcon className="size-3 text-muted-foreground" />
-                                                                +91 {guest.phone}
-                                                            </p>
+                                                            <div className="flex items-center gap-1.5 group/phone">
+                                                                <p className="text-xs font-mono font-medium text-foreground flex items-center gap-1.5">
+                                                                    <PhoneIcon className="size-3 text-muted-foreground" />
+                                                                    +91 {guest.phone}
+                                                                </p>
+                                                                <button
+                                                                    type="button"
+                                                                    title="Copy 10-digit mobile number"
+                                                                    onClick={() => {
+                                                                        navigator.clipboard.writeText(guest.phone);
+                                                                        toast.success(`Copied mobile number: ${guest.phone}`);
+                                                                    }}
+                                                                    className="opacity-0 group-hover/phone:opacity-100 p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                                                                >
+                                                                    <Copy className="size-3" />
+                                                                </button>
+                                                            </div>
                                                             {guest.email && (
                                                                 <p className="text-[11px] text-muted-foreground truncate max-w-[180px]">
                                                                     {guest.email}
