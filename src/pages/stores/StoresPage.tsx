@@ -96,10 +96,10 @@ export function StoresPage() {
 
         if (isNameField) {
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 font-bold text-foreground">
+                <td key={field.id || field.name || index} className="px-3.5 py-2 font-bold text-xs text-foreground">
                     {rawValue}
                     {store.type && (
-                        <span className="ml-2 inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
+                        <span className="ml-2 inline-flex items-center rounded-md bg-secondary px-1.5 py-0.2 text-[9px] font-medium text-secondary-foreground">
                             {store.type}
                         </span>
                     )}
@@ -109,9 +109,9 @@ export function StoresPage() {
 
         if (isLocationField) {
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 text-muted-foreground">
+                <td key={field.id || field.name || index} className="px-3.5 py-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
-                        <MapPinIcon className="size-3.5 text-muted-foreground/70 shrink-0" />
+                        <MapPinIcon className="size-3 text-muted-foreground/70 shrink-0" />
                         <span>{rawValue || "N/A"}</span>
                     </div>
                 </td>
@@ -120,7 +120,7 @@ export function StoresPage() {
 
         if (isManagerField) {
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 font-medium text-foreground">
+                <td key={field.id || field.name || index} className="px-3.5 py-2 text-xs font-medium text-foreground">
                     {rawValue || "Unassigned"}
                 </td>
             );
@@ -147,9 +147,9 @@ export function StoresPage() {
             };
 
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 font-medium text-foreground">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-foreground font-mono text-xs border border-border/40">
-                        <CalendarIcon className="size-3.5 text-primary shrink-0" />
+                <td key={field.id || field.name || index} className="px-3.5 py-2 text-xs font-medium text-foreground">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/60 text-foreground font-mono text-[11px] border border-border/40">
+                        <CalendarIcon className="size-3 text-primary shrink-0" />
                         <span>{formatDateDisplay(String(rawValue))}</span>
                     </div>
                 </td>
@@ -166,7 +166,7 @@ export function StoresPage() {
         }
 
         return (
-            <td key={field.id || field.name || index} className="px-6 py-4 font-medium text-foreground">
+            <td key={field.id || field.name || index} className="px-3.5 py-2 text-xs font-medium text-foreground">
                 {displayValue || "-"}
             </td>
         );
@@ -269,8 +269,6 @@ export function StoresPage() {
         }
     };
 
-    const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden";
-
     if (isProjectRestricted) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-6">
@@ -300,15 +298,19 @@ export function StoresPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 w-full mx-auto p-2 pb-10">
-            <div className="flex items-center justify-between pt-2">
-                <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">Stores</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">Inventory and location overview.</p>
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1.5 border-b border-border/40">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
+                        <StoreIcon className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">Stores</h1>
+                    </div>
                 </div>
                 {(!user || user.role === "Admin") && (
-                    <Button className="gap-2 rounded-xl shadow-md cursor-pointer" size="lg" onClick={() => { setEditingStore(null); setIsFormOpen(true); }}>
-                        <PlusIcon className="size-4" />
+                    <Button className="gap-1.5 rounded-lg h-7.5 px-2.5 text-[11px] font-semibold shadow-xs cursor-pointer" size="sm" onClick={() => { setEditingStore(null); setIsFormOpen(true); }}>
+                        <PlusIcon className="size-3.5" />
                         Add Store
                     </Button>
                 )}
@@ -330,48 +332,48 @@ export function StoresPage() {
             />
 
             {/* Table card */}
-            <Card className={`${bentoCardClass} flex flex-col mt-2`}>
-                <CardHeader className="flex flex-row items-center gap-4 border-b border-border/50 bg-muted/20 px-6 py-5">
+            <Card className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-md shadow-xs overflow-hidden flex flex-col">
+                <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50 bg-muted/20 px-4 py-2.5">
                     <div className="flex-1">
-                        <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                            <StoreIcon className="size-5 text-primary" />
+                        <CardTitle className="flex items-center gap-1.5 text-xs sm:text-sm font-bold">
+                            <StoreIcon className="size-4 text-primary" />
                             Store Locations
                         </CardTitle>
                     </div>
-                    <div className="relative w-64">
-                        <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                    <div className="relative w-56">
+                        <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
                         <Input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search stores..."
-                            className="pl-9 h-9 rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30"
+                            className="pl-8 h-7.5 text-xs rounded-lg border-border/50 bg-background/50 focus-visible:ring-primary/30"
                         />
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="size-8 animate-spin text-primary" />
+                        <div className="flex items-center justify-center py-10">
+                            <Loader2 className="size-6 animate-spin text-primary" />
                         </div>
                     ) : filteredStores.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <StoreIcon className="size-12 mx-auto mb-3 opacity-50" />
-                            <p className="font-medium">No stores found.</p>
+                        <div className="text-center py-10 text-muted-foreground">
+                            <StoreIcon className="size-10 mx-auto mb-2 opacity-50" />
+                            <p className="font-medium text-xs">No stores found.</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                            <table className="w-full text-xs">
                                 <thead>
                                     <tr className="border-b border-border/50 bg-muted/10">
                                         {activeFields.map((field, idx) => (
                                             <th
                                                 key={field.id || field.name || idx}
-                                                className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider whitespace-nowrap"
+                                                className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider whitespace-nowrap"
                                             >
                                                 {field.label || field.name}
                                             </th>
                                         ))}
-                                        <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider whitespace-nowrap">
+                                        <th className="text-right px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider whitespace-nowrap">
                                             Actions
                                         </th>
                                     </tr>
@@ -399,14 +401,14 @@ export function StoresPage() {
                                         >
                                             {activeFields.map((field, idx) => renderCellContent(store, field, idx))}
                                             <td
-                                                className="px-6 py-4 text-right whitespace-nowrap"
+                                                className="px-3.5 py-2 text-right whitespace-nowrap"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
-                                                <div className="flex items-center justify-end gap-2">
+                                                <div className="flex items-center justify-end gap-1.5">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-8 px-2.5 text-xs font-semibold hover:bg-primary/10 hover:text-primary cursor-pointer"
+                                                        className="h-7 px-2 text-[11px] font-semibold hover:bg-primary/10 hover:text-primary cursor-pointer"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (projectId) {

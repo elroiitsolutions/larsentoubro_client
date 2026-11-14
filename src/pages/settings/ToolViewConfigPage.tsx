@@ -160,94 +160,82 @@ export function ToolViewConfigPage() {
     const filteredFields = fields
 
     return (
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full py-4 px-2 sm:px-6">
-            <div className="w-full space-y-6 pb-12">
-                
-                {/* Header Title Section */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
-                            <span className="p-2 rounded-xl bg-primary/10 text-primary">
-                                <Sliders className="size-5" />
-                            </span>
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
+            {/* Header Title Section */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2.5">
+                    <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                        <Sliders className="size-4" />
+                    </span>
+                    <div>
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
                             {pageTitle}
                         </h1>
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
+                            {pageDescription}
+                        </p>
                     </div>
-
-                    <Button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="rounded-xl h-10 px-6 gap-2 font-bold shadow-md cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground"
-                    >
-                        <SaveIcon className="size-4" />
-                        {saving ? "Saving..." : "Save Layout Settings"}
-                    </Button>
                 </div>
 
-                {/* Category Navigation Tabs */}
-                {/* <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/50 flex flex-wrap items-center gap-1.5">
-                    <button
-                        onClick={() => setActiveTab("all")}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            activeTab === "all" 
-                                ? "bg-primary text-primary-foreground shadow-xs" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-                        }`}
-                    >
-                        All Fields ({fields.length})
-                    </button>
-                </div> */}
-
-                {/* Main Card Container */}
-                <Card className="border border-border/60 shadow-md bg-card rounded-3xl overflow-hidden">
-                    <CardContent className="p-0">
-                        
-                        {/* "Select All" Top Banner Bar */}
-                        <div className="bg-blue-50/80 dark:bg-blue-950/40 px-6 py-4 border-b border-blue-100 dark:border-blue-900 flex items-center justify-between">
-                            <span className="text-sm font-extrabold text-foreground tracking-tight">
-                                Select All Fields (Quick View)
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-muted-foreground">
-                                    {allVisible ? "All Visible" : "Custom Selection"}
-                                </span>
-                                <ToggleSwitch 
-                                    checked={allVisible} 
-                                    onCheckedChange={handleToggleSelectAll} 
-                                />
-                            </div>
-                        </div>
-
-                        {/* 4-Column Grid of Fields */}
-                        {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary mb-3" />
-                                <p className="text-xs font-medium">Loading field configuration...</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-5 gap-x-8 p-6">
-                                {filteredFields.map((field) => {
-                                    const isVisible = !field.disabled
-                                    return (
-                                        <div 
-                                            key={field.id || field.name}
-                                            className="flex items-center justify-between gap-3 p-1 hover:bg-muted/30 rounded-xl transition-colors"
-                                        >
-                                            <span className="text-xs font-bold text-foreground/90 leading-tight truncate">
-                                                {field.label}
-                                            </span>
-                                            <ToggleSwitch 
-                                                checked={isVisible}
-                                                onCheckedChange={(val) => handleToggleField(field.name, val)}
-                                            />
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="rounded-lg h-7.5 px-3 text-[11px] gap-1.5 font-semibold shadow-xs cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                    <SaveIcon className="size-3.5" />
+                    {saving ? "Saving..." : "Save Layout Settings"}
+                </Button>
             </div>
+
+            {/* Main Card Container */}
+            <Card className="border border-border/60 shadow-2xs bg-card rounded-xl overflow-hidden">
+                <CardContent className="p-0">
+                    
+                    {/* "Select All" Top Banner Bar */}
+                    <div className="bg-blue-50/80 dark:bg-blue-950/40 px-3.5 py-2.5 border-b border-blue-100 dark:border-blue-900 flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground tracking-tight">
+                            Select All Fields (Quick View)
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-semibold text-muted-foreground">
+                                {allVisible ? "All Visible" : "Custom Selection"}
+                            </span>
+                            <ToggleSwitch 
+                                checked={allVisible} 
+                                onCheckedChange={handleToggleSelectAll} 
+                            />
+                        </div>
+                    </div>
+
+                    {/* 4-Column Grid of Fields */}
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                            <div className="size-6 animate-spin rounded-full border-3 border-primary/20 border-t-primary mb-2" />
+                            <p className="text-xs font-medium">Loading field configuration...</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-3.5 gap-x-6 p-4">
+                            {filteredFields.map((field) => {
+                                const isVisible = !field.disabled
+                                return (
+                                    <div 
+                                        key={field.id || field.name}
+                                        className="flex items-center justify-between gap-2.5 p-1 hover:bg-muted/30 rounded-lg transition-colors"
+                                    >
+                                        <span className="text-xs font-bold text-foreground/90 leading-tight truncate">
+                                            {field.label}
+                                        </span>
+                                        <ToggleSwitch 
+                                            checked={isVisible}
+                                            onCheckedChange={(val) => handleToggleField(field.name, val)}
+                                        />
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     )
 }

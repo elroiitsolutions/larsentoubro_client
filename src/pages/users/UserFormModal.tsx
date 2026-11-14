@@ -260,18 +260,18 @@ export function UserFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-xl">
                 {/* Header */}
-                <DialogHeader className="px-6 py-5 border-b border-border/60 bg-muted/20 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                            <UserPlusIcon className="size-6" />
+                <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                            <UserPlusIcon className="size-4.5" />
                         </div>
                         <div>
-                            <DialogTitle className="text-xl font-bold text-foreground">
+                            <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
                                 {isEdit ? "Edit Internal User / Admin" : "Create Internal User / Admin"}
                             </DialogTitle>
-                            <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                            <DialogDescription className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                                 {isEdit
                                     ? "Update member profile details. For permissions, use the Manage Access page."
                                     : "Register internal application user. Upon saving, you can configure Page, Project & Store permissions."}
@@ -283,21 +283,21 @@ export function UserFormModal({
                 {/* Form Body */}
                 <form
                     onSubmit={handleSubmit}
-                    className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6"
+                    className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4"
                 >
-                    <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
-                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                            <UserIcon className="size-4 text-primary" />
-                            Internal Member Identity & Profile
+                    <div className="bg-card border border-border/60 rounded-xl p-3.5 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                        <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40">
+                            <UserIcon className="size-3.5 text-primary" />
+                            <span>Internal Member Identity & Profile</span>
                         </h3>
 
                         {loadingForm ? (
                             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                                <Loader2 className="size-6 animate-spin text-primary mb-2" />
+                                <Loader2 className="size-5 animate-spin text-primary mb-1.5" />
                                 <p className="text-xs font-medium">Loading form configuration...</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
                                 {displayFields.map((field) => {
                                     const isRequired = Boolean(field.required) || Boolean(field.validations?.some((v: any) => v.type === "required"))
                                     const fieldKey = field.name || field.id
@@ -307,14 +307,14 @@ export function UserFormModal({
                                     if (field.name === "role" || field.id === "role") {
                                         return (
                                             <div key={field.id || field.name} className="md:col-span-2">
-                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                     {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                                 </label>
                                                 <Select
                                                     value={formData.role || "User"}
                                                     onValueChange={(val: any) => handleFieldChange("role", val)}
                                                 >
-                                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
+                                                    <SelectTrigger className="h-7.5 sm:h-8 w-full rounded-lg bg-background border-border/70 text-xs font-semibold px-2.5">
                                                         <SelectValue placeholder="Select a role" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -332,7 +332,7 @@ export function UserFormModal({
                                                         })}
                                                     </SelectContent>
                                                 </Select>
-                                                <div className="mt-2 p-2.5 rounded-xl border bg-muted/20 text-xs">
+                                                <div className="mt-1.5 p-2 rounded-lg border bg-muted/20 text-[10.5px]">
                                                     {formData.role === "Admin" ? (
                                                         <p className="text-blue-600 dark:text-blue-400 font-medium">
                                                             <span className="font-bold">Admin:</span> Unrestricted access across all Projects, Stores, Tools, Reports, and System Settings.
@@ -351,14 +351,14 @@ export function UserFormModal({
                                     if (field.name === "status" || field.id === "status") {
                                         return (
                                             <div key={field.id || field.name}>
-                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                     {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                                 </label>
                                                 <Select
                                                     value={formData.status || "Active"}
                                                     onValueChange={(val: any) => handleFieldChange("status", val)}
                                                 >
-                                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-semibold">
+                                                    <SelectTrigger className="h-7.5 sm:h-8 w-full rounded-lg bg-background border-border/70 text-xs font-semibold px-2.5">
                                                         <SelectValue placeholder="Select status" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -384,18 +384,18 @@ export function UserFormModal({
                                     if (field.name === "user_id" || field.id === "user_id") {
                                         return (
                                             <div key={field.id || field.name}>
-                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                     {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                                 </label>
                                                 <Input
                                                     value={formData.user_id || ""}
                                                     onChange={(e) => handleFieldChange("user_id", e.target.value)}
                                                     placeholder={field.placeholder?.trim() || "e.g. EMP-10492"}
-                                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono font-medium"
+                                                    className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-mono font-medium px-2.5"
                                                     disabled={isEdit}
                                                 />
                                                 {isEdit && (
-                                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                                    <p className="text-[9.5px] text-muted-foreground mt-0.5">
                                                         User ID is locked after initial registration.
                                                     </p>
                                                 )}
@@ -407,14 +407,14 @@ export function UserFormModal({
                                     if (field.type === "select") {
                                         return (
                                             <div key={field.id || field.name}>
-                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                     {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                                 </label>
                                                 <Select
                                                     value={value || ""}
                                                     onValueChange={(val) => handleFieldChange(fieldKey, val)}
                                                 >
-                                                    <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-medium">
+                                                    <SelectTrigger className="h-7.5 sm:h-8 w-full rounded-lg bg-background border-border/70 text-xs font-medium px-2.5">
                                                         <SelectValue placeholder={field.placeholder?.trim() || undefined} />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -437,14 +437,14 @@ export function UserFormModal({
                                     if (field.type === "textarea") {
                                         return (
                                             <div key={field.id || field.name} className="md:col-span-2">
-                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                     {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                                 </label>
                                                 <Textarea
                                                     value={value || ""}
                                                     onChange={(e) => handleFieldChange(fieldKey, e.target.value)}
                                                     placeholder={field.placeholder?.trim() || undefined}
-                                                    className="min-h-[80px] rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                    className="min-h-[60px] rounded-lg bg-background border-border/70 text-xs font-medium p-2"
                                                 />
                                             </div>
                                         )
@@ -454,7 +454,7 @@ export function UserFormModal({
                                     if (field.type === "number") {
                                         return (
                                             <div key={field.id || field.name}>
-                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                     {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                                 </label>
                                                 <Input
@@ -462,7 +462,7 @@ export function UserFormModal({
                                                     value={value ?? ""}
                                                     onChange={(e) => handleFieldChange(fieldKey, e.target.value === "" ? "" : Number(e.target.value))}
                                                     placeholder={field.placeholder?.trim() || undefined}
-                                                    className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                    className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                                 />
                                             </div>
                                         )
@@ -473,7 +473,7 @@ export function UserFormModal({
                                     if (fieldTypeLower === "date" || fieldTypeLower === "calendar" || fieldTypeLower === "calender") {
                                         return (
                                             <div key={field.id || field.name}>
-                                                <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                     {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                                 </label>
                                                 <DatePickerField
@@ -481,6 +481,7 @@ export function UserFormModal({
                                                     value={value || ""}
                                                     onChange={(val) => handleFieldChange(fieldKey, val)}
                                                     placeholder={field.placeholder?.trim()}
+                                                    className="h-7.5 sm:h-8 text-xs font-medium rounded-lg"
                                                 />
                                             </div>
                                         )
@@ -491,7 +492,7 @@ export function UserFormModal({
                                     const isPhoneField = field.name === "phonenumber" || field.id === "phonenumber" || field.name?.toLowerCase().includes("phone")
                                     return (
                                         <div key={field.id || field.name} className={isFullWidth ? "md:col-span-2" : ""}>
-                                            <label className="text-xs font-bold text-foreground block mb-1.5">
+                                            <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                 {field.label} {isRequired && <span className="text-rose-500">*</span>}
                                             </label>
                                             <Input
@@ -506,7 +507,7 @@ export function UserFormModal({
                                                      field.name === "email" || field.id === "email" ? "e.g. rajesh.k@larsentoubro.com" :
                                                      isPhoneField ? "e.g. 9876543210" : undefined)
                                                 }
-                                                className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                             />
                                         </div>
                                     )
@@ -515,21 +516,21 @@ export function UserFormModal({
                         )}
                     </div>
 
-                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-start gap-3">
-                        <ShieldCheckIcon className="size-5 text-primary shrink-0 mt-0.5" />
-                        <div className="text-xs text-muted-foreground leading-relaxed">
+                    <div className="p-2.5 sm:p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-start gap-2.5">
+                        <ShieldCheckIcon className="size-4 text-primary shrink-0 mt-0.5" />
+                        <div className="text-[11px] text-muted-foreground leading-relaxed">
                             <span className="font-bold text-foreground">Next Step:</span> Upon saving, you will be directed to <span className="font-semibold text-primary">Manage Access & Permissions</span> to configure Project assignments, Store access, and Page permissions.
                         </div>
                     </div>
                 </form>
 
                 {/* Footer Action Bar */}
-                <div className="p-4 border-t border-border/60 bg-muted/30 flex items-center justify-end gap-3 shrink-0">
+                <div className="p-2.5 sm:px-5 sm:py-3 border-t border-border/60 bg-muted/30 flex items-center justify-end gap-2 sm:gap-2.5 shrink-0">
                     <Button
                         type="button"
                         variant="outline"
                         onClick={onClose}
-                        className="h-10 rounded-xl px-5 font-semibold cursor-pointer"
+                        className="h-8 rounded-lg px-4 font-semibold text-xs cursor-pointer"
                         disabled={saving}
                     >
                         Cancel
@@ -537,12 +538,12 @@ export function UserFormModal({
                     <Button
                         type="button"
                         onClick={handleSubmit}
-                        className="h-10 rounded-xl px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 gap-2 cursor-pointer shadow-sm"
+                        className="h-8 rounded-lg px-4.5 font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 cursor-pointer shadow-2xs"
                         disabled={saving}
                     >
-                        {saving && <Loader2 className="size-4 animate-spin" />}
+                        {saving && <Loader2 className="size-3.5 animate-spin" />}
                         <span>{isEdit ? "Update Member Profile" : "Create & Configure Access"}</span>
-                        <ArrowRightIcon className="size-4" />
+                        <ArrowRightIcon className="size-3.5" />
                     </Button>
                 </div>
             </DialogContent>

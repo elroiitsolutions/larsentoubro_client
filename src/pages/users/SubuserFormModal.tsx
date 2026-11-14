@@ -380,21 +380,21 @@ export function SubuserFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent hideClose={true} className="w-[calc(100%-1rem)] sm:w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl">
+            <DialogContent hideClose={true} className="w-[calc(100%-1rem)] sm:w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-xl">
                 {/* Header */}
-                <DialogHeader className="p-3.5 sm:px-6 sm:py-4 border-b border-border/60 bg-muted/20 shrink-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <DialogHeader className="p-3 sm:px-5 sm:py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
                         {/* Title & Icon (with mobile-only close button) */}
-                        <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 min-w-0">
-                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                                <div className="p-2 sm:p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
-                                    <UserPlusIcon className="size-5 sm:size-6" />
+                        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 min-w-0">
+                            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                                <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
+                                    <UserPlusIcon className="size-4 sm:size-4.5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <DialogTitle className="text-base sm:text-xl font-bold text-foreground truncate">
+                                    <DialogTitle className="text-sm sm:text-base font-bold text-foreground truncate">
                                         {isEdit ? "Edit Subuser" : "Create New Subuser"}
                                     </DialogTitle>
-                                    <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-relaxed truncate">
+                                    <DialogDescription className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed truncate">
                                         Subusers operate strictly within your account scope. All logins require parent approval.
                                     </DialogDescription>
                                 </div>
@@ -407,18 +407,18 @@ export function SubuserFormModal({
                                 className="sm:hidden rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
                                 aria-label="Close modal"
                             >
-                                <X className="size-5" />
+                                <X className="size-4" />
                             </button>
                         </div>
 
                         {/* Navigation Tabs & Desktop Close / Cancel (✕) button */}
-                        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
+                        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
                             {/* Navigation Tabs */}
-                            <div className="flex items-center gap-1 bg-muted/80 p-1 rounded-xl w-full sm:w-auto shrink-0 border border-border/50">
+                            <div className="flex items-center gap-1 bg-muted/80 p-0.5 rounded-lg w-full sm:w-auto shrink-0 border border-border/50">
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab("details")}
-                                    className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                                    className={`flex-1 sm:flex-initial px-2.5 py-1 rounded-md text-[11px] font-bold transition-all text-center cursor-pointer ${
                                         activeTab === "details"
                                             ? "bg-background text-foreground shadow-xs"
                                             : "text-muted-foreground hover:text-foreground"
@@ -429,13 +429,13 @@ export function SubuserFormModal({
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab("documents")}
-                                    className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                    className={`flex-1 sm:flex-initial px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                                         activeTab === "documents"
                                             ? "bg-background text-foreground shadow-xs"
                                             : "text-muted-foreground hover:text-foreground"
                                     }`}
                                 >
-                                    <FileText className="size-3.5" />
+                                    <FileText className="size-3" />
                                     <span>Documents</span>
                                     {totalDocsCount > 0 && (
                                         <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px] font-extrabold">
@@ -450,57 +450,57 @@ export function SubuserFormModal({
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                                    className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                                     aria-label="Close modal"
                                     title="Close"
                                 >
-                                    <X className="size-4" />
+                                    <X className="size-3.5" />
                                 </button>
                             </div>
                         </div>
                     </div>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
+                <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 space-y-3.5 sm:space-y-4">
                     {activeTab === "details" && (
-                        <div className="space-y-6">
+                        <div className="space-y-3.5 sm:space-y-4">
                             {/* Account Details */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                                    <UserIcon className="size-4 text-primary" />
-                                    Subuser Credentials & Profile
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40">
+                                    <UserIcon className="size-3.5 text-primary" />
+                                    <span>Subuser Credentials & Profile</span>
                                 </h3>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Full Name <span className="text-rose-500">*</span>
                                         </label>
                                         <Input
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             placeholder="e.g. Suresh Patel"
-                                            className="h-10 rounded-xl text-xs font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                             required
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Subuser ID / Code <span className="text-rose-500">*</span>
                                         </label>
                                         <Input
                                             value={userId}
                                             onChange={(e) => setUserId(e.target.value)}
                                             placeholder="e.g. SUB-1042"
-                                            className="h-10 rounded-xl font-mono text-xs font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 font-mono text-xs font-medium px-2.5"
                                             required
                                             disabled={isEdit}
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Email Address (Login Username) <span className="text-rose-500">*</span>
                                         </label>
                                         <Input
@@ -508,20 +508,20 @@ export function SubuserFormModal({
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="e.g. suresh.sub@larsentoubro.com"
-                                            className="h-10 rounded-xl text-xs font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                             required
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Phone Number <span className="text-rose-500">*</span>
                                         </label>
                                         <Input
                                             value={phone}
                                             onChange={(e) => setPhone(e.target.value)}
                                             placeholder="e.g. +91 98765 43210"
-                                            className="h-10 rounded-xl text-xs font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                             required
                                         />
                                     </div>
@@ -529,14 +529,14 @@ export function SubuserFormModal({
                             </div>
 
                             {/* Page Permissions Hierarchy */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/40">
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1.5 border-b border-border/40">
                                     <div>
-                                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                                            <LayoutDashboardIcon className="size-4 text-primary" />
-                                            Allowed Pages ({allowedPages.length} of {parentAllowedPages.length} Granted)
+                                        <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                            <LayoutDashboardIcon className="size-3.5 text-primary" />
+                                            <span>Allowed Pages ({allowedPages.length} of {parentAllowedPages.length} Granted)</span>
                                         </h3>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
                                             Only pages authorized for your account are displayed. Select which pages this subuser can access.
                                         </p>
                                     </div>
@@ -551,38 +551,38 @@ export function SubuserFormModal({
                                                 setAllowedPages(parentAllowedPages.map(p => p.url))
                                             }
                                         }}
-                                        className="h-7 text-xs font-semibold rounded-lg cursor-pointer self-start sm:self-auto"
+                                        className="h-6.5 text-[11px] px-2 font-semibold rounded-md cursor-pointer self-start sm:self-auto"
                                     >
                                         {allowedPages.length === parentAllowedPages.length ? "Revoke All" : "Grant All Available"}
                                     </Button>
                                 </div>
 
                                 {parentAllowedPages.length === 0 ? (
-                                    <div className="p-4 bg-muted/30 rounded-xl text-xs text-muted-foreground text-center">
+                                    <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground text-center">
                                         No authorized pages found on parent account.
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                                         {parentAllowedPages.map((page) => {
                                             const isChecked = allowedPages.includes(page.url)
                                             return (
                                                 <div
                                                     key={page.url}
                                                     onClick={() => togglePage(page.url)}
-                                                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                                                    className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
                                                         isChecked
-                                                            ? "bg-primary/10 border-primary text-foreground shadow-xs"
+                                                            ? "bg-primary/10 border-primary text-foreground shadow-2xs"
                                                             : "bg-background border-border text-muted-foreground hover:border-border hover:text-foreground"
                                                     }`}
                                                 >
-                                                    <div className={`size-4 rounded-md flex items-center justify-center border shrink-0 ${
+                                                    <div className={`size-3.5 rounded-sm flex items-center justify-center border shrink-0 ${
                                                         isChecked ? "bg-primary border-primary text-white" : "border-border bg-background"
                                                     }`}>
-                                                        {isChecked && <CheckIcon className="size-3" />}
+                                                        {isChecked && <CheckIcon className="size-2.5" />}
                                                     </div>
                                                     <div className="min-w-0 flex-1">
-                                                        <p className="text-xs font-bold truncate text-foreground">{page.title}</p>
-                                                        <p className="text-[10px] text-muted-foreground truncate">{page.desc}</p>
+                                                        <p className="text-[11px] font-bold truncate text-foreground">{page.title}</p>
+                                                        <p className="text-[9.5px] text-muted-foreground truncate">{page.desc}</p>
                                                     </div>
                                                 </div>
                                             )
@@ -592,17 +592,17 @@ export function SubuserFormModal({
                             </div>
 
                             {/* Operational Permissions: Inspection Access */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                                    <ClipboardCheck className="size-4 text-emerald-600" />
-                                    Inspection Operational Access
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5">
+                                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40">
+                                    <ClipboardCheck className="size-3.5 text-emerald-600" />
+                                    <span>Inspection Operational Access</span>
                                 </h3>
 
                                 <div
                                     onClick={() => {
                                         if (parentHasInspection) setHasInspectionAccess(prev => !prev)
                                     }}
-                                    className={`flex items-center justify-between gap-4 p-3.5 rounded-xl border transition-all ${
+                                    className={`flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-lg border transition-all ${
                                         !parentHasInspection ? "cursor-not-allowed opacity-60 bg-muted/20" : "cursor-pointer hover:border-border"
                                     } ${
                                         hasInspectionAccess && parentHasInspection
@@ -610,28 +610,28 @@ export function SubuserFormModal({
                                             : "bg-background border-border"
                                     }`}
                                 >
-                                    <div className="flex items-start gap-3">
-                                        <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 border ${
+                                    <div className="flex items-start gap-2.5">
+                                        <div className={`size-7 rounded-md flex items-center justify-center shrink-0 border ${
                                             hasInspectionAccess && parentHasInspection
                                                 ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/40"
                                                 : "bg-muted text-muted-foreground border-border"
                                         }`}>
-                                            <ClipboardCheck className="size-4" />
+                                            <ClipboardCheck className="size-3.5" />
                                         </div>
                                         <div>
-                                            <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
+                                            <h4 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
                                                 Grant Tool Inspection Access
                                                 {hasInspectionAccess && parentHasInspection && (
-                                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600">
+                                                    <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600">
                                                         Enabled
                                                     </span>
                                                 )}
                                             </h4>
-                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                            <p className="text-[10.5px] text-muted-foreground mt-0.5">
                                                 Allows subuser to execute tool inspections (Pass/Fail) and route items to Repair or Scrap.
                                             </p>
                                             {!parentHasInspection && (
-                                                <p className="text-[11px] text-rose-500 font-medium mt-1 flex items-center gap-1">
+                                                <p className="text-[10px] text-rose-500 font-medium mt-1 flex items-center gap-1">
                                                     <AlertCircle className="size-3" />
                                                     You do not have Inspection access, so you cannot grant it to subusers.
                                                 </p>
@@ -643,27 +643,27 @@ export function SubuserFormModal({
                                         checked={hasInspectionAccess && parentHasInspection}
                                         disabled={!parentHasInspection}
                                         onChange={(e) => setHasInspectionAccess(e.target.checked)}
-                                        className="size-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer disabled:cursor-not-allowed"
+                                        className="size-3.5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer disabled:cursor-not-allowed"
                                     />
                                 </div>
                             </div>
 
                             {/* Scope Assignment: Projects & Stores */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center justify-between pb-2 border-b border-border/40">
-                                    <span className="flex items-center gap-2">
-                                        <FolderOpenIcon className="size-4 text-primary" />
-                                        Inventory Scope (Projects & Stores)
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <h3 className="text-xs font-bold text-foreground flex items-center justify-between pb-1.5 border-b border-border/40">
+                                    <span className="flex items-center gap-1.5">
+                                        <FolderOpenIcon className="size-3.5 text-primary" />
+                                        <span>Inventory Scope (Projects & Stores)</span>
                                     </span>
-                                    {loadingData && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                                    {loadingData && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
                                 </h3>
 
                                 {/* Projects selection */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-foreground block">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-semibold text-foreground/90 block">
                                         Assigned Projects ({selectedProjects.length} of {parentAllowedProjects.length} Selected)
                                     </label>
-                                    <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1">
+                                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
                                         {parentAllowedProjects.map((p) => {
                                             const isSel = selectedProjects.includes(p._id)
                                             return (
@@ -671,9 +671,9 @@ export function SubuserFormModal({
                                                     type="button"
                                                     key={p._id}
                                                     onClick={() => toggleProject(p._id)}
-                                                    className={`text-xs px-3 py-1.5 rounded-xl border font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                    className={`text-xs px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                                                         isSel
-                                                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                                            ? "bg-primary text-primary-foreground border-primary shadow-2xs"
                                                             : "bg-background text-muted-foreground border-border hover:border-primary/50"
                                                     }`}
                                                 >
@@ -683,17 +683,17 @@ export function SubuserFormModal({
                                             )
                                         })}
                                         {parentAllowedProjects.length === 0 && (
-                                            <p className="text-xs text-muted-foreground italic">No projects available under your account.</p>
+                                            <p className="text-[11px] text-muted-foreground italic">No projects available under your account.</p>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Stores selection */}
-                                <div className="space-y-2 pt-2 border-t border-border/40">
-                                    <label className="text-xs font-bold text-foreground block">
+                                <div className="space-y-1.5 pt-1.5 border-t border-border/40">
+                                    <label className="text-[11px] font-semibold text-foreground/90 block">
                                         Assigned Stores ({selectedStores.length} of {parentAllowedStores.length} Selected)
                                     </label>
-                                    <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1">
+                                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
                                         {parentAllowedStores.map((s) => {
                                             const isSel = selectedStores.includes(s._id)
                                             return (
@@ -701,9 +701,9 @@ export function SubuserFormModal({
                                                     type="button"
                                                     key={s._id}
                                                     onClick={() => toggleStore(s._id)}
-                                                    className={`text-xs px-3 py-1.5 rounded-xl border font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                    className={`text-xs px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                                                         isSel
-                                                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                                                            ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
                                                             : "bg-background text-muted-foreground border-border hover:border-emerald-500/50"
                                                     }`}
                                                 >
@@ -713,35 +713,35 @@ export function SubuserFormModal({
                                             )
                                         })}
                                         {parentAllowedStores.length === 0 && (
-                                            <p className="text-xs text-muted-foreground italic">No stores available under assigned projects.</p>
+                                            <p className="text-[11px] text-muted-foreground italic">No stores available under assigned projects.</p>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2.5">
-                                <ShieldCheckIcon className="size-4 shrink-0" />
+                            <div className="p-2.5 sm:p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[11px] text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                                <ShieldCheckIcon className="size-3.5 shrink-0" />
                                 <span>Subuser login requests will be sent directly to your account for review and approval.</span>
                             </div>
                         </div>
                     )}
 
                     {activeTab === "documents" && (
-                        <div className="space-y-6">
+                        <div className="space-y-3.5 sm:space-y-4">
                             {/* Card 1: Upload New Document */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                                    <UploadCloud className="size-4 text-primary" />
-                                    Upload New Document (Aadhaar, PAN, GST, Agreement, License)
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40">
+                                    <UploadCloud className="size-3.5 text-primary" />
+                                    <span>Upload New Document (Aadhaar, PAN, GST, Agreement, License)</span>
                                 </h3>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5">
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Document Category <span className="text-rose-500">*</span>
                                         </label>
                                         <Select value={docCategory} onValueChange={(val) => val && setDocCategory(val)}>
-                                            <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-medium">
+                                            <SelectTrigger className="h-7.5 sm:h-8 w-full rounded-lg bg-background border-border/70 text-xs font-medium px-2.5">
                                                 <SelectValue placeholder="Select Category" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -753,44 +753,44 @@ export function SubuserFormModal({
                                     </div>
 
                                     <div className="md:col-span-2">
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Document Title / Reference Name
                                         </label>
                                         <Input
                                             value={docTitle}
                                             onChange={(e) => setDocTitle(e.target.value)}
                                             placeholder="e.g. Aadhaar Card copy or Verification Document"
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                         />
                                     </div>
 
                                     <div className="md:col-span-3">
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Select Document File <span className="text-rose-500">*</span>
                                         </label>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2.5">
                                             <Input
                                                 type="file"
                                                 accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
                                                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                                                className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium flex-1 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                                                className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium flex-1 file:mr-3 file:py-0.5 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                                             />
                                             {isEdit && (
                                                 <Button
                                                     type="button"
                                                     onClick={handleUploadDocumentNow}
                                                     disabled={uploadingDoc || !selectedFile}
-                                                    className="w-full sm:w-auto h-10 rounded-xl px-4 font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 shadow-xs cursor-pointer flex items-center justify-center"
+                                                    className="w-full sm:w-auto h-7.5 sm:h-8 rounded-lg px-3 font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 shadow-2xs cursor-pointer flex items-center justify-center"
                                                 >
-                                                    {uploadingDoc ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
-                                                    Upload Document
+                                                    {uploadingDoc ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />}
+                                                    <span>Upload Document</span>
                                                 </Button>
                                             )}
                                         </div>
                                         {!isEdit && selectedFile && (
-                                            <p className="text-xs text-primary font-medium mt-1.5 flex items-center gap-1.5">
-                                                <CheckIcon className="size-3.5" />
-                                                File &ldquo;{selectedFile.name}&rdquo; selected. It will be uploaded automatically when you create the subuser.
+                                            <p className="text-[11px] text-primary font-medium mt-1 flex items-center gap-1.5">
+                                                <CheckIcon className="size-3" />
+                                                <span>File &ldquo;{selectedFile.name}&rdquo; selected. It will be uploaded automatically when you create the subuser.</span>
                                             </p>
                                         )}
                                     </div>
@@ -798,19 +798,19 @@ export function SubuserFormModal({
                             </div>
 
                             {/* Card 2: Associated Documents */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40 justify-between">
-                                    <span className="flex items-center gap-2">
-                                        <FileText className="size-4 text-primary" />
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40 justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <FileText className="size-3.5 text-primary" />
                                         Associated Documents ({displayDocuments.length})
                                     </span>
                                 </h3>
 
                                 {displayDocuments.length === 0 ? (
-                                    <div className="py-12 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl">
-                                        <UploadCloud className="size-10 mx-auto mb-2 opacity-30 text-primary" />
-                                        <p className="font-semibold text-sm">No documents attached yet.</p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                    <div className="py-8 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-lg">
+                                        <UploadCloud className="size-8 mx-auto mb-1.5 opacity-30 text-primary" />
+                                        <p className="font-semibold text-xs">No documents attached yet.</p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
                                             Upload Aadhaar, PAN, GST certificate, agreements, or trade licenses above.
                                         </p>
                                     </div>
@@ -821,50 +821,50 @@ export function SubuserFormModal({
                                             const isPending = Boolean(doc.isPending)
 
                                             return (
-                                                <div key={doc._id || i} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 first:pt-0 last:pb-0">
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-                                                            <FileText className="size-5" />
+                                                <div key={doc._id || i} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 first:pt-0 last:pb-0">
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                                                            <FileText className="size-4" />
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="font-bold text-sm text-foreground truncate">{doc.title || doc.originalName}</p>
-                                                                <span className="px-2 py-0.5 rounded-md bg-muted font-bold text-[10px] text-muted-foreground shrink-0 border border-border/50">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <p className="font-bold text-xs text-foreground truncate">{doc.title || doc.originalName}</p>
+                                                                <span className="px-1.5 py-0.2 rounded-md bg-muted font-bold text-[9.5px] text-muted-foreground shrink-0 border border-border/50">
                                                                     {doc.documentType || "Document"}
                                                                 </span>
                                                                 {isPending && (
-                                                                    <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] border border-amber-500/20">
+                                                                    <span className="px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[9.5px] border border-amber-500/20">
                                                                         Ready to Upload
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                                                                 {doc.originalName} • {doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : "File"} • {isPending ? "Will be uploaded on create" : `Uploaded ${doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "recently"}`}
                                                             </p>
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                                                    <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto">
                                                         {!isPending && fileUrl && (
                                                             <>
                                                                 <a
                                                                     href={fileUrl}
                                                                     target="_blank"
                                                                     rel="noreferrer"
-                                                                    className="h-8 px-2.5 rounded-lg border border-border/60 hover:bg-muted text-xs font-semibold flex items-center gap-1 transition-colors"
+                                                                    className="h-7 px-2 rounded-md border border-border/60 hover:bg-muted text-[11px] font-semibold flex items-center gap-1 transition-colors"
                                                                     title="View Document"
                                                                 >
-                                                                    <Eye className="size-3.5 text-primary" />
-                                                                    View
+                                                                    <Eye className="size-3 text-primary" />
+                                                                    <span>View</span>
                                                                 </a>
                                                                 <a
                                                                     href={fileUrl}
                                                                     download={doc.originalName || doc.title}
-                                                                    className="h-8 px-2.5 rounded-lg border border-border/60 hover:bg-muted text-xs font-semibold flex items-center gap-1 transition-colors"
+                                                                    className="h-7 px-2 rounded-md border border-border/60 hover:bg-muted text-[11px] font-semibold flex items-center gap-1 transition-colors"
                                                                     title="Download Document"
                                                                 >
-                                                                    <Download className="size-3.5 text-primary" />
-                                                                    Download
+                                                                    <Download className="size-3 text-primary" />
+                                                                    <span>Download</span>
                                                                 </a>
                               </>
                                                         )}
@@ -873,10 +873,10 @@ export function SubuserFormModal({
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleDeleteDocNow(doc._id, isPending)}
-                                                            className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                                            className="h-7 w-7 p-0 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                                                             title="Delete Document"
                                                         >
-                                                            <Trash2 className="size-4" />
+                                                            <Trash2 className="size-3.5" />
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -889,13 +889,13 @@ export function SubuserFormModal({
                     )}
                 </form>
 
-                <div className="p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-3 shrink-0">
+                <div className="p-2.5 sm:px-5 sm:py-3 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2 sm:gap-2.5 shrink-0">
                     <Button
                         type="button"
                         variant="outline"
                         onClick={onClose}
                         disabled={saving}
-                        className="rounded-xl text-xs font-semibold h-10 px-4 cursor-pointer"
+                        className="rounded-lg text-xs font-semibold h-8 px-4 cursor-pointer"
                     >
                         Cancel
                     </Button>
@@ -903,7 +903,7 @@ export function SubuserFormModal({
                         type="button"
                         onClick={handleSubmit}
                         disabled={saving}
-                        className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 cursor-pointer shadow-xs flex items-center"
+                        className="rounded-lg text-xs font-bold h-8 px-4.5 bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 cursor-pointer shadow-2xs flex items-center"
                     >
                         {saving ? (
                             <Loader2 className="size-3.5 animate-spin" />

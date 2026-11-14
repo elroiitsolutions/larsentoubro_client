@@ -63,7 +63,7 @@ export function DynamicGuestFields({
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {displayList.map((field: any, index: number) => {
                 const canonicalKey = getGuestFieldCanonicalKey(field);
                 const rawKey = field.name || field.id || field.label;
@@ -98,7 +98,7 @@ export function DynamicGuestFields({
 
                 // Label header element
                 const labelElement = (
-                    <label className="text-xs font-bold text-foreground block">
+                    <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                         {baseLabel} {isRequired ? <span className="text-rose-500">*</span> : <span className="text-muted-foreground font-normal">(Optional)</span>}
                     </label>
                 );
@@ -107,10 +107,10 @@ export function DynamicGuestFields({
                 const isPhone = field.type === "phone" || canonicalKey === "phone" || String(field.label).toLowerCase().includes("phone") || String(field.label).toLowerCase().includes("mobile");
                 if (isPhone) {
                     return (
-                        <div key={field.id || `field_${index}`} className="space-y-1.5">
+                        <div key={field.id || `field_${index}`}>
                             {labelElement}
-                            <div className={`flex rounded-xl border bg-background overflow-hidden focus-within:ring-2 focus-within:ring-primary/30 ${error ? "border-rose-500" : "border-input"}`}>
-                                <span className="px-3 py-2 bg-muted/40 border-r border-border text-xs font-mono font-medium text-muted-foreground flex items-center">
+                            <div className={`flex rounded-lg border bg-background overflow-hidden focus-within:ring-2 focus-within:ring-primary/30 h-7.5 sm:h-8 ${error ? "border-rose-500" : "border-input"}`}>
+                                <span className="px-2.5 bg-muted/40 border-r border-border text-xs font-mono font-medium text-muted-foreground flex items-center shrink-0">
                                     +91
                                 </span>
                                 <Input
@@ -128,10 +128,10 @@ export function DynamicGuestFields({
                                         const clean = cleanAndFormatIndianMobile(e.target.value);
                                         handleChange(clean);
                                     }}
-                                    className="border-0 focus-visible:ring-0 rounded-none h-10 text-xs font-mono"
+                                    className="border-0 focus-visible:ring-0 rounded-none h-full text-xs font-mono px-2.5"
                                 />
                             </div>
-                            {error && <p className="text-[11px] text-rose-500 font-medium">{error}</p>}
+                            {error && <p className="text-[10px] text-rose-500 font-medium mt-0.5">{error}</p>}
                         </div>
                     );
                 }
@@ -139,15 +139,15 @@ export function DynamicGuestFields({
                 // 2. Textarea (e.g. Purpose of Visit / Inspection)
                 if (field.type === "textarea") {
                     return (
-                        <div key={field.id || `field_${index}`} className="space-y-1.5">
+                        <div key={field.id || `field_${index}`}>
                             {labelElement}
                             <Textarea
                                 value={value || ""}
                                 onChange={(e) => handleChange(e.target.value)}
                                 placeholder={field.placeholder?.trim() || `Enter ${baseLabel.toLowerCase()}`}
-                                className={`min-h-[72px] rounded-xl text-xs bg-background ${error ? "border-rose-500" : ""}`}
+                                className={`min-h-[60px] rounded-lg text-xs bg-background p-2 ${error ? "border-rose-500" : ""}`}
                             />
-                            {error && <p className="text-[11px] text-rose-500 font-medium">{error}</p>}
+                            {error && <p className="text-[10px] text-rose-500 font-medium mt-0.5">{error}</p>}
                         </div>
                     );
                 }
@@ -156,13 +156,13 @@ export function DynamicGuestFields({
                 if (field.type === "select") {
                     const options = Array.isArray(field.options) ? field.options : [];
                     return (
-                        <div key={field.id || `field_${index}`} className="space-y-1.5">
+                        <div key={field.id || `field_${index}`}>
                             {labelElement}
                             <Select
                                 value={value ? String(value) : ""}
                                 onValueChange={(val) => handleChange(val)}
                             >
-                                <SelectTrigger className={`h-10 w-full rounded-xl bg-background text-xs font-medium ${error ? "border-rose-500" : ""}`}>
+                                <SelectTrigger className={`h-7.5 sm:h-8 w-full rounded-lg bg-background text-xs font-medium px-2.5 ${error ? "border-rose-500" : ""}`}>
                                     <SelectValue placeholder={field.placeholder?.trim() || `Select ${baseLabel.toLowerCase()}`} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -177,7 +177,7 @@ export function DynamicGuestFields({
                                     })}
                                 </SelectContent>
                             </Select>
-                            {error && <p className="text-[11px] text-rose-500 font-medium">{error}</p>}
+                            {error && <p className="text-[10px] text-rose-500 font-medium mt-0.5">{error}</p>}
                         </div>
                     );
                 }
@@ -185,16 +185,16 @@ export function DynamicGuestFields({
                 // 4. Number Input
                 if (field.type === "number") {
                     return (
-                        <div key={field.id || `field_${index}`} className="space-y-1.5">
+                        <div key={field.id || `field_${index}`}>
                             {labelElement}
                             <Input
                                 type="number"
                                 value={value ?? ""}
                                 onChange={(e) => handleChange(e.target.value === "" ? "" : Number(e.target.value))}
                                 placeholder={field.placeholder?.trim() || `Enter ${baseLabel.toLowerCase()}`}
-                                className={`rounded-xl h-10 text-xs ${error ? "border-rose-500" : ""}`}
+                                className={`rounded-lg h-7.5 sm:h-8 text-xs px-2.5 ${error ? "border-rose-500" : ""}`}
                             />
-                            {error && <p className="text-[11px] text-rose-500 font-medium">{error}</p>}
+                            {error && <p className="text-[10px] text-rose-500 font-medium mt-0.5">{error}</p>}
                         </div>
                     );
                 }
@@ -202,7 +202,7 @@ export function DynamicGuestFields({
                 // 5. Date Input
                 if (field.type === "date" || field.type === "calendar" || String(field.type).toLowerCase() === "calender") {
                     return (
-                        <div key={field.id || `field_${index}`} className="space-y-1.5">
+                        <div key={field.id || `field_${index}`}>
                             {labelElement}
                             <DatePickerField
                                 id={field.id || field.name}
@@ -210,8 +210,9 @@ export function DynamicGuestFields({
                                 onChange={(newVal) => handleChange(newVal)}
                                 placeholder={field.placeholder?.trim()}
                                 hasError={Boolean(error)}
+                                className="h-7.5 sm:h-8 text-xs font-medium rounded-lg"
                             />
-                            {error && <p className="text-[11px] text-rose-500 font-medium">{error}</p>}
+                            {error && <p className="text-[10px] text-rose-500 font-medium mt-0.5">{error}</p>}
                         </div>
                     );
                 }
@@ -219,7 +220,7 @@ export function DynamicGuestFields({
                 // 6. Default Text / Email Input
                 const isEmail = field.type === "email" || canonicalKey === "email" || String(field.label).toLowerCase().includes("email");
                 return (
-                    <div key={field.id || `field_${index}`} className="space-y-1.5">
+                    <div key={field.id || `field_${index}`}>
                         {labelElement}
                         <Input
                             type={isEmail ? "email" : "text"}
@@ -235,9 +236,9 @@ export function DynamicGuestFields({
                                     ? "e.g. Bureau Veritas / SGS India / Third-Party"
                                     : `Enter ${baseLabel.toLowerCase()}`)
                             }
-                            className={`rounded-xl h-10 text-xs ${error ? "border-rose-500" : ""}`}
+                            className={`rounded-lg h-7.5 sm:h-8 text-xs px-2.5 ${error ? "border-rose-500" : ""}`}
                         />
-                        {error && <p className="text-[11px] text-rose-500 font-medium">{error}</p>}
+                        {error && <p className="text-[10px] text-rose-500 font-medium mt-0.5">{error}</p>}
                     </div>
                 );
             })}

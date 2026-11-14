@@ -694,21 +694,21 @@ export function ProfileFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent hideClose={true} className="w-[calc(100%-1rem)] sm:w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl">
+            <DialogContent hideClose={true} className="w-[calc(100%-1rem)] sm:w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-xl">
                 {/* Header */}
-                <DialogHeader className="p-3.5 sm:px-6 sm:py-4 border-b border-border/60 bg-muted/20 shrink-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <DialogHeader className="p-3 sm:px-5 sm:py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
                         {/* Title & Icon (with mobile-only close button) */}
-                        <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 min-w-0">
-                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                                <div className={`p-2 sm:p-2.5 rounded-xl ${meta.bgColor} ${meta.color} shrink-0`}>
-                                    <Building2 className="size-5 sm:size-6" />
+                        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 min-w-0">
+                            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                                <div className={`p-1.5 sm:p-2 rounded-lg ${meta.bgColor} ${meta.color} shrink-0`}>
+                                    <Building2 className="size-4 sm:size-4.5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <DialogTitle className="text-base sm:text-xl font-bold text-foreground leading-snug">
+                                    <DialogTitle className="text-sm sm:text-base font-bold text-foreground leading-snug">
                                         {isEdit ? `Edit ${meta.title} Record` : `Create ${meta.title} Profile`}
                                     </DialogTitle>
-                                    <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-normal truncate sm:whitespace-normal">
+                                    <DialogDescription className="text-[11px] text-muted-foreground mt-0.5 leading-normal truncate sm:whitespace-normal">
                                         Manage contact profile, tax identifiers, and legal document uploads.
                                     </DialogDescription>
                                 </div>
@@ -721,18 +721,18 @@ export function ProfileFormModal({
                                 className="sm:hidden rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
                                 aria-label="Close modal"
                             >
-                                <X className="size-5" />
+                                <X className="size-4" />
                             </button>
                         </div>
 
                         {/* Navigation Tabs & Desktop Close / Cancel (✕) button */}
-                        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
+                        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
                             {/* Navigation Tabs */}
-                            <div className="flex items-center gap-1 bg-muted/80 p-1 rounded-xl w-full sm:w-auto shrink-0 border border-border/50">
+                            <div className="flex items-center gap-1 bg-muted/80 p-0.5 rounded-lg w-full sm:w-auto shrink-0 border border-border/50">
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab("details")}
-                                    className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                                    className={`flex-1 sm:flex-initial px-2.5 py-1 rounded-md text-[11px] font-bold transition-all text-center cursor-pointer ${
                                         activeTab === "details"
                                             ? "bg-background text-foreground shadow-xs"
                                             : "text-muted-foreground hover:text-foreground"
@@ -743,13 +743,13 @@ export function ProfileFormModal({
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab("documents")}
-                                    className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                    className={`flex-1 sm:flex-initial px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                                         activeTab === "documents"
                                             ? "bg-background text-foreground shadow-xs"
                                             : "text-muted-foreground hover:text-foreground"
                                     }`}
                                 >
-                                    <FileText className="size-3.5" />
+                                    <FileText className="size-3" />
                                     <span>Documents</span>
                                     {documents.length > 0 && (
                                         <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px] font-extrabold">
@@ -764,11 +764,11 @@ export function ProfileFormModal({
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                                    className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                                     aria-label="Close modal"
                                     title="Close"
                                 >
-                                    <X className="size-4" />
+                                    <X className="size-3.5" />
                                 </button>
                             </div>
                         </div>
@@ -776,68 +776,68 @@ export function ProfileFormModal({
                 </DialogHeader>
 
                 {/* Body Content */}
-                <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
+                <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 space-y-3.5 sm:space-y-4">
                     {activeTab === "details" && (
-                        <div className="space-y-6">
+                        <div className="space-y-3.5 sm:space-y-4">
                             {/* Non-Login Record Notice */}
-                            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-3 text-xs text-blue-700 dark:text-blue-300">
-                                <ShieldCheck className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                            <div className="p-2.5 sm:p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center gap-2.5 text-[11px] leading-relaxed text-blue-700 dark:text-blue-300">
+                                <ShieldCheck className="size-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
                                 <span>
                                     <strong>Business Contact Profile Only:</strong> This profile is used for business records, challans, and tracking. It does not create application user logins or store passwords.
                                 </span>
                             </div>
 
                             {/* Section 1: Standard Company Details */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                                    <Building2 className="size-4 text-primary" />
-                                    Business Identity & Code
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40">
+                                    <Building2 className="size-3.5 text-primary" />
+                                    <span>Business Identity & Code</span>
                                 </h3>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
                                     {/* Name */}
                                     <div className="md:col-span-2">
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             {getFieldLabel('name', profileType === "Subcontractor" ? "Subcontractor / Vendor Name" : profileType === "ScrapDealer" ? "Scrap Dealer / Firm Name" : "Supplier / Purchaser Name")} <span className="text-rose-500">*</span>
                                         </label>
                                         <Input
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             placeholder={getFieldPlaceholder('name')}
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-semibold"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-semibold px-2.5"
                                             required
                                         />
                                         {getFieldHelperText('name') && (
-                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('name')}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('name')}</p>
                                         )}
                                     </div>
 
                                     {/* Code */}
                                     <div className="md:col-span-2">
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             {getFieldLabel('code', 'Profile Code')} {isFieldRequired('code') && <span className="text-rose-500">*</span>} <span className="text-muted-foreground font-normal">(Auto-generated if left blank)</span>
                                         </label>
                                         <Input
                                             value={code}
                                             onChange={(e) => setCode(e.target.value)}
                                             placeholder={getFieldPlaceholder('code')}
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono uppercase font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-mono uppercase font-medium px-2.5"
                                         />
                                         {getFieldHelperText('code') && (
-                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('code')}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('code')}</p>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Section 2: Contact Person & Details */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
-                                <div className="flex items-center justify-between pb-2 border-b border-border/40">
-                                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                                        <UserCheck className="size-4 text-primary" />
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
+                                    <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                        <UserCheck className="size-3.5 text-primary" />
                                         <span>Key Personnel & Contact Details</span>
                                         {keyPersonnel.length > 1 && (
-                                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
                                                 {keyPersonnel.length}
                                             </span>
                                         )}
@@ -847,28 +847,28 @@ export function ProfileFormModal({
                                         variant="outline"
                                         size="sm"
                                         onClick={handleAddPersonnel}
-                                        className="h-8 px-2.5 text-xs font-semibold gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all shadow-xs"
+                                        className="h-7 px-2 text-[11px] font-semibold gap-1 rounded-lg border-primary/30 text-primary hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all shadow-2xs"
                                         title="Add one more Key Personnel & Contact Details"
                                     >
-                                        <Plus className="size-3.5" />
+                                        <Plus className="size-3" />
                                         <span>Add Personnel</span>
                                     </Button>
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {keyPersonnel.map((contact, idx) => (
                                         <div
                                             key={idx}
                                             className={
                                                 keyPersonnel.length > 1
-                                                    ? "p-3.5 sm:p-4 rounded-xl bg-muted/20 border border-border/60 space-y-3 transition-all"
-                                                    : "space-y-3"
+                                                    ? "p-2.5 sm:p-3 rounded-lg bg-muted/20 border border-border/60 space-y-2.5 transition-all"
+                                                    : "space-y-2.5"
                                             }
                                         >
                                             {keyPersonnel.length > 1 && (
-                                                <div className="flex items-center justify-between pb-2 border-b border-border/40">
-                                                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                                        <span className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold">
+                                                <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
+                                                    <span className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+                                                        <span className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[9px] font-bold">
                                                             {idx + 1}
                                                         </span>
                                                         {idx === 0 ? "Primary Contact Person" : `Key Personnel #${idx + 1}`}
@@ -879,50 +879,50 @@ export function ProfileFormModal({
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleRemovePersonnel(idx)}
-                                                            className="h-7 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors gap-1"
+                                                            className="h-6 px-1.5 text-[10.5px] text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-md transition-colors gap-1"
                                                             title="Remove Personnel"
                                                         >
-                                                            <Trash2 className="size-3.5" />
+                                                            <Trash2 className="size-3" />
                                                             <span>Remove</span>
                                                         </Button>
                                                     )}
                                                 </div>
                                             )}
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
                                                 <div>
-                                                    <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                         {getFieldLabel('contactPerson', 'Contact Person Name')} {isFieldRequired('contactPerson') && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     <Input
                                                         value={contact.name}
                                                         onChange={(e) => handlePersonnelChange(idx, "name", e.target.value)}
                                                         placeholder={getFieldPlaceholder('contactPerson')}
-                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                        className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                                     />
                                                     {getFieldHelperText('contactPerson') && (
-                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('contactPerson')}</p>
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('contactPerson')}</p>
                                                     )}
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                         {getFieldLabel('contactDesignation', 'Designation', ['designation'])} {isFieldRequired('contactDesignation', ['designation']) && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     <Input
                                                         value={contact.designation}
                                                         onChange={(e) => handlePersonnelChange(idx, "designation", e.target.value)}
                                                         placeholder={getFieldPlaceholder('contactDesignation', ['designation'])}
-                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                        className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                                     />
                                                     {getFieldHelperText('contactDesignation', ['designation']) && (
-                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('contactDesignation', ['designation'])}</p>
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('contactDesignation', ['designation'])}</p>
                                                     )}
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
-                                                        <PhoneCall className="size-3.5 text-primary" />
+                                                    <label className="text-[11px] font-semibold text-foreground/90 block mb-1 flex items-center gap-1.5">
+                                                        <PhoneCall className="size-3 text-primary" />
                                                         <span>{getFieldLabel('contactPhone', 'Primary Phone Number', ['phone'])}</span>
                                                         {(idx === 0 && (isFieldRequired('contactPhone', ['phone']) || true)) && <span className="text-rose-500">*</span>}
                                                     </label>
@@ -932,17 +932,17 @@ export function ProfileFormModal({
                                                         placeholder={getFieldPlaceholder('contactPhone', ['phone']) || "e.g. 9934110587"}
                                                         maxLength={10}
                                                         inputMode="numeric"
-                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                        className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                                         required={idx === 0}
                                                     />
-                                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                                    <p className="text-[9.5px] text-muted-foreground mt-0.5">
                                                         {getFieldHelperText('contactPhone', ['phone']) || "10-digit Indian number starting with 6-9 (no country code)"}
                                                     </p>
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
-                                                        <PhoneCall className="size-3.5 text-muted-foreground" />
+                                                    <label className="text-[11px] font-semibold text-foreground/90 block mb-1 flex items-center gap-1.5">
+                                                        <PhoneCall className="size-3 text-muted-foreground" />
                                                         <span>{getFieldLabel('alternatePhone', 'Alternate Phone Number')}</span>
                                                         {isFieldRequired('alternatePhone') && <span className="text-rose-500">*</span>}
                                                     </label>
@@ -952,16 +952,16 @@ export function ProfileFormModal({
                                                         placeholder={getFieldPlaceholder('alternatePhone') || "e.g. 9876543210"}
                                                         maxLength={10}
                                                         inputMode="numeric"
-                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                        className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                                     />
-                                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                                    <p className="text-[9.5px] text-muted-foreground mt-0.5">
                                                         {getFieldHelperText('alternatePhone') || "Optional 10-digit Indian number starting with 6-9"}
                                                     </p>
                                                 </div>
 
                                                 <div className="md:col-span-2">
-                                                    <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
-                                                        <Mail className="size-3.5 text-primary" />
+                                                    <label className="text-[11px] font-semibold text-foreground/90 block mb-1 flex items-center gap-1.5">
+                                                        <Mail className="size-3 text-primary" />
                                                         <span>{getFieldLabel('contactEmail', 'Email Address', ['email'])}</span>
                                                         {(idx === 0 && isFieldRequired('contactEmail', ['email'])) && <span className="text-rose-500">*</span>}
                                                     </label>
@@ -970,11 +970,11 @@ export function ProfileFormModal({
                                                         value={contact.email}
                                                         onChange={(e) => handlePersonnelChange(idx, "email", e.target.value)}
                                                         placeholder={getFieldPlaceholder('contactEmail', ['email'])}
-                                                        className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                        className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                                         required={idx === 0 && isFieldRequired('contactEmail', ['email'])}
                                                     />
                                                     {getFieldHelperText('contactEmail', ['email']) && (
-                                                        <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('contactEmail', ['email'])}</p>
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('contactEmail', ['email'])}</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -983,15 +983,15 @@ export function ProfileFormModal({
                                 </div>
 
                                 {keyPersonnel.length > 1 && (
-                                    <div className="pt-2 flex justify-end">
+                                    <div className="pt-1.5 flex justify-end">
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="sm"
                                             onClick={handleAddPersonnel}
-                                            className="h-8 px-3 text-xs font-semibold gap-1.5 text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                                            className="h-7 px-2.5 text-[11px] font-semibold gap-1 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                                         >
-                                            <Plus className="size-3.5" />
+                                            <Plus className="size-3" />
                                             <span>Add Another Key Personnel</span>
                                         </Button>
                                     </div>
@@ -999,45 +999,45 @@ export function ProfileFormModal({
                             </div>
 
                             {/* Section 3: Identifiers, PAN, GST, Licenses */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                                    <Hash className="size-4 text-primary" />
-                                    Tax Identification & Licenses
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40">
+                                    <Hash className="size-3.5 text-primary" />
+                                    <span>Tax Identification & Licenses</span>
                                 </h3>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             {getFieldLabel('gstNumber', 'GST Number', ['gst'])} {isFieldRequired('gstNumber', ['gst']) && <span className="text-rose-500">*</span>}
                                         </label>
                                         <Input
                                             value={gstNumber}
                                             onChange={(e) => setGstNumber(e.target.value)}
                                             placeholder={getFieldPlaceholder('gstNumber', ['gst'])}
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono uppercase font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-mono uppercase font-medium px-2.5"
                                         />
                                         {getFieldHelperText('gstNumber', ['gst']) && (
-                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('gstNumber', ['gst'])}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('gstNumber', ['gst'])}</p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             {getFieldLabel('panNumber', 'PAN Number', ['pan'])} {isFieldRequired('panNumber', ['pan']) && <span className="text-rose-500">*</span>}
                                         </label>
                                         <Input
                                             value={panNumber}
                                             onChange={(e) => setPanNumber(e.target.value)}
                                             placeholder={getFieldPlaceholder('panNumber', ['pan'])}
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono uppercase font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-mono uppercase font-medium px-2.5"
                                         />
                                         {getFieldHelperText('panNumber', ['pan']) && (
-                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('panNumber', ['pan'])}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('panNumber', ['pan'])}</p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             {getFieldLabel('aadhaarNumber', 'Aadhaar Number', ['aadhaar'])} {isFieldRequired('aadhaarNumber', ['aadhaar']) && <span className="text-rose-500">*</span>} <span className="text-muted-foreground font-normal">(Proprietor/Contact)</span>
                                         </label>
                                         <Input
@@ -1045,31 +1045,31 @@ export function ProfileFormModal({
                                             onChange={(e) => setAadhaarNumber(formatAadhaarNumber(e.target.value, aadhaarNumber))}
                                             placeholder={getFieldPlaceholder('aadhaarNumber', ['aadhaar'])}
                                             maxLength={14}
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-mono font-medium px-2.5"
                                         />
                                         {getFieldHelperText('aadhaarNumber', ['aadhaar']) && (
-                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('aadhaarNumber', ['aadhaar'])}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('aadhaarNumber', ['aadhaar'])}</p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             {getFieldLabel('licenseNumber', profileType === "ScrapDealer" ? "Scrap Trade License No." : "Trade / Operating License No.", ['license'])} {isFieldRequired('licenseNumber', ['license']) && <span className="text-rose-500">*</span>}
                                         </label>
                                         <Input
                                             value={licenseNumber}
                                             onChange={(e) => setLicenseNumber(e.target.value)}
                                             placeholder={getFieldPlaceholder('licenseNumber', ['license'])}
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-mono font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-mono font-medium px-2.5"
                                         />
                                         {getFieldHelperText('licenseNumber', ['license']) && (
-                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('licenseNumber', ['license'])}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('licenseNumber', ['license'])}</p>
                                         )}
                                     </div>
 
                                     <div className="md:col-span-2">
-                                        <label className="text-xs font-bold text-foreground block mb-1.5 flex items-center gap-1.5">
-                                            <MapPin className="size-3.5 text-primary" />
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1 flex items-center gap-1.5">
+                                            <MapPin className="size-3 text-primary" />
                                             <span>{getFieldLabel('address', 'Office / Site / Yard Address')}</span>
                                             {isFieldRequired('address') && <span className="text-rose-500">*</span>}
                                         </label>
@@ -1077,10 +1077,10 @@ export function ProfileFormModal({
                                             value={address}
                                             onChange={(e) => setAddress(e.target.value)}
                                             placeholder={getFieldPlaceholder('address')}
-                                            className="min-h-[70px] rounded-xl bg-background border-border/70 text-sm font-medium"
+                                            className="min-h-[60px] rounded-lg bg-background border-border/70 text-xs font-medium p-2"
                                         />
                                         {getFieldHelperText('address') && (
-                                            <p className="text-[11px] text-muted-foreground mt-1">{getFieldHelperText('address')}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{getFieldHelperText('address')}</p>
                                         )}
                                     </div>
                                 </div>
@@ -1088,19 +1088,19 @@ export function ProfileFormModal({
 
                             {/* Section 4: Dynamic Custom Fields configured in Forms Management */}
                             {loadingForm && (
-                                <div className="flex items-center gap-2 p-3 text-xs text-muted-foreground">
-                                    <Loader2 className="size-4 animate-spin text-primary" />
+                                <div className="flex items-center gap-2 p-2.5 text-xs text-muted-foreground">
+                                    <Loader2 className="size-3.5 animate-spin text-primary" />
                                     <span>Loading custom fields...</span>
                                 </div>
                             )}
                             {customFieldDefs.length > 0 && (
-                                <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
-                                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                                        <FileCheck className="size-4 text-primary" />
+                                <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                    <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40">
+                                        <FileCheck className="size-3.5 text-primary" />
                                         <span>Additional Information (Custom Fields)</span>
                                     </h3>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
                                         {customFieldDefs.map((field: any) => {
                                             const isReq = Boolean(
                                                 field.required ||
@@ -1113,7 +1113,7 @@ export function ProfileFormModal({
 
                                             return (
                                                 <div key={field.id || field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                                                    <label className="text-xs font-bold text-foreground block mb-1.5">
+                                                    <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                                         {field.label || field.name} {isReq && <span className="text-rose-500">*</span>}
                                                     </label>
                                                     {field.type === 'select' ? (
@@ -1124,7 +1124,7 @@ export function ProfileFormModal({
                                                                 if (field.name) handleCustomFieldChange(field.name, selectedVal)
                                                             }}
                                                         >
-                                                            <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-medium">
+                                                            <SelectTrigger className="h-7.5 sm:h-8 w-full rounded-lg bg-background border-border/70 text-xs font-medium px-2.5">
                                                                 <SelectValue placeholder={field.placeholder?.trim() || undefined} />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -1148,7 +1148,7 @@ export function ProfileFormModal({
                                                             }}
                                                             placeholder={field.placeholder?.trim() || undefined}
                                                             required={isReq}
-                                                            className="min-h-[60px] rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                            className="min-h-[60px] rounded-lg bg-background border-border/70 text-xs font-medium p-2"
                                                         />
                                                     ) : isDateField ? (
                                                         <DatePickerField
@@ -1159,6 +1159,7 @@ export function ProfileFormModal({
                                                                 if (field.name) handleCustomFieldChange(field.name, selectedDate)
                                                             }}
                                                             placeholder={field.placeholder?.trim() || undefined}
+                                                            className="h-7.5 sm:h-8 text-xs font-medium rounded-lg"
                                                         />
                                                     ) : (
                                                         <Input
@@ -1170,7 +1171,7 @@ export function ProfileFormModal({
                                                             }}
                                                             placeholder={field.placeholder?.trim() || undefined}
                                                             required={isReq}
-                                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                                         />
                                                     )}
                                                 </div>
@@ -1184,21 +1185,21 @@ export function ProfileFormModal({
 
                     {/* TAB 2: DOCUMENT UPLOADS & MANAGEMENT */}
                     {activeTab === "documents" && (
-                        <div className="space-y-6">
+                        <div className="space-y-3.5 sm:space-y-4">
                             {/* Upload Box */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40">
-                                    <UploadCloud className="size-4 text-primary" />
-                                    Upload New Document (Aadhaar, PAN, GST, Agreement, License)
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40">
+                                    <UploadCloud className="size-3.5 text-primary" />
+                                    <span>Upload New Document (Aadhaar, PAN, GST, Agreement, License)</span>
                                 </h3>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5">
                                     <div>
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Document Category <span className="text-rose-500">*</span>
                                         </label>
                                         <Select value={docCategory} onValueChange={(val) => val && setDocCategory(val)}>
-                                            <SelectTrigger className="h-10 w-full rounded-xl bg-background border-border/70 text-sm font-medium">
+                                            <SelectTrigger className="h-7.5 sm:h-8 w-full rounded-lg bg-background border-border/70 text-xs font-medium px-2.5">
                                                 <SelectValue placeholder="Select Category" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -1210,37 +1211,37 @@ export function ProfileFormModal({
                                     </div>
 
                                     <div className="md:col-span-2">
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Document Title / Reference Name
                                         </label>
                                         <Input
                                             value={docTitle}
                                             onChange={(e) => setDocTitle(e.target.value)}
                                             placeholder="e.g. GST Certificate 2026-27 or GSTIN Verification Copy"
-                                            className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium"
+                                            className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium px-2.5"
                                         />
                                     </div>
 
                                     <div className="md:col-span-3">
-                                        <label className="text-xs font-bold text-foreground block mb-1.5">
+                                        <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                             Select Document File <span className="text-rose-500">*</span>
                                         </label>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2.5">
                                             <Input
                                                 type="file"
                                                 accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
                                                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                                                className="h-10 rounded-xl bg-background border-border/70 text-sm font-medium flex-1 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                                                className="h-7.5 sm:h-8 rounded-lg bg-background border-border/70 text-xs font-medium flex-1 file:mr-3 file:py-0.5 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                                             />
                                             {isEdit && (
                                                 <Button
                                                     type="button"
                                                     onClick={handleUploadDocumentNow}
                                                     disabled={uploadingDoc || !selectedFile}
-                                                    className="w-full sm:w-auto h-10 rounded-xl px-4 font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 shadow-xs cursor-pointer flex items-center justify-center"
+                                                    className="w-full sm:w-auto h-7.5 sm:h-8 rounded-lg px-3 font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 shadow-2xs cursor-pointer flex items-center justify-center"
                                                 >
-                                                    {uploadingDoc ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
-                                                    Upload Document
+                                                    {uploadingDoc ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />}
+                                                    <span>Upload Document</span>
                                                 </Button>
                                             )}
                                         </div>
@@ -1249,19 +1250,19 @@ export function ProfileFormModal({
                             </div>
 
                             {/* Documents List */}
-                            <div className="bg-card border border-border/60 rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/40 justify-between">
-                                    <span className="flex items-center gap-2">
-                                        <FileText className="size-4 text-primary" />
+                            <div className="bg-card border border-border/60 rounded-xl p-3 sm:p-4 shadow-2xs space-y-2.5 sm:space-y-3">
+                                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 pb-1.5 border-b border-border/40 justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <FileText className="size-3.5 text-primary" />
                                         Associated Documents ({documents.length})
                                     </span>
                                 </h3>
 
                                 {documents.length === 0 ? (
-                                    <div className="py-12 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl">
-                                        <UploadCloud className="size-10 mx-auto mb-2 opacity-30 text-primary" />
-                                        <p className="font-semibold text-sm">No documents attached yet.</p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                    <div className="py-8 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-lg">
+                                        <UploadCloud className="size-8 mx-auto mb-1.5 opacity-30 text-primary" />
+                                        <p className="font-semibold text-xs">No documents attached yet.</p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
                                             Upload Aadhaar, PAN, GST certificate, agreements, or trade licenses above.
                                         </p>
                                     </div>
@@ -1271,45 +1272,45 @@ export function ProfileFormModal({
                                             const fileUrl = doc.fileName ? profileService.getDocumentDownloadUrl(doc.fileName) : doc.fileUrl;
 
                                             return (
-                                                <div key={doc._id || i} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 first:pt-0 last:pb-0">
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-                                                            <FileText className="size-5" />
+                                                <div key={doc._id || i} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 first:pt-0 last:pb-0">
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                                                            <FileText className="size-4" />
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="font-bold text-sm text-foreground truncate">{doc.title || doc.originalName}</p>
-                                                                <span className="px-2 py-0.5 rounded-md bg-muted font-bold text-[10px] text-muted-foreground shrink-0 border border-border/50">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <p className="font-bold text-xs text-foreground truncate">{doc.title || doc.originalName}</p>
+                                                                <span className="px-1.5 py-0.2 rounded-md bg-muted font-bold text-[9.5px] text-muted-foreground shrink-0 border border-border/50">
                                                                     {doc.documentType || "Document"}
                                                                 </span>
                                                             </div>
-                                                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                                                                 {doc.originalName} • {doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : "File"} • Uploaded {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "recently"}
                                                             </p>
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                                                    <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto">
                                                         {fileUrl && (
                                                             <>
                                                                 <a
                                                                     href={fileUrl}
                                                                     target="_blank"
                                                                     rel="noreferrer"
-                                                                    className="h-8 px-2.5 rounded-lg border border-border/60 hover:bg-muted text-xs font-semibold flex items-center gap-1 transition-colors"
+                                                                    className="h-7 px-2 rounded-md border border-border/60 hover:bg-muted text-[11px] font-semibold flex items-center gap-1 transition-colors"
                                                                     title="View Document"
                                                                 >
-                                                                    <Eye className="size-3.5 text-primary" />
-                                                                    View
+                                                                    <Eye className="size-3 text-primary" />
+                                                                    <span>View</span>
                                                                 </a>
                                                                 <a
                                                                     href={fileUrl}
                                                                     download={doc.originalName || doc.title}
-                                                                    className="h-8 px-2.5 rounded-lg border border-border/60 hover:bg-muted text-xs font-semibold flex items-center gap-1 transition-colors"
+                                                                    className="h-7 px-2 rounded-md border border-border/60 hover:bg-muted text-[11px] font-semibold flex items-center gap-1 transition-colors"
                                                                     title="Download Document"
                                                                 >
-                                                                    <Download className="size-3.5 text-primary" />
-                                                                    Download
+                                                                    <Download className="size-3 text-primary" />
+                                                                    <span>Download</span>
                                                                 </a>
                                                             </>
                                                         )}
@@ -1318,10 +1319,10 @@ export function ProfileFormModal({
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleDeleteDocNow(doc._id)}
-                                                            className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                                            className="h-7 w-7 p-0 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                                                             title="Delete Document"
                                                         >
-                                                            <Trash2 className="size-4" />
+                                                            <Trash2 className="size-3.5" />
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -1335,12 +1336,12 @@ export function ProfileFormModal({
                 </form>
 
                 {/* Footer Action Bar */}
-                <div className="p-3.5 sm:p-4 border-t border-border/60 bg-muted/30 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 shrink-0">
+                <div className="p-2.5 sm:px-5 sm:py-3 border-t border-border/60 bg-muted/30 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5 shrink-0">
                     <Button
                         type="button"
                         variant="outline"
                         onClick={onClose}
-                        className="w-full sm:w-auto h-10 rounded-xl px-5 font-semibold cursor-pointer"
+                        className="w-full sm:w-auto h-8 rounded-lg px-4 font-semibold text-xs cursor-pointer"
                         disabled={saving}
                     >
                         Cancel
@@ -1348,12 +1349,12 @@ export function ProfileFormModal({
                     <Button
                         type="button"
                         onClick={handleSubmit}
-                        className="w-full sm:w-auto h-10 rounded-xl px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 gap-2 cursor-pointer shadow-sm flex items-center justify-center"
+                        className="w-full sm:w-auto h-8 rounded-lg px-4.5 font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 cursor-pointer shadow-2xs flex items-center justify-center"
                         disabled={saving}
                     >
-                        {saving && <Loader2 className="size-4 animate-spin" />}
+                        {saving && <Loader2 className="size-3.5 animate-spin" />}
                         <span>{isEdit ? `Update ${meta.title}` : `Create ${meta.title}`}</span>
-                        <ArrowRightIcon className="size-4" />
+                        <ArrowRightIcon className="size-3.5" />
                     </Button>
                 </div>
             </DialogContent>

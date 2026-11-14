@@ -185,14 +185,19 @@ export function ImportToolsPage() {
     };
 
     return (
-        <div className="flex flex-col gap-6 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500 pb-12">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Import Tools</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">Upload bulk inventory data using an Excel template.</p>
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
+                        <FileUp className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">Import Tools</h1>
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">Upload bulk inventory data using an Excel template.</p>
+                    </div>
                 </div>
-                <Button variant="outline" onClick={handleDownloadSample} disabled={downloadingSample} className="gap-2 shadow-sm shrink-0 border-primary/20 hover:bg-primary/5 hover:text-primary transition-colors">
-                    {downloadingSample ? <Loader2 className="size-4 animate-spin text-primary" /> : <FileDown className="size-4 text-primary" />}
+                <Button variant="outline" size="sm" onClick={handleDownloadSample} disabled={downloadingSample} className="h-7.5 px-2.5 text-[11px] font-semibold gap-1.5 shadow-2xs shrink-0 border-primary/20 hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer rounded-lg">
+                    {downloadingSample ? <Loader2 className="size-3.5 animate-spin text-primary" /> : <FileDown className="size-3.5 text-primary" />}
                     Download Sample (.xlsx)
                 </Button>
             </div>

@@ -373,8 +373,8 @@ export function ToolFormModal({ storeId, onSuccess, tool, triggerButton }: ToolF
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger render={
                 triggerButton ? triggerButton : (
-                    <Button className="gap-2 rounded-xl shadow-md cursor-pointer" size="lg">
-                        <PlusIcon className="size-4" />
+                    <Button className="gap-1.5 rounded-lg shadow-xs cursor-pointer h-7.5 px-3 text-[11px] font-semibold" size="sm">
+                        <PlusIcon className="size-3.5" />
                         Add Tool
                     </Button>
                 )

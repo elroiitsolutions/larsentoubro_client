@@ -325,20 +325,19 @@ export function DeliveryChallanPreviewPage() {
     };
 
     return (
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full py-4 px-2 sm:px-6 space-y-6">
-            
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Top Toolbar Navigation & Title */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 border-b border-border/60 pb-3 sm:pb-4">
-                <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl shrink-0 mt-0.5 sm:mt-0">
-                        <ArrowLeft className="size-5" />
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2.5">
+                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-7.5 w-7.5 rounded-lg shrink-0">
+                        <ArrowLeft className="size-4" />
                     </Button>
                     <div className="min-w-0">
-                        <h1 className="text-base sm:text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-                            <FileText className="size-5 sm:size-6 text-primary shrink-0" />
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+                            <FileText className="size-4 text-primary shrink-0" />
                             <span>{state?.isTransfer ? "Site Transfer Delivery Challan Canvas" : "Official Delivery Challan Document Canvas"}</span>
                         </h1>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-2 sm:line-clamp-none">
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                             {state?.isTransfer
                                 ? `Transfer tools to a new site front. Enter destination site details below. Original DC ${state.transferFromDcNumber} will be marked as Transfer.`
                                 : "Subcontractor details, Location chainage, Material codes, Returnable stamp, and Receiver details editor."}
@@ -346,20 +345,20 @@ export function DeliveryChallanPreviewPage() {
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto shrink-0">
                     <Button
                         variant="outline"
                         onClick={handleDownloadDraft}
                         disabled={creating}
-                        className="rounded-xl h-9 sm:h-10 px-4 text-xs font-bold gap-2 cursor-pointer flex items-center justify-center w-full sm:w-auto"
+                        className="rounded-lg h-7.5 px-3 text-[11px] font-semibold gap-1.5 cursor-pointer flex items-center justify-center w-full sm:w-auto"
                     >
-                        <Download className="size-4 text-primary" />
+                        <Download className="size-3.5 text-primary" />
                         <span>Download PDF Draft</span>
                     </Button>
                     <Button
                         onClick={handleConfirmCreate}
                         disabled={creating || initialTools.some((t: any) => !t.isPrinted)}
-                        className="rounded-xl h-9 sm:h-10 px-5 sm:px-6 font-bold shadow-md flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer w-full sm:w-auto text-xs sm:text-sm"
+                        className="rounded-lg h-7.5 px-3 font-semibold shadow-xs flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer w-full sm:w-auto text-[11px]"
                     >
                         {creating ? (
                             <>

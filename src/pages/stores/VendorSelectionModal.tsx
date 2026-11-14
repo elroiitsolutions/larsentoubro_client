@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,8 @@ import {
     MapPin, 
     Hash, 
     RefreshCw, 
-    Loader2
+    Loader2,
+    X
 } from "lucide-react";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -217,110 +218,97 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto flex flex-col p-4 sm:p-6">
-                <DialogHeader className="pr-8 sm:pr-0">
+            <DialogContent hideClose={true} className="max-w-2xl max-h-[90vh] flex flex-col p-0 rounded-xl overflow-hidden shadow-2xl">
+                <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                            <DialogTitle className="text-base sm:text-xl font-bold flex items-center gap-2 leading-tight">
-                                <Building2 className="size-4.5 sm:size-5 text-primary shrink-0" />
-                                <span>Create Delivery Challan - Select Recipient</span>
-                            </DialogTitle>
-                            <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
-                                Choose destination Subcontractor or Scrap Dealer for <span className="font-semibold text-foreground">{selectedTools.length} selected tool(s)</span>.
-                            </DialogDescription>
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                <Building2 className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                    Create Delivery Challan - Select Recipient
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                    Choose destination Subcontractor or Scrap Dealer for <span className="font-semibold text-foreground">{selectedTools.length} selected tool(s)</span>.
+                                </DialogDescription>
+                            </div>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs flex items-center justify-center gap-1.5 border-primary/20 hover:border-primary/50 self-start sm:self-auto shrink-0 h-8 rounded-xl"
-                            onClick={() => setIsCreatingProfile(!isCreatingProfile)}
-                        >
-                            <PlusCircle className="size-3.5 text-primary" />
-                            {isCreatingProfile ? "Cancel New Profile" : `Add ${recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"}`}
-                        </Button>
+                        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs font-semibold flex items-center gap-1.5 border-primary/20 hover:border-primary/50 shrink-0 h-7.5 px-3 rounded-lg cursor-pointer"
+                                onClick={() => setIsCreatingProfile(!isCreatingProfile)}
+                            >
+                                <PlusCircle className="size-3.5 text-primary" />
+                                {isCreatingProfile ? "Cancel New Profile" : `Add ${recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"}`}
+                            </Button>
+                            <button
+                                type="button"
+                                onClick={() => onOpenChange(false)}
+                                className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 cursor-pointer"
+                                aria-label="Close modal"
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
                     </div>
                 </DialogHeader>
 
-                {/* Recipient Type Switcher (Subcontractor vs Scrap Dealer) */}
-                {/* <div className="flex items-center gap-1.5 sm:gap-2 bg-muted p-1 rounded-xl my-2">
-                    <button
-                        type="button"
-                        onClick={() => setRecipientType("Subcontractor")}
-                        className={`flex-1 py-2 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer ${
-                            recipientType === "Subcontractor"
-                                ? "bg-background text-foreground shadow-xs"
-                                : "text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                        <Building2 className="size-3.5 text-blue-500 shrink-0" />
-                        <span className="truncate">Subcontractor (Vendor)</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setRecipientType("ScrapDealer")}
-                        className={`flex-1 py-2 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer ${
-                            recipientType === "ScrapDealer"
-                                ? "bg-background text-foreground shadow-xs"
-                                : "text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                        <Building2 className="size-3.5 text-amber-500 shrink-0" />
-                        <span className="truncate">Scrap Dealer</span>
-                    </button>
-                </div> */}
-
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
                 {isCreatingProfile && (
-                    <form onSubmit={handleQuickAddProfile} className="bg-muted/40 p-3 sm:p-4 rounded-xl border border-border/80 space-y-3 my-2">
-                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                            <PlusCircle className="size-4 text-primary" /> Quick Add New {recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"}
+                    <form onSubmit={handleQuickAddProfile} className="bg-muted/40 p-3 rounded-lg border border-border/70 space-y-2.5">
+                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                            <PlusCircle className="size-3.5 text-primary" /> Quick Add New {recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"}
                         </h4>
-                        {creatingError && <p className="text-xs text-rose-500 font-medium">{creatingError}</p>}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                        {creatingError && <p className="text-[10px] text-rose-500 font-medium">{creatingError}</p>}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
-                                <Label className="text-xs">Firm / Name *</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Firm / Name *</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1"
+                                    className="h-7.5 sm:h-8 text-xs rounded-lg px-2.5"
                                     placeholder="e.g. L&T Subcontractor / Metal Scrap"
                                     value={newProfile.name}
                                     onChange={e => setNewProfile({ ...newProfile, name: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">Profile Code</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Profile Code</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 font-mono uppercase"
+                                    className="h-7.5 sm:h-8 text-xs font-mono uppercase rounded-lg px-2.5"
                                     placeholder={recipientType === "Subcontractor" ? "e.g. SUB-0001" : "e.g. SCR-0001"}
                                     value={newProfile.code}
                                     onChange={e => setNewProfile({ ...newProfile, code: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">GST Number</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">GST Number</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 font-mono"
+                                    className="h-7.5 sm:h-8 text-xs font-mono rounded-lg px-2.5"
                                     placeholder="27AAACL0140P1Z0"
                                     value={newProfile.gstNumber}
                                     onChange={e => setNewProfile({ ...newProfile, gstNumber: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">Contact Person</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Contact Person</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1"
+                                    className="h-7.5 sm:h-8 text-xs rounded-lg px-2.5"
                                     placeholder="e.g. Rajesh Kumar"
                                     value={newProfile.contactPerson}
                                     onChange={e => setNewProfile({ ...newProfile, contactPerson: e.target.value })}
                                 />
                             </div>
                             <div className="col-span-1 sm:col-span-2">
-                                <Label className="text-xs">Address</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Address</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1"
+                                    className="h-7.5 sm:h-8 text-xs rounded-lg px-2.5"
                                     placeholder="Site / Office Address"
                                     value={newProfile.address}
                                     onChange={e => setNewProfile({ ...newProfile, address: e.target.value })}
@@ -328,39 +316,39 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 pt-1">
-                            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setIsCreatingProfile(false)}>Cancel</Button>
-                            <Button type="submit" size="sm" className="h-7 text-xs">Save Profile</Button>
+                            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg" onClick={() => setIsCreatingProfile(false)}>Cancel</Button>
+                            <Button type="submit" size="sm" className="h-7 text-xs rounded-lg font-semibold bg-indigo-600 hover:bg-indigo-700 text-white">Save Profile</Button>
                         </div>
                     </form>
                 )}
 
                 {/* Profile Dropdown Selection */}
-                <div className="space-y-2.5 sm:space-y-3 my-2">
+                <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5 truncate">
-                            <Building2 className="size-3.5 text-primary shrink-0" />
+                        <Label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5 truncate">
+                            <Building2 className="size-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                             <span className="truncate">Select Destination {recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"} *</span>
                         </Label>
                         <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-6 text-xs px-2 text-muted-foreground hover:text-foreground shrink-0"
+                            className="h-6 text-[10px] px-2 text-muted-foreground hover:text-foreground shrink-0 rounded-md cursor-pointer"
                             onClick={() => fetchProfiles()}
                         >
-                            <RefreshCw className="size-3 mr-1" />
+                            <RefreshCw className="size-2.5 mr-1" />
                             Refresh List
                         </Button>
                     </div>
 
                     {loading ? (
-                        <div className="h-10 rounded-xl border border-dashed flex items-center justify-center text-xs text-muted-foreground gap-2 bg-muted/20">
-                            <Loader2 className="size-4 animate-spin text-primary" />
+                        <div className="h-8 rounded-lg border border-dashed flex items-center justify-center text-xs text-muted-foreground gap-2 bg-muted/20">
+                            <Loader2 className="size-3.5 animate-spin text-primary" />
                             Fetching {recipientType} profiles from database...
                         </div>
                     ) : (
                         <Select value={selectedProfileId || ""} onValueChange={(val: any) => handleProfileChange(val)}>
-                            <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring transition-all shadow-xs cursor-pointer truncate">
+                            <SelectTrigger className="h-7.5 sm:h-8 w-full rounded-lg border border-input bg-background px-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-2xs cursor-pointer truncate">
                                 <SelectValue placeholder={`-- Select ${recipientType === "Subcontractor" ? "Subcontractor" : "Scrap Dealer"} (${profiles.length} Available) --`}>
                                     {(val: any) => {
                                         if (!val) return null;
@@ -371,9 +359,9 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                                     }}
                                 </SelectValue>
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="rounded-xl">
                                 {profiles.map(p => (
-                                    <SelectItem key={p._id} value={p._id}>
+                                    <SelectItem key={p._id} value={p._id} className="text-xs">
                                         {p.name} ({p.code}){p.gstNumber ? ` - GST: ${p.gstNumber}` : ""}
                                     </SelectItem>
                                 ))}
@@ -383,86 +371,86 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
 
                     {/* Recipient Details Display */}
                     {selectedProfileDetails ? (
-                        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 sm:p-4 space-y-2.5 sm:space-y-3 transition-all animate-in fade-in-50 duration-200">
-                            <div className="flex items-start justify-between border-b border-primary/15 pb-2.5">
+                        <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3 space-y-2 transition-all">
+                            <div className="flex items-start justify-between border-b border-indigo-500/15 pb-2">
                                 <div>
-                                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                        <h4 className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <h4 className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
                                             {selectedProfileDetails.name}
                                         </h4>
-                                        <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-primary/20 text-primary font-bold">
+                                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-bold">
                                             {selectedProfileDetails.code}
                                         </span>
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold">
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold">
                                             {selectedProfileDetails.status || "Active"}
                                         </span>
                                     </div>
                                     {selectedProfileDetails.gstNumber && (
-                                        <p className="text-xs font-mono text-muted-foreground mt-1 flex items-center gap-1">
-                                            <Hash className="size-3 text-primary" />
+                                        <p className="text-[11px] font-mono text-muted-foreground mt-0.5 flex items-center gap-1">
+                                            <Hash className="size-3 text-indigo-600" />
                                             GST: <strong className="text-foreground">{selectedProfileDetails.gstNumber}</strong>
                                         </p>
                                     )}
                                 </div>
                                 {detailsLoading && (
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                                        <Loader2 className="size-3.5 animate-spin text-primary" />
+                                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
+                                        <Loader2 className="size-3 animate-spin text-primary" />
                                         Updating...
                                     </div>
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <User className="size-3.5 text-primary shrink-0" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <User className="size-3 text-indigo-600 shrink-0" />
                                     <span>Contact: <strong className="text-foreground">{selectedProfileDetails.contactPerson || "Not Specified"}</strong></span>
                                 </div>
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Phone className="size-3.5 text-primary shrink-0" />
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Phone className="size-3 text-indigo-600 shrink-0" />
                                     <span>Phone: <strong className="text-foreground font-mono">{selectedProfileDetails.contactPhone || "N/A"}</strong></span>
                                 </div>
                                 {selectedProfileDetails.contactEmail && (
-                                    <div className="flex items-center gap-2 text-muted-foreground col-span-1 sm:col-span-2">
-                                        <Mail className="size-3.5 text-primary shrink-0" />
+                                    <div className="flex items-center gap-1.5 text-muted-foreground col-span-1 sm:col-span-2">
+                                        <Mail className="size-3 text-indigo-600 shrink-0" />
                                         <span>Email: <strong className="text-foreground">{selectedProfileDetails.contactEmail}</strong></span>
                                     </div>
                                 )}
-                                <div className="flex items-start gap-2 text-muted-foreground col-span-1 sm:col-span-2">
-                                    <MapPin className="size-3.5 text-primary shrink-0 mt-0.5" />
+                                <div className="flex items-start gap-1.5 text-muted-foreground col-span-1 sm:col-span-2">
+                                    <MapPin className="size-3 text-indigo-600 shrink-0 mt-0.5" />
                                     <span>Address: <strong className="text-foreground">{selectedProfileDetails.address || "No address on file"}</strong></span>
                                 </div>
                             </div>
                         </div>
                     ) : !loading && (
-                        <div className="rounded-xl border border-dashed p-4 sm:p-6 text-center text-xs text-muted-foreground">
+                        <div className="rounded-lg border border-dashed p-3 sm:p-4 text-center text-xs text-muted-foreground">
                             Please select a recipient profile from the dropdown above to view details.
                         </div>
                     )}
                 </div>
 
                 {/* Dispatch / Challan Metadata */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                        <Label className="text-xs flex items-center gap-1.5 mb-1.5 font-medium">
-                            <CalendarIcon className="size-3.5 text-primary shrink-0" /> Challan Date *
+                        <Label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5 mb-1">
+                            <CalendarIcon className="size-3.5 text-indigo-600 shrink-0" /> Challan Date *
                         </Label>
                         <Popover open={challanCalendarOpen} onOpenChange={setChallanCalendarOpen}>
                             <PopoverTrigger asChild>
                                 <button
                                     type="button"
                                     onClick={() => setChallanCalendarOpen(prev => !prev)}
-                                    className="h-9 px-3 text-xs sm:text-sm w-full rounded-lg border border-input bg-background flex items-center justify-between font-mono hover:bg-muted/30 focus:ring-2 focus:ring-primary/40 shadow-xs outline-none transition-all cursor-pointer text-left"
+                                    className="h-7.5 sm:h-8 px-2.5 text-xs w-full rounded-lg border border-input bg-background flex items-center justify-between font-mono hover:bg-muted/30 focus:ring-2 focus:ring-indigo-500/30 shadow-2xs outline-none transition-all cursor-pointer text-left"
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
+                                    <div className="flex items-center gap-1.5">
+                                        <CalendarIcon className="size-3 text-muted-foreground shrink-0" />
                                         <span>{challanDate ? formatDateDisplay(challanDate) : "Select challan date"}</span>
                                     </div>
-                                    <span className="text-[10px] text-primary font-semibold px-1.5 py-0.5 rounded bg-primary/10">
+                                    <span className="text-[10px] text-indigo-600 font-semibold px-1.5 py-0.5 rounded bg-indigo-500/10">
                                         {challanCalendarOpen ? "Close" : "Change"}
                                     </span>
                                 </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-2xl overflow-hidden bg-background" align="start">
+                            <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-xl overflow-hidden bg-background" align="start">
                                 <Calendar
                                     selected={challanDate}
                                     onSelect={(_d, dateStr) => {
@@ -474,26 +462,26 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                         </Popover>
                     </div>
                     <div>
-                        <Label className="text-xs flex items-center gap-1.5 mb-1.5 font-medium">
-                            <CalendarIcon className="size-3.5 text-primary shrink-0" /> Expected Delivery Date
+                        <Label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5 mb-1">
+                            <CalendarIcon className="size-3.5 text-indigo-600 shrink-0" /> Expected Delivery Date
                         </Label>
                         <Popover open={deliveryCalendarOpen} onOpenChange={setDeliveryCalendarOpen}>
                             <PopoverTrigger asChild>
                                 <button
                                     type="button"
                                     onClick={() => setDeliveryCalendarOpen(prev => !prev)}
-                                    className="h-9 px-3 text-xs sm:text-sm w-full rounded-lg border border-input bg-background flex items-center justify-between font-mono hover:bg-muted/30 focus:ring-2 focus:ring-primary/40 shadow-xs outline-none transition-all cursor-pointer text-left"
+                                    className="h-7.5 sm:h-8 px-2.5 text-xs w-full rounded-lg border border-input bg-background flex items-center justify-between font-mono hover:bg-muted/30 focus:ring-2 focus:ring-indigo-500/30 shadow-2xs outline-none transition-all cursor-pointer text-left"
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
+                                    <div className="flex items-center gap-1.5">
+                                        <CalendarIcon className="size-3 text-muted-foreground shrink-0" />
                                         <span>{deliveryDate ? formatDateDisplay(deliveryDate) : "Select return date"}</span>
                                     </div>
-                                    <span className="text-[10px] text-primary font-semibold px-1.5 py-0.5 rounded bg-primary/10">
+                                    <span className="text-[10px] text-indigo-600 font-semibold px-1.5 py-0.5 rounded bg-indigo-500/10">
                                         {deliveryCalendarOpen ? "Close" : "Change"}
                                     </span>
                                 </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-2xl overflow-hidden bg-background" align="start">
+                            <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-xl overflow-hidden bg-background" align="start">
                                 <Calendar
                                     selected={deliveryDate}
                                     minDate={challanDate || undefined}
@@ -505,7 +493,7 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                                 />
                             </PopoverContent>
                         </Popover>
-                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                             {[
                                 { label: "1 week", value: "1week" as const },
                                 { label: "1 month", value: "1month" as const },
@@ -516,9 +504,9 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                                     key={preset.value}
                                     type="button"
                                     onClick={() => handleDeliveryPresetClick(preset.value)}
-                                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer ${
+                                    className={`px-2 py-0.5 text-[10px] font-medium rounded-md border transition-all cursor-pointer ${
                                         selectedPreset === preset.value
-                                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                            ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs font-semibold"
                                             : "bg-background hover:bg-muted text-muted-foreground hover:text-foreground border-border/80"
                                     }`}
                                 >
@@ -529,35 +517,36 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                     </div>
 
                     <div className="col-span-1 sm:col-span-2">
-                        <Label className="text-xs mb-1.5 block font-medium">Remarks / Dispatch Instructions</Label>
+                        <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Remarks / Dispatch Instructions</Label>
                         <Textarea
                             placeholder="e.g. Dispatch for site work or scrap disposal"
-                            className="text-xs min-h-[55px]"
+                            className="text-xs min-h-[48px] rounded-lg p-2"
                             value={remarks}
                             onChange={e => setRemarks(e.target.value)}
                         />
                     </div>
 
                     <div className="col-span-1 sm:col-span-2">
-                        <Label className="text-xs mb-1.5 block font-medium">Internal Notes (Optional)</Label>
+                        <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Internal Notes (Optional)</Label>
                         <Textarea
                             placeholder="Additional internal reference notes..."
-                            className="text-xs min-h-[50px]"
+                            className="text-xs min-h-[48px] rounded-lg p-2"
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
                         />
                     </div>
                 </div>
+                </div>
 
-                <DialogFooter className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="text-xs text-muted-foreground text-center sm:text-left">
+                <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="text-[11px] text-muted-foreground text-center sm:text-left">
                         Selected: <strong className="text-foreground font-mono">{selectedTools.length}</strong> tool(s) for DC
                     </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center justify-end gap-2.5">
                         <Button
                             variant="outline"
                             onClick={() => onOpenChange(false)}
-                            className="h-9 order-2 sm:order-1"
+                            className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                         >
                             Cancel
                         </Button>
@@ -577,10 +566,10 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                                         <Button
                                             disabled={!selectedProfileDetails || selectedTools.length === 0 || selectedTools.some((t: any) => !t.isPrinted)}
                                             onClick={handleProceedToPreview}
-                                            className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-1.5 shadow-md h-9 px-4 order-1 sm:order-2"
+                                            className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 cursor-pointer shadow-2xs"
                                         >
                                             <span>Proceed to Preview ({selectedTools.length} Tools)</span>
-                                            <ArrowRight className="size-4" />
+                                            <ArrowRight className="size-3.5" />
                                         </Button>
                                     </span>
                                 </TooltipTrigger>
@@ -594,7 +583,7 @@ export function VendorSelectionModal({ open, onOpenChange, selectedTools, storeI
                             </Tooltip>
                         </TooltipProvider>
                     </div>
-                </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     );

@@ -290,26 +290,27 @@ export function ChallanHistoryPage() {
     ];
 
     return (
-        <div className="p-6 w-full space-y-6">
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Header Banner */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-                        <FileText className="size-6 text-primary" />
-                        Challan History & Audit Logs
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                        Complete traceability for all Delivery Challans (DC) and Return Challans (RC) issued to vendors.
-                    </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                        <FileText className="size-4" />
+                    </div>
+                    <div>
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+                            Challan History & Audit Logs
+                        </h1>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={fetchChallans}
-                        className="flex items-center gap-1.5"
+                        className="h-7.5 px-2.5 text-[11px] font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-2xs"
                     >
-                        <RefreshCw className="size-3.5" />
+                        <RefreshCw className="size-3" />
                         <span>Refresh</span>
                     </Button>
                 </div>
@@ -340,34 +341,18 @@ export function ChallanHistoryPage() {
                 </Card>
             </div> */}
 
-            {/* Filter Bar (Compact Header, Labels & Horizontal Layout) */}
-            <Card className="p-4 space-y-3.5">
-                {/* <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                        <Filter className="size-3.5 text-primary" /> Filter Challans
-                    </h3>
-                    {(search || vendor !== "All" || status !== "All" || challanType !== "All" || startDate || endDate) && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={resetFilters}
-                            className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                            <RotateCcw className="size-3 mr-1" /> Reset filters
-                        </Button>
-                    )}
-                </div> */}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            {/* Filter Bar */}
+            <Card className="p-3 space-y-2.5 rounded-xl border border-border/60 shadow-2xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5">
                     <div className="col-span-1 sm:col-span-2">
-                        <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                             Search Keywords
                         </label>
                         <div className="relative">
-                            <Search className="size-4 absolute left-3 top-3 text-muted-foreground" />
+                            <Search className="size-3.5 absolute left-2.5 top-2 text-muted-foreground" />
                             <Input
                                 placeholder="Search challan number, vendor, remarks..."
-                                className="pl-9 h-10 text-sm"
+                                className="pl-8 h-7.5 text-xs rounded-lg border-border/60"
                                 value={search}
                                 onChange={e => {
                                     setSearch(e.target.value);
@@ -378,7 +363,7 @@ export function ChallanHistoryPage() {
                     </div>
 
                     <div>
-                        <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                             Vendor
                         </label>
                         <SearchableSelect
@@ -390,12 +375,12 @@ export function ChallanHistoryPage() {
                             }}
                             allLabel="All Vendors"
                             placeholder="Select vendor..."
-                            className="h-10"
+                            className="h-7.5 text-xs rounded-lg"
                         />
                     </div>
 
                     <div>
-                        <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                             Challan Type
                         </label>
                         <SearchableSelect
@@ -407,12 +392,12 @@ export function ChallanHistoryPage() {
                             }}
                             allLabel="All Types"
                             placeholder="Challan type..."
-                            className="h-10"
+                            className="h-7.5 text-xs rounded-lg"
                         />
                     </div>
 
                     <div>
-                        <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                             Status
                         </label>
                         <SearchableSelect
@@ -424,18 +409,18 @@ export function ChallanHistoryPage() {
                             }}
                             allLabel="All Statuses"
                             placeholder="Status..."
-                            className="h-10"
+                            className="h-7.5 text-xs rounded-lg"
                         />
                     </div>
                 </div>
 
                 {/* Date Range Row */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-border/50 text-xs">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-muted-foreground flex items-center gap-1">
-                            <Calendar className="size-3.5" /> Date Range:
+                        <span className="font-semibold text-muted-foreground flex items-center gap-1 text-[11px]">
+                            <Calendar className="size-3" /> Date Range:
                         </span>
-                        <div className="w-36 sm:w-40">
+                        <div className="w-32 sm:w-36">
                             <DatePickerField
                                 value={startDate}
                                 onChange={val => {
@@ -443,12 +428,12 @@ export function ChallanHistoryPage() {
                                     setPage(1);
                                 }}
                                 placeholder="Start date"
-                                className="h-8 text-xs rounded-lg px-2.5 bg-background border-border/80"
+                                className="h-7 text-xs rounded-lg px-2 bg-background border-border/80"
                                 hideActionBadge={true}
                             />
                         </div>
-                        <span className="text-muted-foreground font-medium">to</span>
-                        <div className="w-36 sm:w-40">
+                        <span className="text-muted-foreground font-medium text-[11px]">to</span>
+                        <div className="w-32 sm:w-36">
                             <DatePickerField
                                 value={endDate}
                                 onChange={val => {
@@ -456,54 +441,55 @@ export function ChallanHistoryPage() {
                                     setPage(1);
                                 }}
                                 placeholder="End date"
-                                className="h-8 text-xs rounded-lg px-2.5 bg-background border-border/80"
+                                className="h-7 text-xs rounded-lg px-2 bg-background border-border/80"
                                 hideActionBadge={true}
                             />
                         </div>
                     </div>
-                      {(search || vendor !== "All" || status !== "All" || challanType !== "All" || startDate || endDate) && (
+
+                    {(search || vendor !== "All" || status !== "All" || challanType !== "All" || startDate || endDate) && (
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={resetFilters}
-                            className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="h-6 px-2 text-[10px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
                         >
-                            <RotateCcw className="size-3 mr-1" /> Reset filters
+                            <RotateCcw className="size-2.5 mr-1" /> Reset filters
                         </Button>
                     )}
                 </div>
             </Card>
 
             {/* Challans Table */}
-            <Card className="border border-border/70 shadow-xs overflow-hidden">
+            <Card className="rounded-xl border border-border/60 shadow-2xs overflow-hidden">
                 <CardContent className="p-0 overflow-hidden">
-                    <table className="w-full text-xs sm:text-sm text-left">
-                        <thead className="bg-muted/80 text-[11px] uppercase text-muted-foreground font-semibold border-b">
+                    <table className="w-full text-xs text-left">
+                        <thead className="bg-muted/80 text-[10px] sm:text-[11px] uppercase text-muted-foreground font-semibold border-b">
                             <tr>
-                                <th className="px-3 py-3 w-12 text-center">#</th>
-                                <th className="px-3 py-3">Challan No.</th>
-                                <th className="px-2.5 py-3 text-center">Type</th>
-                                <th className="px-3 py-3">Vendor / Recipient</th>
-                                <th className="px-3 py-3">Date</th>
-                                <th className="px-2.5 py-3 text-center">Items</th>
-                                <th className="px-3 py-3 text-center">Status</th>
-                                <th className="px-3 py-3 text-right">Actions</th>
+                                <th className="px-3 py-2 w-10 text-center">#</th>
+                                <th className="px-3 py-2">Challan No.</th>
+                                <th className="px-2.5 py-2 text-center">Type</th>
+                                <th className="px-3 py-2">Vendor / Recipient</th>
+                                <th className="px-3 py-2">Date</th>
+                                <th className="px-2.5 py-2 text-center">Items</th>
+                                <th className="px-3 py-2 text-center">Status</th>
+                                <th className="px-3 py-2 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-16 text-center text-muted-foreground">
-                                        <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
+                                    <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                                        <Loader2 className="size-5 animate-spin mx-auto mb-2 text-primary" />
                                         <span>Loading challan records...</span>
                                     </td>
                                 </tr>
                             ) : challans.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-20 text-center">
-                                        <FileText className="size-10 text-muted-foreground/40 mx-auto mb-3" />
-                                        <h3 className="font-semibold text-base text-foreground">No challan records found</h3>
-                                        <p className="text-xs text-muted-foreground mt-1">
+                                    <td colSpan={8} className="px-4 py-16 text-center">
+                                        <FileText className="size-8 text-muted-foreground/40 mx-auto mb-2" />
+                                        <h3 className="font-semibold text-sm text-foreground">No challan records found</h3>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
                                             Try modifying your search or filter settings.
                                         </p>
                                     </td>
@@ -518,30 +504,30 @@ export function ChallanHistoryPage() {
                                             onClick={() => handleOpenDetails(challan)}
                                             className="hover:bg-muted/30 cursor-pointer transition-colors"
                                         >
-                                            <td className="px-3 py-3.5 text-center font-mono font-semibold text-xs text-muted-foreground">
+                                            <td className="px-3 py-2 text-center font-mono font-semibold text-[11px] text-muted-foreground">
                                                 {sNo}
                                             </td>
-                                            <td className="px-3 py-3.5">
-                                                <div className="font-mono font-bold text-sm text-primary">
+                                            <td className="px-3 py-2">
+                                                <div className="font-mono font-bold text-xs text-primary">
                                                     {challan.challanNumber}
                                                 </div>
                                                 {challan.challanType === "Return" && challan.referenceDcNumber && (
-                                                    <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                                                    <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
                                                         Ref: {challan.referenceDcNumber}
                                                     </div>
                                                 )}
                                                 {challan.challanType === "Delivery" && challan.transferFromDcNumber && (
-                                                    <div className="text-[11px] text-blue-600 dark:text-blue-400 font-mono mt-0.5 font-medium flex items-center gap-1">
+                                                    <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono mt-0.5 font-medium flex items-center gap-1">
                                                         <span>Transfer: {challan.transferFromDcNumber}</span>
                                                     </div>
                                                 )}
                                                 {challan.transferredToDcNumber && (
-                                                    <div className="text-[11px] text-amber-600 dark:text-amber-400 font-mono mt-0.5 font-medium flex items-center gap-1">
+                                                    <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono mt-0.5 font-medium flex items-center gap-1">
                                                         <span>Transferred to: {challan.transferredToDcNumber}</span>
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-2.5 py-3.5 text-center">
+                                            <td className="px-2.5 py-2 text-center">
                                                 {(() => {
                                                     const isScrap = challan.isScrapDC || challan.challanType === "Scrap" || (challan.challanNumber && challan.challanNumber.startsWith("SDC-"));
                                                     const displayType = isScrap ? "Scrap" : challan.challanType;
@@ -553,33 +539,33 @@ export function ChallanHistoryPage() {
                                                     );
                                                 })()}
                                             </td>
-                                            <td className="px-3 py-3.5 max-w-[200px]">
+                                            <td className="px-3 py-2 max-w-[200px]">
                                                 {challan.challanType === "Transfer" || challan.isStoreTransfer ? (
                                                     <div>
-                                                        <div className="font-semibold text-foreground flex items-center gap-1.5 truncate" title={`${challan.sourceStore?.name || "Source"} -> ${challan.destinationStore?.name || "Destination"}`}>
-                                                            <Building2 className="size-3.5 text-primary shrink-0" />
+                                                        <div className="font-semibold text-foreground flex items-center gap-1.5 truncate text-xs" title={`${challan.sourceStore?.name || "Source"} -> ${challan.destinationStore?.name || "Destination"}`}>
+                                                            <Building2 className="size-3 text-primary shrink-0" />
                                                             <span className="truncate">{challan.sourceStore?.name || "Source"} &rarr; {challan.destinationStore?.name || "Destination"}</span>
                                                         </div>
-                                                        <div className="text-xs text-muted-foreground font-mono mt-0.5 truncate">
+                                                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">
                                                             Project: {challan.project?.name || "Same Project"}
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     <div>
-                                                        <div className="font-semibold text-foreground flex items-center gap-1.5 truncate">
-                                                            <Building2 className="size-3.5 text-muted-foreground shrink-0" />
+                                                        <div className="font-semibold text-foreground flex items-center gap-1.5 truncate text-xs">
+                                                            <Building2 className="size-3 text-muted-foreground shrink-0" />
                                                             <span className="truncate">{challan.vendor?.name || "-"}</span>
                                                         </div>
-                                                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                                                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
                                                             {challan.vendor?.vendorCode || "-"}
                                                         </div>
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-3.5 font-medium text-foreground/80 whitespace-nowrap text-xs">
+                                            <td className="px-3 py-2 font-medium text-foreground/80 whitespace-nowrap text-[11px]">
                                                 {new Date(challan.challanDate).toLocaleDateString()}
                                             </td>
-                                            <td className="px-2.5 py-3.5 text-center font-bold text-foreground">
+                                            <td className="px-2.5 py-2 text-center font-bold text-foreground text-xs">
                                                 <div>{challan.toolCount || (challan.items || []).length}</div>
                                                 {challan.challanType === "Delivery" && (() => {
                                                     const total = challan.toolCount || (challan.items || []).length;
@@ -589,7 +575,7 @@ export function ChallanHistoryPage() {
                                                     const hasReturns = ret > 0 || miss > 0 || challan.status === "Pending";
                                                     if (!hasReturns) return null;
                                                     return (
-                                                        <div className="text-[10px] font-normal flex items-center justify-center gap-1 mt-0.5 whitespace-nowrap">
+                                                        <div className="text-[9px] font-normal flex items-center justify-center gap-1 mt-0.5 whitespace-nowrap">
                                                             {ret > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{ret} Ret</span>}
                                                             {pend > 0 && (
                                                                 <>
@@ -607,7 +593,7 @@ export function ChallanHistoryPage() {
                                                     );
                                                 })()}
                                             </td>
-                                            <td className="px-3 py-3.5 text-center whitespace-nowrap">
+                                            <td className="px-3 py-2 text-center whitespace-nowrap">
                                                 {(() => {
                                                     const displayStatus = challan.status === "Returned" ? "Completed" : challan.status;
                                                     return (
@@ -617,8 +603,8 @@ export function ChallanHistoryPage() {
                                                     );
                                                 })()}
                                             </td>
-                                            <td className="px-3 py-3.5 text-right">
-                                                <div className="flex items-center justify-end gap-1.5 flex-wrap sm:flex-nowrap" onClick={e => e.stopPropagation()}>
+                                            <td className="px-3 py-2 text-right">
+                                                <div className="flex items-center justify-end gap-1 flex-wrap sm:flex-nowrap" onClick={e => e.stopPropagation()}>
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"

@@ -110,7 +110,7 @@ export function ProjectsPage() {
 
         if (isNameField) {
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 font-bold text-foreground group-hover:text-primary transition-colors whitespace-nowrap">
+                <td key={field.id || field.name || index} className="px-3.5 py-2 font-bold text-xs text-foreground group-hover:text-primary transition-colors whitespace-nowrap">
                     {rawValue}
                 </td>
             );
@@ -119,8 +119,8 @@ export function ProjectsPage() {
         if (isCodeField) {
             const codeVal = rawValue && rawValue !== "-" ? rawValue : (project.projectCode || project.code || (project._id ? project._id.substring(project._id.length - 6).toUpperCase() : "-"));
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-muted font-medium text-foreground border border-border/40">
+                <td key={field.id || field.name || index} className="px-3.5 py-2 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted font-medium text-foreground border border-border/40">
                         {codeVal}
                     </span>
                 </td>
@@ -129,9 +129,9 @@ export function ProjectsPage() {
 
         if (isLocationField) {
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                <td key={field.id || field.name || index} className="px-3.5 py-2 text-xs text-muted-foreground whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
-                        <MapPinIcon className="size-3.5 text-muted-foreground/70 shrink-0" />
+                        <MapPinIcon className="size-3 text-muted-foreground/70 shrink-0" />
                         <span>{rawValue || "N/A"}</span>
                     </div>
                 </td>
@@ -142,8 +142,8 @@ export function ProjectsPage() {
             const statusKey = String(rawValue);
             const badgeClass = statusColors[statusKey] || "bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/20";
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ${badgeClass}`}>
+                <td key={field.id || field.name || index} className="px-3.5 py-2 whitespace-nowrap">
+                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold ${badgeClass}`}>
                         {rawValue && rawValue !== "-" ? rawValue : "Active"}
                     </span>
                 </td>
@@ -171,9 +171,9 @@ export function ProjectsPage() {
             };
 
             return (
-                <td key={field.id || field.name || index} className="px-6 py-4 font-medium text-foreground whitespace-nowrap">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-foreground font-mono text-xs border border-border/40">
-                        <CalendarIcon className="size-3.5 text-primary shrink-0" />
+                <td key={field.id || field.name || index} className="px-3.5 py-2 font-medium text-xs text-foreground whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/60 text-foreground font-mono text-[11px] border border-border/40">
+                        <CalendarIcon className="size-3 text-primary shrink-0" />
                         <span>{formatDateDisplay(String(rawValue))}</span>
                     </div>
                 </td>
@@ -190,7 +190,7 @@ export function ProjectsPage() {
         }
 
         return (
-            <td key={field.id || field.name || index} className="px-6 py-4 font-medium text-muted-foreground whitespace-nowrap">
+            <td key={field.id || field.name || index} className="px-3.5 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap">
                 {displayValue || "-"}
             </td>
         );
@@ -305,17 +305,19 @@ export function ProjectsPage() {
         return <NoAccessPage />;
     }
 
-    const cardClass = "rounded-xl border border-border/60 bg-card shadow-xs transition-all duration-200 overflow-hidden";
-
     return (
-        <div className="flex flex-col gap-4 w-full mx-auto p-4">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-bold tracking-tight text-foreground">Projects</h1>
-                    <p className="text-muted-foreground text-xs">Manage enterprise projects and assignments.</p>
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1.5 border-b border-border/40">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
+                        <FolderOpenIcon className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">Projects</h1>
+                    </div>
                 </div>
                 {(!user || user.role === "Admin") && (
-                    <Button className="gap-1.5 rounded-lg cursor-pointer" size="sm" onClick={() => { setEditingProject(null); setIsFormOpen(true); }}>
+                    <Button className="gap-1.5 rounded-lg h-7.5 px-2.5 text-[11px] font-semibold shadow-xs cursor-pointer" size="sm" onClick={() => { setEditingProject(null); setIsFormOpen(true); }}>
                         <PlusIcon className="size-3.5" />
                         New Project
                     </Button>
@@ -337,39 +339,39 @@ export function ProjectsPage() {
             />
 
             {/* Table card */}
-            <Card className={`${cardClass} flex flex-col`}>
-                <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50 bg-muted/20 px-6 py-4">
+            <Card className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-md shadow-xs overflow-hidden flex flex-col">
+                <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50 bg-muted/20 px-4 py-2.5">
                     <div className="flex-1">
-                        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                        <CardTitle className="flex items-center gap-1.5 text-xs sm:text-sm font-bold">
                             <FolderOpenIcon className="size-4 text-primary" />
                             Project Directory
                         </CardTitle>
                     </div>
                     <div className="relative w-56">
-                        <SearchIcon className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                        <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
                         <Input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search projects..."
-                            className="pl-8 h-8 text-xs rounded-lg border-border/50 bg-background/50 focus-visible:ring-primary/30"
+                            className="pl-8 h-7.5 text-xs rounded-lg border-border/50 bg-background/50 focus-visible:ring-primary/30"
                         />
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-xs">
                             <thead>
                                 <tr className="border-b border-border/50 bg-muted/10">
                                     {activeFields.map((field, idx) => (
                                         <th
                                             key={field.id || field.name || idx}
-                                            className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider whitespace-nowrap"
+                                            className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider whitespace-nowrap"
                                         >
                                             {field.label || field.name}
                                         </th>
                                     ))}
                                     {(!user || user.role === "Admin") && (
-                                        <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider whitespace-nowrap">
+                                        <th className="text-right px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider whitespace-nowrap">
                                             Actions
                                         </th>
                                     )}
@@ -400,24 +402,24 @@ export function ProjectsPage() {
                                         >
                                             {activeFields.map((field, idx) => renderCellContent(p, field, idx))}
                                             {(!user || user.role === "Admin") && (
-                                                <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                                <td className="px-3.5 py-2 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                                                     <div className="flex items-center justify-end gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon-xs"
-                                                            className="rounded-md hover:bg-background shadow-xs cursor-pointer"
+                                                            className="rounded-md hover:bg-background shadow-xs cursor-pointer h-7 w-7"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setEditingProject(p);
                                                                 setIsFormOpen(true);
                                                             }}
                                                         >
-                                                            <EditIcon className="size-3.5 text-muted-foreground" />
+                                                            <EditIcon className="size-3 text-muted-foreground" />
                                                         </Button>
                                                         <Button
                                                             variant="ghost"
                                                             size="icon-xs"
-                                                            className="rounded-md hover:bg-red-500/10 hover:text-red-600 shadow-xs cursor-pointer"
+                                                            className="rounded-md hover:bg-red-500/10 hover:text-red-600 shadow-xs cursor-pointer h-7 w-7"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setDeletingProject({ id: p._id, name: p.name || p.projectName || p.title || "this project" });

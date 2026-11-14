@@ -286,24 +286,24 @@ export function ReturnChallanPreviewPage() {
     };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Top Navigation & Title */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                        <ArrowLeft className="size-5" />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2.5">
+                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-7.5 w-7.5 rounded-lg shrink-0">
+                        <ArrowLeft className="size-4" />
                     </Button>
                     <div>
-                        <div className="flex flex-wrap items-center gap-2.5">
-                            <img src={logoUrl} alt="L&T Logo" className="size-8 object-contain shrink-0" />
-                            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                                <RotateCcw className="size-5 text-primary" />
+                        <div className="flex flex-wrap items-center gap-2">
+                            <img src={logoUrl} alt="L&T Logo" className="size-6 object-contain shrink-0" />
+                            <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground flex items-center gap-1.5">
+                                <RotateCcw className="size-4 text-primary" />
                                 Return Challan (RC) Creation
                             </h1>
-                            <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                            <span className="font-mono text-[10px] px-2 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
                                 Ref DC: {dc.challanNumber}
                             </span>
-                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+                            <span className={`text-[10px] px-2 py-0.2 rounded-full font-semibold ${
                                 dc.status === 'Pending'
                                     ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                                     : 'bg-blue-500/15 text-blue-700 dark:text-blue-400'
@@ -311,7 +311,7 @@ export function ReturnChallanPreviewPage() {
                                 DC Status: {dc.status}
                             </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-0.5">
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
                             Select tools to return from this Delivery Challan. Partial returns will keep unreturned tools pending.
                         </p>
                     </div>
@@ -320,24 +320,27 @@ export function ReturnChallanPreviewPage() {
                 <div className="flex items-center gap-2 self-start md:self-center">
                     <Button
                         variant="outline"
+                        size="sm"
                         onClick={() => navigate(-1)}
                         disabled={creating}
+                        className="h-7.5 px-2.5 text-[11px] font-semibold rounded-lg cursor-pointer"
                     >
                         Cancel
                     </Button>
                     <Button
+                        size="sm"
                         onClick={handleConfirmCreateReturn}
                         disabled={creating || selectedItems.length === 0}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md flex items-center gap-2 px-5"
+                        className="h-7.5 px-3 text-[11px] font-bold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5 cursor-pointer"
                     >
                         {creating ? (
                             <>
-                                <Loader2 className="size-4 animate-spin" />
+                                <Loader2 className="size-3.5 animate-spin" />
                                 <span>Creating RC...</span>
                             </>
                         ) : (
                             <>
-                                <CheckCircle2 className="size-4" />
+                                <CheckCircle2 className="size-3.5" />
                                 <span>Confirm Return ({selectedItems.length} Tool{selectedItems.length > 1 ? "s" : ""})</span>
                             </>
                         )}

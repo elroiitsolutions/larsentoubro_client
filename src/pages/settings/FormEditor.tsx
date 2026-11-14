@@ -242,64 +242,64 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
     }
 
     return (
-        <div ref={containerRef} className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1 scroll-smooth">
+        <div ref={containerRef} className="flex-1 min-h-0 flex flex-col w-full scroll-smooth">
             {/* Sticky Top Action Bar */}
-            <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border/60 -mx-1 px-4 sm:px-6 py-3.5 mb-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+            <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border/50 py-2 sm:py-2.5 px-0 mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5">
                     <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={onBack} 
-                        className="rounded-xl h-9 gap-2 font-medium cursor-pointer shadow-xs hover:bg-muted"
+                        className="rounded-lg h-7.5 px-2.5 text-xs font-medium cursor-pointer shadow-2xs hover:bg-muted gap-1.5"
                     >
-                        <ArrowLeftIcon className="size-4" />
+                        <ArrowLeftIcon className="size-3.5" />
                         <span>Back to Forms</span>
                     </Button>
-                    <div className="h-5 w-px bg-border/60 hidden sm:block" />
+                    <div className="h-4 w-px bg-border/60 hidden sm:block" />
                     <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                        <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground flex items-center gap-2">
                             {form.name}
                         </h2>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted border border-border/60 text-muted-foreground text-xs font-semibold">
-                            <Layers className="size-3" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/80 border border-border/60 text-muted-foreground text-[11px] font-semibold">
+                            <Layers className="size-3 text-muted-foreground" />
                             {fields.length} {fields.length === 1 ? 'Field' : 'Fields'}
                         </span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={handleAddField} 
-                        className="rounded-xl h-9 gap-1.5 font-semibold cursor-pointer shadow-xs hover:bg-muted"
+                        className="rounded-lg h-7.5 px-3 text-xs font-semibold cursor-pointer shadow-2xs hover:bg-muted gap-1.5"
                     >
-                        <PlusIcon className="size-4 text-primary" />
+                        <PlusIcon className="size-3.5 text-primary" />
                         <span>Add Field</span>
                     </Button>
                 </div>
             </div>
 
-            {/* Main Form Fields Editor (Max-width expanded to 6xl = 1152px for plenty of horizontal room) */}
-            <div className="max-w-6xl mx-auto w-full space-y-4 pb-20">
+            {/* Main Form Fields Editor - Full width matching other pages */}
+            <div className="w-full space-y-2.5 pb-4">
 
                 {/* Empty State */}
                 {fields.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 px-6 border-2 border-dashed border-border/60 rounded-2xl bg-card/40 text-center">
-                        <CheckSquare className="size-12 mb-3 text-primary/40" />
-                        <h3 className="text-base font-bold text-foreground">No fields in this form schema</h3>
-                        <p className="text-xs text-muted-foreground max-w-md mt-1 mb-5">
+                    <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-border/60 rounded-xl bg-card/40 text-center">
+                        <CheckSquare className="size-8 mb-2 text-primary/40" />
+                        <h3 className="text-sm font-bold text-foreground">No fields in this form schema</h3>
+                        <p className="text-xs text-muted-foreground max-w-md mt-0.5 mb-4">
                             Start building your form by adding simple horizontal field rows below.
                         </p>
-                        <Button onClick={handleAddField} className="rounded-xl gap-2 cursor-pointer">
-                            <PlusIcon className="size-4" />
+                        <Button onClick={handleAddField} size="sm" className="rounded-lg h-7.5 px-3 text-xs gap-1.5 cursor-pointer">
+                            <PlusIcon className="size-3.5" />
                             Add Your First Field
                         </Button>
                     </div>
                 ) : (
-                    <div className="space-y-3">
-                        {/* Table Header Bar - Perfectly proportioned 12-column grid */}
-                        <div className="hidden sm:grid grid-cols-12 items-center gap-4 px-5 py-2.5 text-xs font-bold text-muted-foreground uppercase tracking-wider bg-muted/40 rounded-xl border border-border/50">
+                    <div className="space-y-2">
+                        {/* Table Header Bar - Proportioned 12-column grid */}
+                        <div className="hidden sm:grid grid-cols-12 items-center gap-3 px-3.5 py-1.5 text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/25 rounded-lg border border-border/50">
                             <div className="col-span-2">Order</div>
                             <div className="col-span-3">Field Name</div>
                             <div className="col-span-2">Input Type</div>
@@ -318,49 +318,49 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                 <div 
                                     key={field.id}
                                     id={`field-row-${field.id}`}
-                                    className={`bg-card border transition-all duration-300 rounded-xl shadow-xs overflow-hidden ${
+                                    className={`bg-card border transition-all duration-200 rounded-lg shadow-2xs overflow-hidden ${
                                         newlyAddedId === field.id
-                                            ? 'border-primary ring-2 ring-primary/40 shadow-md'
+                                            ? 'border-primary ring-2 ring-primary/40 shadow-xs'
                                             : isSettingsOpen || isOptionsOpen 
                                                 ? 'border-primary/50 ring-1 ring-primary/20' 
                                                 : 'border-border/60 hover:border-border'
                                     }`}
                                 >
                                     {/* HORIZONTAL FIELD ROW - 12-column grid matching table header */}
-                                    <div className="p-3.5 sm:px-5 flex flex-col sm:grid sm:grid-cols-12 items-start sm:items-center gap-4">
+                                    <div className="p-2 sm:px-3 sm:py-1.5 flex flex-col sm:grid sm:grid-cols-12 items-start sm:items-center gap-2.5 sm:gap-3">
                                         
-                                        {/* Col 1-2: Reorder arrows & Field # (16.6% width) */}
-                                        <div className="sm:col-span-2 flex items-center gap-2.5 shrink-0">
-                                            <div className="flex items-center gap-0.5 bg-muted/60 rounded-lg p-0.5 border border-border/40">
+                                        {/* Col 1-2: Reorder arrows & Field # */}
+                                        <div className="sm:col-span-2 flex items-center gap-2 shrink-0">
+                                            <div className="flex items-center gap-0.5 bg-muted/50 rounded-md p-0.5 border border-border/40">
                                                 <Button 
                                                     type="button"
                                                     variant="ghost" 
                                                     size="icon" 
-                                                    className="h-6 w-6 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer" 
+                                                    className="h-5 w-5 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer" 
                                                     disabled={index === 0} 
                                                     onClick={() => reorderFields(index, index - 1)}
                                                     title="Move Up"
                                                 >
-                                                    <ArrowUpIcon className="size-3.5" />
+                                                    <ArrowUpIcon className="size-3" />
                                                 </Button>
                                                 <Button 
                                                     type="button"
                                                     variant="ghost" 
                                                     size="icon" 
-                                                    className="h-6 w-6 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer" 
+                                                    className="h-5 w-5 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer" 
                                                     disabled={index === fields.length - 1} 
                                                     onClick={() => reorderFields(index, index + 1)}
                                                     title="Move Down"
                                                 >
-                                                    <ArrowDownIcon className="size-3.5" />
+                                                    <ArrowDownIcon className="size-3" />
                                                 </Button>
                                             </div>
-                                            <span className="inline-flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary text-xs font-bold font-mono">
+                                            <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold font-mono">
                                                 #{index + 1}
                                             </span>
                                         </div>
 
-                                        {/* Col 3-5: Field Name (25% width) */}
+                                        {/* Col 3-5: Field Name */}
                                         <div className="sm:col-span-3 w-full">
                                             <Input 
                                                 value={field.label} 
@@ -376,11 +376,11 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                     });
                                                 }} 
                                                 placeholder="e.g. Employee Name, Email, Department"
-                                                className="h-9 rounded-xl bg-background border-border/70 font-semibold text-sm"
+                                                className="h-7.5 rounded-lg bg-background border-border/70 font-medium text-xs px-2.5"
                                             />
                                         </div>
 
-                                        {/* Col 6-7: Input Type Selector (16.6% width) */}
+                                        {/* Col 6-7: Input Type Selector */}
                                         <div className="sm:col-span-2 w-full">
                                             <Select 
                                                 value={field.type} 
@@ -393,34 +393,34 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                     updateField(field.id, { type: val, validations: vals });
                                                 }}
                                             >
-                                                <SelectTrigger className="flex h-9 w-full rounded-xl border border-border/70 bg-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer">
+                                                <SelectTrigger className="flex h-7.5 w-full rounded-lg border border-border/70 bg-background px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary cursor-pointer">
                                                     <SelectValue placeholder="Select type" />
                                                 </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="text">Text Input</SelectItem>
-                                                    <SelectItem value="number">Number</SelectItem>
-                                                    <SelectItem value="email">Email Address</SelectItem>
-                                                    <SelectItem value="date">Date / Calendar</SelectItem>
-                                                    <SelectItem value="select">Dropdown Select</SelectItem>
-                                                    <SelectItem value="checkbox">Checkbox</SelectItem>
-                                                    <SelectItem value="radio">Radio Buttons</SelectItem>
-                                                    <SelectItem value="textarea">Long Text</SelectItem>
-                                                    <SelectItem value="switch">Yes/No Switch</SelectItem>
+                                                <SelectContent className="rounded-lg text-xs">
+                                                    <SelectItem value="text" className="text-xs py-1.5">Text Input</SelectItem>
+                                                    <SelectItem value="number" className="text-xs py-1.5">Number</SelectItem>
+                                                    <SelectItem value="email" className="text-xs py-1.5">Email Address</SelectItem>
+                                                    <SelectItem value="date" className="text-xs py-1.5">Date / Calendar</SelectItem>
+                                                    <SelectItem value="select" className="text-xs py-1.5">Dropdown Select</SelectItem>
+                                                    <SelectItem value="checkbox" className="text-xs py-1.5">Checkbox</SelectItem>
+                                                    <SelectItem value="radio" className="text-xs py-1.5">Radio Buttons</SelectItem>
+                                                    <SelectItem value="textarea" className="text-xs py-1.5">Long Text</SelectItem>
+                                                    <SelectItem value="switch" className="text-xs py-1.5">Yes/No Switch</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
 
-                                        {/* Col 8-12: Required Toggle, Options Button, Settings Button, Delete (41.6% width - generous room!) */}
-                                        <div className="sm:col-span-5 flex items-center justify-end gap-2.5 w-full">
+                                        {/* Col 8-12: Required Toggle, Options Button, Settings Button, Delete */}
+                                        <div className="sm:col-span-5 flex items-center justify-end gap-1.5 sm:gap-2 w-full">
                                             {isPermanent ? (
                                                 <div 
                                                     title="System Core Field: Name and Mobile Number are always required and cannot be changed"
-                                                    className="inline-flex items-center gap-1.5 cursor-not-allowed select-none px-3 py-1.5 rounded-xl border text-xs font-semibold shrink-0 bg-primary/15 border-primary/40 text-primary shadow-xs opacity-95"
+                                                    className="inline-flex items-center gap-1.5 cursor-not-allowed select-none px-2 py-1 rounded-md border text-[11px] font-medium shrink-0 bg-primary/15 border-primary/40 text-primary shadow-2xs opacity-95"
                                                 >
-                                                    <Lock className="size-3.5 text-primary shrink-0" />
+                                                    <Lock className="size-3 text-primary shrink-0" />
                                                     <input 
                                                         type="checkbox" 
-                                                        className="size-3.5 rounded border-border text-primary cursor-not-allowed"
+                                                        className="size-3 rounded border-border text-primary cursor-not-allowed"
                                                         checked={true}
                                                         disabled={true}
                                                         readOnly
@@ -430,15 +430,15 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                             ) : (
                                                 <label 
                                                     title="Toggle whether this field is mandatory"
-                                                    className={`inline-flex items-center gap-1.5 cursor-pointer select-none px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shrink-0 ${
+                                                    className={`inline-flex items-center gap-1.5 cursor-pointer select-none px-2 py-1 rounded-md border text-[11px] font-medium transition-all shrink-0 ${
                                                         isRequired 
-                                                            ? 'bg-primary/15 border-primary/40 text-primary shadow-xs' 
+                                                            ? 'bg-primary/15 border-primary/40 text-primary shadow-2xs' 
                                                             : 'bg-background border-border/60 text-muted-foreground hover:text-foreground hover:border-border'
                                                     }`}
                                                 >
                                                     <input 
                                                         type="checkbox" 
-                                                        className="size-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                                                        className="size-3 rounded border-border text-primary focus:ring-primary cursor-pointer"
                                                         checked={isRequired}
                                                         onChange={(e) => {
                                                             const isReq = e.target.checked
@@ -466,9 +466,9 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                         setExpandedOptionsId(isOptionsOpen ? null : field.id)
                                                         setExpandedSettingsId(null)
                                                     }}
-                                                    className="h-9 rounded-xl text-xs font-semibold gap-1.5 px-3 shrink-0 cursor-pointer shadow-xs"
+                                                    className="h-7 rounded-md text-[11px] font-medium gap-1 px-2 shrink-0 cursor-pointer shadow-2xs"
                                                 >
-                                                    <ListFilter className="size-3.5 text-blue-500" />
+                                                    <ListFilter className="size-3 text-blue-500" />
                                                     <span>{field.options?.length || 0} Options</span>
                                                 </Button>
                                             )}
@@ -481,10 +481,10 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                     setExpandedSettingsId(isSettingsOpen ? null : field.id)
                                                     setExpandedOptionsId(null)
                                                 }}
-                                                className="h-9 rounded-xl text-xs font-semibold gap-1.5 px-3 shrink-0 cursor-pointer shadow-xs"
+                                                className="h-7 rounded-md text-[11px] font-medium gap-1 px-2 shrink-0 cursor-pointer shadow-2xs"
                                                 title="Help Text, Placeholders & Validation"
                                             >
-                                                <Sliders className="size-3.5" />
+                                                <Sliders className="size-3" />
                                                 <span>Settings</span>
                                             </Button>
 
@@ -494,21 +494,21 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                     variant="ghost" 
                                                     size="icon" 
                                                     disabled
-                                                    className="h-9 w-9 text-muted-foreground/30 cursor-not-allowed rounded-xl shrink-0" 
+                                                    className="h-7 w-7 text-muted-foreground/30 cursor-not-allowed rounded-md shrink-0" 
                                                     title="Core required field cannot be deleted"
                                                 >
-                                                    <Lock className="size-3.5 text-muted-foreground/40" />
+                                                    <Lock className="size-3 text-muted-foreground/40" />
                                                 </Button>
                                             ) : (
                                                 <Button 
                                                     type="button"
                                                     variant="ghost" 
                                                     size="icon" 
-                                                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl shrink-0 cursor-pointer" 
+                                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-md shrink-0 cursor-pointer" 
                                                     onClick={() => setFieldToDelete({ id: field.id, label: field.label })}
                                                     title="Delete Field"
                                                 >
-                                                    <TrashIcon className="size-4" />
+                                                    <TrashIcon className="size-3.5" />
                                                 </Button>
                                             )}
                                         </div>
@@ -516,10 +516,10 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
 
                                     {/* COLLAPSIBLE OPTIONS DRAWER (for select / radio / checkbox) */}
                                     {isOptionsOpen && (
-                                        <div className="bg-muted/20 border-t border-border/40 p-5 space-y-4">
+                                        <div className="bg-muted/15 border-t border-border/40 p-3 sm:p-3.5 space-y-2.5">
                                             <div className="flex items-center justify-between">
-                                                <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
-                                                    <ListFilter className="size-4 text-primary" />
+                                                <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                                    <ListFilter className="size-3.5 text-primary" />
                                                     Selectable Options for "{field.label}"
                                                 </h4>
                                                 <Button
@@ -527,38 +527,38 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                     size="sm"
                                                     variant="secondary"
                                                     onClick={() => addOption(field.id, field.options)}
-                                                    className="h-8 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
+                                                    className="h-6.5 px-2.5 rounded-md text-[11px] font-medium gap-1 cursor-pointer shadow-2xs"
                                                 >
-                                                    <PlusIcon className="size-3.5 text-primary" />
+                                                    <PlusIcon className="size-3 text-primary" />
                                                     Add Option
                                                 </Button>
                                             </div>
 
                                             {(!field.options || field.options.length === 0) ? (
-                                                <p className="text-xs text-muted-foreground italic">
+                                                <p className="text-[11px] text-muted-foreground italic">
                                                     No options added yet. Click "Add Option" to create dropdown choices.
                                                 </p>
                                             ) : (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                                                     {field.options.map((opt: any, idx: number) => {
                                                         const labelVal = typeof opt === 'string' ? opt : (opt?.label ?? '')
                                                         return (
-                                                            <div key={idx} className="flex items-center gap-2 bg-background border border-border/60 rounded-xl p-1.5 px-3">
-                                                                <span className="text-xs font-mono font-bold text-muted-foreground">#{idx + 1}</span>
+                                                            <div key={idx} className="flex items-center gap-1.5 bg-background border border-border/60 rounded-md p-1 px-2.5">
+                                                                <span className="text-[10px] font-mono font-bold text-muted-foreground">#{idx + 1}</span>
                                                                 <Input 
                                                                     value={labelVal} 
                                                                     onChange={(e) => updateOptionLabel(field.id, field.options || [], idx, e.target.value)} 
-                                                                    className="h-7 text-xs border-0 shadow-none focus-visible:ring-0 px-1 font-medium"
+                                                                    className="h-6 text-xs border-0 shadow-none focus-visible:ring-0 px-1 font-medium"
                                                                     placeholder="Option Label"
                                                                 />
                                                                 <Button 
                                                                     type="button"
                                                                     variant="ghost" 
                                                                     size="icon" 
-                                                                    className="h-6 w-6 text-muted-foreground hover:text-destructive rounded-lg cursor-pointer shrink-0" 
+                                                                    className="h-5 w-5 text-muted-foreground hover:text-destructive rounded cursor-pointer shrink-0" 
                                                                     onClick={() => removeOption(field.id, field.options || [], idx)}
                                                                 >
-                                                                    <XIcon className="size-3.5" />
+                                                                    <XIcon className="size-3" />
                                                                 </Button>
                                                             </div>
                                                         )
@@ -570,15 +570,15 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
 
                                     {/* COLLAPSIBLE SETTINGS DRAWER (Placeholder, Helper Text & Rules) */}
                                     {isSettingsOpen && (
-                                        <div className="bg-muted/20 border-t border-border/40 p-5 space-y-4">
-                                            <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
-                                                <Sliders className="size-4 text-primary" />
+                                        <div className="bg-muted/15 border-t border-border/40 p-3 sm:p-3.5 space-y-2.5">
+                                            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                                <Sliders className="size-3.5 text-primary" />
                                                 Field Configuration & Validation Settings
                                             </h4>
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div className="space-y-1">
+                                                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
                                                         <span>Placeholder Text</span>
                                                         <InfoIcon className="size-3 text-muted-foreground/60" />
                                                     </label>
@@ -586,12 +586,12 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                         value={field.placeholder || ''} 
                                                         onChange={(e) => updateField(field.id, { placeholder: e.target.value })} 
                                                         placeholder="e.g. Enter full name..."
-                                                        className="h-9 rounded-xl bg-background border-border/60 text-xs"
+                                                        className="h-7.5 rounded-lg bg-background border-border/60 text-xs px-2.5"
                                                     />
                                                 </div>
 
-                                                <div className="space-y-1.5">
-                                                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                                                <div className="space-y-1">
+                                                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
                                                         <span>Helper Description Text</span>
                                                         <HelpCircle className="size-3 text-muted-foreground/60" />
                                                     </label>
@@ -599,20 +599,20 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                         value={field.helperText || ''} 
                                                         onChange={(e) => updateField(field.id, { helperText: e.target.value })} 
                                                         placeholder="e.g. As shown on official identification document"
-                                                        className="h-9 rounded-xl bg-background border-border/60 text-xs"
+                                                        className="h-7.5 rounded-lg bg-background border-border/60 text-xs px-2.5"
                                                     />
                                                 </div>
                                             </div>
 
                                             {/* Validation Rules */}
-                                            <div className="pt-2 border-t border-border/40 space-y-2">
-                                                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                                            <div className="pt-2 border-t border-border/40 space-y-1.5">
+                                                <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
                                                     <ShieldCheck className="size-3.5 text-emerald-500" />
                                                     Special Constraints:
                                                 </span>
 
                                                 {field.type === 'text' && (
-                                                    <label className="inline-flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+                                                    <label className="inline-flex items-center gap-2 text-[11px] font-medium text-foreground cursor-pointer select-none">
                                                         <input 
                                                             type="checkbox"
                                                             className="size-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
@@ -634,7 +634,7 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                                                 )}
 
                                                 {field.type === 'email' && (
-                                                    <label className="inline-flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+                                                    <label className="inline-flex items-center gap-2 text-[11px] font-medium text-foreground cursor-pointer select-none">
                                                         <input 
                                                             type="checkbox"
                                                             className="size-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
@@ -666,33 +666,33 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                 {/* Anchor for smooth scroll down */}
                 <div ref={bottomRef} className="h-0 w-full" />
 
-                {/* Bottom Actions Card */}
-                <div className="sticky bottom-4 z-20 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
-                    <div className="flex flex-wrap items-center gap-3">
+                {/* Bottom Actions Card - Compact, sleek & aligned */}
+                <div className="sticky bottom-1 z-20 bg-card/95 backdrop-blur-md border border-border/60 rounded-xl px-3.5 py-2 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 mt-3 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2.5">
                         <Button 
                             type="button"
                             variant="outline" 
                             size="sm" 
                             onClick={handleAddField} 
-                            className="rounded-xl h-9 gap-1.5 font-semibold cursor-pointer shadow-xs hover:bg-muted"
+                            className="rounded-lg h-7.5 px-3 text-xs font-medium cursor-pointer shadow-2xs hover:bg-muted gap-1.5"
                         >
-                            <PlusIcon className="size-4 text-primary" />
+                            <PlusIcon className="size-3.5 text-primary" />
                             <span>Add Field Row</span>
                         </Button>
-                        <span className="text-xs text-muted-foreground font-medium hidden sm:inline-block">
+                        <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline-block">
                             {fields.length} {fields.length === 1 ? 'field' : 'fields'} configured in this form schema
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             onClick={onBack}
-                            className="rounded-xl h-9 px-4 font-semibold cursor-pointer shadow-xs hover:bg-muted gap-1.5"
+                            className="rounded-lg h-7.5 px-3 text-xs font-medium cursor-pointer shadow-2xs hover:bg-muted gap-1.5"
                         >
-                            <ArrowLeftIcon className="size-4" />
+                            <ArrowLeftIcon className="size-3.5" />
                             <span>Back to Forms</span>
                         </Button>
                         <Button 
@@ -700,16 +700,16 @@ export function FormEditor({ form, onBack, onSave }: { form: any; onBack: () => 
                             size="sm" 
                             onClick={handleSave} 
                             disabled={saving}
-                            className="rounded-xl h-9 px-5 gap-1.5 font-semibold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                            className="rounded-lg h-7.5 px-3.5 text-xs font-semibold gap-1.5 shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
                         >
                             {saving ? (
                                 <>
-                                    <div className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                                    <div className="size-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                                     <span>Saving Schema...</span>
                                 </>
                             ) : (
                                 <>
-                                    <SaveIcon className="size-4" />
+                                    <SaveIcon className="size-3.5" />
                                     <span>Save Form Schema</span>
                                 </>
                             )}
