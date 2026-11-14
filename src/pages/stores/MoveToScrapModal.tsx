@@ -4,13 +4,12 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
-    DialogFooter
+    DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Archive, Loader2 } from "lucide-react";
+import { Archive, Loader2, X } from "lucide-react";
 import toolService, { type ToolRecord } from "@/services/tool.service";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -72,85 +71,85 @@ export const MoveToScrapModal: React.FC<MoveToScrapModalProps> = ({
 
     return (
         <Dialog open={open} onOpenChange={(o) => { if (!loading) onOpenChange(o); }}>
-            <DialogContent className="max-w-lg p-6 rounded-2xl">
-                <DialogHeader>
-                    <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                            <Archive className="size-5" />
+            <DialogContent hideClose={true} className="max-w-lg p-0 rounded-xl overflow-hidden shadow-2xl">
+                <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                                <Archive className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                    Move Selected Tools to Scrap
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                    Mark tools as scrapped and transfer them to the Scrap section.
+                                </DialogDescription>
+                            </div>
                         </div>
-                        <div>
-                            <DialogTitle className="text-xl font-bold">
-                                Move Selected Tools to Scrap
-                            </DialogTitle>
-                            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                                Mark tools as scrapped and transfer them to the Scrap section.
-                            </DialogDescription>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => onOpenChange(false)}
+                            className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 cursor-pointer"
+                            aria-label="Close modal"
+                        >
+                            <X className="size-4" />
+                        </button>
                     </div>
                 </DialogHeader>
 
-                <form onSubmit={handleConfirmScrap} className="space-y-4 pt-2">
-                    {/* Information Note */}
-                    {/* <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
-                        <AlertCircle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                        <div className="space-y-1">
-                            <p className="font-semibold">Direct Scrap Movement (No Challan)</p>
-                            <p className="text-amber-700/90 dark:text-amber-400/90 leading-relaxed">
-                                The selected tools will be marked as <strong>Scrapped</strong> and moved directly to the Scrap page. 
-                                Their project and store associations will remain intact. No Delivery Challan or Scrap Dealer is required at this stage.
-                            </p>
-                        </div>
-                    </div> */}
-
-                    {/* Tools Preview */}
-                    <div className="p-3 bg-muted/40 rounded-xl border border-border/60 space-y-2">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-muted-foreground">Selected Tools:</span>
-                            <span className="font-bold text-foreground bg-primary/10 px-2 py-0.5 rounded-md text-primary">
-                                {selectedTools.length} Tool(s)
-                            </span>
-                        </div>
-                        <div className="max-h-28 overflow-y-auto flex flex-wrap gap-1.5 pt-1">
-                            {selectedTools.map((t) => (
-                                <span
-                                    key={t._id}
-                                    className="font-mono text-[11px] px-2 py-0.5 rounded bg-background border border-border/60 text-foreground font-medium"
-                                >
-                                    {t.toolId || t.toolCode || t._id}
+                <form onSubmit={handleConfirmScrap} className="flex flex-col flex-1 min-h-0">
+                    <div className="p-4 sm:p-5 space-y-3.5 flex-1 overflow-y-auto">
+                        {/* Tools Preview */}
+                        <div className="p-2.5 bg-muted/30 rounded-lg border border-border/60 space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px] font-semibold">
+                                <span className="text-muted-foreground">Selected Tools:</span>
+                                <span className="font-bold text-foreground bg-primary/10 px-2 py-0.5 rounded-md text-primary text-[10px]">
+                                    {selectedTools.length} Tool(s)
                                 </span>
-                            ))}
+                            </div>
+                            <div className="max-h-24 overflow-y-auto flex flex-wrap gap-1 pt-0.5">
+                                {selectedTools.map((t) => (
+                                    <span
+                                        key={t._id}
+                                        className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-background border border-border/60 text-foreground font-medium"
+                                    >
+                                        {t.toolId || t.toolCode || t._id}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Reason / Remarks */}
+                        <div className="space-y-1">
+                            <Label htmlFor="scrap-reason" className="text-[11px] font-semibold text-foreground/90 block mb-1">
+                                Scrap Reason / Justification <span className="text-muted-foreground font-normal">(Optional)</span>
+                            </Label>
+                            <Textarea
+                                id="scrap-reason"
+                                placeholder="e.g. Beyond economical repair, mechanical failure, expired certificate..."
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                className="text-xs min-h-[50px] rounded-lg p-2 resize-none"
+                                disabled={loading}
+                            />
                         </div>
                     </div>
 
-                    {/* Reason / Remarks */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="scrap-reason" className="text-xs font-bold text-foreground">
-                            Scrap Reason / Justification <span className="text-muted-foreground font-normal">(Optional)</span>
-                        </Label>
-                        <Textarea
-                            id="scrap-reason"
-                            placeholder="e.g. Beyond economical repair, mechanical failure, expired certificate..."
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            className="text-xs min-h-[70px] resize-none"
-                            disabled={loading}
-                        />
-                    </div>
-
-                    <DialogFooter className="gap-2 pt-2 border-t">
+                    <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end gap-2.5">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                             disabled={loading}
-                            className="rounded-xl h-9 text-xs"
+                            className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
                             disabled={loading || selectedTools.length === 0}
-                            className="rounded-xl h-9 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white gap-1.5 shadow-sm"
+                            className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white gap-1.5 cursor-pointer shadow-2xs"
                         >
                             {loading ? (
                                 <>
@@ -164,7 +163,7 @@ export const MoveToScrapModal: React.FC<MoveToScrapModalProps> = ({
                                 </>
                             )}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </form>
             </DialogContent>
         </Dialog>

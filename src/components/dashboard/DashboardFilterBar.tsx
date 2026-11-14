@@ -1,7 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
     Filter,
@@ -17,6 +16,7 @@ import {
     Calendar
 } from "lucide-react";
 import type { DashboardFilterParams, DivisionNode } from "@/services/dashboard.service";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 
 interface Props {
     filters: DashboardFilterParams;
@@ -257,11 +257,12 @@ export const DashboardFilterBar: React.FC<Props> = ({
                     <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
                         <Calendar className="size-3 text-cyan-500" /> Start Date
                     </Label>
-                    <Input
-                        type="date"
+                    <DatePickerField
                         value={filters.startDate || ""}
-                        onChange={(e) => onChangeFilter("startDate", e.target.value)}
+                        onChange={(val) => onChangeFilter("startDate", val)}
+                        placeholder="Pick start date"
                         className="h-8 text-xs rounded-xl bg-background/80"
+                        hideActionBadge={true}
                     />
                 </div>
             </div>

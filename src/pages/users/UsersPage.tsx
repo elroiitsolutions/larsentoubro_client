@@ -26,7 +26,9 @@ import {
     ClockIcon,
     CalendarIcon,
     InfoIcon,
-    ClipboardCheck
+    ClipboardCheck,
+    Copy,
+    FileText
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
@@ -45,7 +47,7 @@ import { validateEmail } from "@/utils/validation"
 import { toast } from "sonner"
 import NoAccessPage from "../NoAccessPage"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 
@@ -664,29 +666,31 @@ export function UsersPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                        Users, Subusers & Guest Management
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Manage internal team members, oversee created subusers, configure permissions, and manage guest users.
-                    </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
+                        <UsersIcon className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">
+                            Users, Subusers & Guest Management
+                        </h1>
+                    </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                     {/* 1. Internal Users Active -> Show Create User / Admin only */}
                     {isAdmin && activeTab === "internal" && (
                         <Button
-                            className="gap-2 rounded-xl shadow-md bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-10 px-5"
+                            className="gap-1.5 rounded-lg shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-7.5 px-3 text-[11px]"
                             onClick={() => {
                                 setEditingUser(null)
                                 setShowUserModal(true)
                             }}
                         >
-                            <PlusIcon className="size-4" />
+                            <PlusIcon className="size-3.5" />
                             Create User / Admin
                         </Button>
                     )}
@@ -694,13 +698,13 @@ export function UsersPage() {
                     {/* 2. All Subusers Active -> Show Create Subuser only */}
                     {canManageSubusers && activeTab === "subusers" && (
                         <Button
-                            className="gap-2 rounded-xl shadow-md bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-10 px-5"
+                            className="gap-1.5 rounded-lg shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-7.5 px-3 text-[11px]"
                             onClick={() => {
                                 setEditingSubuser(null)
                                 setShowSubuserModal(true)
                             }}
                         >
-                            <UserPlus className="size-4" />
+                            <UserPlus className="size-3.5" />
                             Create Subuser
                         </Button>
                     )}
@@ -708,14 +712,14 @@ export function UsersPage() {
                     {/* 3. Guest Users Active -> Show Create Guest User only */}
                     {canManageSubusers && activeTab === "guests" && (
                         <Button
-                            className="gap-2 rounded-xl shadow-md bg-indigo-600 hover:bg-indigo-700 text-white font-semibold cursor-pointer h-10 px-5"
+                            className="gap-1.5 rounded-lg shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold cursor-pointer h-7.5 px-3 text-[11px]"
                             onClick={() => {
                                 setCreateGuestForm({ name: "", phone: "", email: "", organization: "", purpose: "", customFields: {} })
                                 setCreateGuestErrors({})
                                 setCreateGuestModalOpen(true)
                             }}
                         >
-                            <UserCheck className="size-4" />
+                            <UserCheck className="size-3.5" />
                             Create Guest User
                         </Button>
                     )}
@@ -723,14 +727,14 @@ export function UsersPage() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex items-center gap-2 border-b border-border/50 pb-3">
+            <div className="flex items-center gap-1.5 border-b border-border/50 pb-2">
                 {isAdmin && (
                     <button
                         type="button"
                         onClick={() => setActiveTab("internal")}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             activeTab === "internal"
-                                ? "bg-primary text-primary-foreground shadow-sm"
+                                ? "bg-primary text-primary-foreground shadow-xs"
                                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}
                     >
@@ -742,9 +746,9 @@ export function UsersPage() {
                 <button
                     type="button"
                     onClick={() => setActiveTab("subusers")}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         activeTab === "subusers"
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "bg-primary text-primary-foreground shadow-xs"
                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                 >
@@ -755,16 +759,16 @@ export function UsersPage() {
                 <button
                     type="button"
                     onClick={() => setActiveTab("guests")}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         activeTab === "guests"
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "bg-primary text-primary-foreground shadow-xs"
                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                 >
                     <ClockIcon className="size-3.5" />
                     Guest Users ({guestUsers.length})
                     {expiringSoonCount > 0 && (
-                        <span className="inline-flex items-center justify-center size-5 text-[10px] font-extrabold rounded-full bg-amber-500 text-white animate-pulse">
+                        <span className="inline-flex items-center justify-center size-4 text-[9px] font-extrabold rounded-full bg-amber-500 text-white animate-pulse">
                             {expiringSoonCount}
                         </span>
                     )}
@@ -780,7 +784,7 @@ export function UsersPage() {
                             <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search users by name, email, ID..."
-                                className="pl-9 h-9.5 rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30 text-xs"
+                                className="pl-9 h-7.5 rounded-lg border-border/50 bg-background/50 focus-visible:ring-primary/30 text-xs"
                                 value={userSearchTerm}
                                 onChange={(e) => setUserSearchTerm(e.target.value)}
                             />
@@ -816,12 +820,12 @@ export function UsersPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border/50 bg-muted/10">
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">User</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Email</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Privileges</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Page Permissions</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Assigned Scope</th>
-                                            <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">User</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Email</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Privileges</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Page Permissions</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Assigned Scope</th>
+                                            <th className="text-right px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border/40">
@@ -834,9 +838,9 @@ export function UsersPage() {
 
                                             return (
                                                 <tr key={u._id} className="hover:bg-muted/30 transition-colors">
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`size-10 rounded-full flex items-center justify-center text-white font-bold text-xs uppercase shadow-xs shrink-0 ${color}`}>
+                                                            <div className={`size-7.5 rounded-full flex items-center justify-center text-white font-bold text-xs uppercase shadow-xs shrink-0 ${color}`}>
                                                                 {initials}
                                                             </div>
                                                             <div>
@@ -850,8 +854,8 @@ export function UsersPage() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-xs font-medium text-muted-foreground">{u.email}</td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2 text-xs font-medium text-muted-foreground">{u.email}</td>
+                                                    <td className="px-3.5 py-2">
                                                         <div className="flex flex-col gap-1 items-start">
                                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                                                 u.role === "Admin"
@@ -867,7 +871,7 @@ export function UsersPage() {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         {u.role === "Admin" ? (
                                                             <span className="text-xs font-semibold text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                                                 <ShieldIcon className="size-3.5" />
@@ -877,9 +881,9 @@ export function UsersPage() {
                                                             <div className="space-y-1">
                                                                 <span className="text-xs font-semibold text-indigo-500 bg-indigo-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                                                     <LayoutDashboardIcon className="size-3.5" />
-                                                                    {(u.pagePermissions || []).length} Pages Allowed
+                                                                    {(u.allowedPages || u.pagePermissions || []).length} Pages Allowed
                                                                 </span>
-                                                                {u.canInspect && (
+                                                                {(u.hasInspectionAccess || u.canInspect) && (
                                                                     <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                                                                         <ClipboardCheck className="size-3" />
                                                                         Inspection: Granted
@@ -888,7 +892,7 @@ export function UsersPage() {
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         {u.role === "Admin" ? (
                                                             <span className="text-xs font-semibold text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                                                 <ShieldAlertIcon className="size-3.5" />
@@ -898,16 +902,16 @@ export function UsersPage() {
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                                                     <FolderOpenIcon className="size-3.5" />
-                                                                    {(u.assignedProjects || []).length} Project{(u.assignedProjects || []).length === 1 ? "" : "s"}
+                                                                    {(u.projects || u.assignedProjects || []).length} Project{(u.projects || u.assignedProjects || []).length === 1 ? "" : "s"}
                                                                 </span>
                                                                 <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                                                     <StoreIcon className="size-3.5" />
-                                                                    {(u.assignedStores || []).length} Store{(u.assignedStores || []).length === 1 ? "" : "s"}
+                                                                    {(u.stores || u.assignedStores || []).length} Store{(u.stores || u.assignedStores || []).length === 1 ? "" : "s"}
                                                                 </span>
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
+                                                    <td className="px-3.5 py-2 text-right">
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             <Button
                                                                 variant="ghost"
@@ -965,7 +969,7 @@ export function UsersPage() {
                             <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search subusers by name, ID, email..."
-                                className="pl-9 h-9.5 rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30 text-xs"
+                                className="pl-9 h-7.5 rounded-lg border-border/50 bg-background/50 focus-visible:ring-primary/30 text-xs"
                                 value={subuserSearchTerm}
                                 onChange={(e) => setSubuserSearchTerm(e.target.value)}
                             />
@@ -994,14 +998,15 @@ export function UsersPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border/50 bg-muted/10">
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Subuser</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Contact</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Subuser</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Contact</th>
                                             {isAdmin && (
-                                                <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Parent Account</th>
+                                                <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Parent Account</th>
                                             )}
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Status & Expiry</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Assigned Scope</th>
-                                            <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Status & Expiry</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Page Permissions</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Assigned Scope</th>
+                                            <th className="text-right px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border/40">
@@ -1016,9 +1021,9 @@ export function UsersPage() {
 
                                             return (
                                                 <tr key={sub._id} className="hover:bg-muted/30 transition-colors">
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`size-10 rounded-full flex items-center justify-center text-white font-bold text-xs uppercase shadow-xs shrink-0 ${color}`}>
+                                                            <div className={`size-7.5 rounded-full flex items-center justify-center text-white font-bold text-xs uppercase shadow-xs shrink-0 ${color}`}>
                                                                 {initials}
                                                             </div>
                                                             <div>
@@ -1027,18 +1032,18 @@ export function UsersPage() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         <p className="text-xs font-medium text-foreground">{sub.email}</p>
                                                         {sub.phone && <p className="text-xs text-muted-foreground mt-0.5">{sub.phone}</p>}
                                                     </td>
                                                     {isAdmin && (
-                                                        <td className="px-6 py-4">
+                                                        <td className="px-3.5 py-2">
                                                             <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                                                                 {parentName}
                                                             </span>
                                                         </td>
                                                     )}
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                                             sub.status === "Active"
                                                                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
@@ -1053,19 +1058,39 @@ export function UsersPage() {
                                                             </p>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
+                                                        <div className="space-y-1">
+                                                            <span className="text-xs font-semibold text-indigo-500 bg-indigo-500/10 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                                                <LayoutDashboardIcon className="size-3.5" />
+                                                                {(sub.allowedPages || sub.pagePermissions || []).length} Pages Allowed
+                                                            </span>
+                                                            {(sub.hasInspectionAccess || sub.canInspect) && (
+                                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                                                    <ClipboardCheck className="size-3" />
+                                                                    Inspection: Granted
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3.5 py-2">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
                                                                 <FolderOpenIcon className="size-3" />
-                                                                {(sub.assignedProjects || []).length} Projects
+                                                                {(sub.projects || sub.assignedProjects || []).length} Project{(sub.projects || sub.assignedProjects || []).length === 1 ? "" : "s"}
                                                             </span>
                                                             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
                                                                 <StoreIcon className="size-3" />
-                                                                {(sub.assignedStores || []).length} Stores
+                                                                {(sub.stores || sub.assignedStores || []).length} Store{(sub.stores || sub.assignedStores || []).length === 1 ? "" : "s"}
                                                             </span>
+                                                            {sub.documents && sub.documents.length > 0 && (
+                                                                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg inline-flex items-center gap-1" title={`${sub.documents.length} Document(s) attached`}>
+                                                                    <FileText className="size-3" />
+                                                                    {sub.documents.length} Doc{sub.documents.length === 1 ? "" : "s"}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
+                                                    <td className="px-3.5 py-2 text-right">
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             <Button
                                                                 variant="ghost"
@@ -1121,7 +1146,7 @@ export function UsersPage() {
                             <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search guest users by name, phone, email..."
-                                className="pl-9 h-9.5 rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30 text-xs"
+                                className="pl-9 h-7.5 rounded-lg border-border/50 bg-background/50 focus-visible:ring-primary/30 text-xs"
                                 value={guestSearchTerm}
                                 onChange={(e) => setGuestSearchTerm(e.target.value)}
                             />
@@ -1174,12 +1199,12 @@ export function UsersPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border/50 bg-muted/10">
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Guest User</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Contact</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Organization & Purpose</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Created By</th>
-                                            <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Access Validity</th>
-                                            <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Guest User</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Contact</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Organization & Purpose</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Created By</th>
+                                            <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Access Validity</th>
+                                            <th className="text-right px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border/40">
@@ -1192,9 +1217,9 @@ export function UsersPage() {
                                             return (
                                                 <tr key={guest._id} className="hover:bg-muted/30 transition-colors">
                                                     {/* User column */}
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`size-10 rounded-full flex items-center justify-center text-white font-bold text-xs uppercase shadow-xs shrink-0 ${color}`}>
+                                                            <div className={`size-7.5 rounded-full flex items-center justify-center text-white font-bold text-xs uppercase shadow-xs shrink-0 ${color}`}>
                                                                 {initial}
                                                             </div>
                                                             <div>
@@ -1213,12 +1238,25 @@ export function UsersPage() {
                                                     </td>
 
                                                     {/* Contact */}
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         <div className="space-y-0.5">
-                                                            <p className="text-xs font-mono font-medium text-foreground flex items-center gap-1.5">
-                                                                <PhoneIcon className="size-3 text-muted-foreground" />
-                                                                +91 {guest.phone}
-                                                            </p>
+                                                            <div className="flex items-center gap-1.5 group/phone">
+                                                                <p className="text-xs font-mono font-medium text-foreground flex items-center gap-1.5">
+                                                                    <PhoneIcon className="size-3 text-muted-foreground" />
+                                                                    +91 {guest.phone}
+                                                                </p>
+                                                                <button
+                                                                    type="button"
+                                                                    title="Copy 10-digit mobile number"
+                                                                    onClick={() => {
+                                                                        navigator.clipboard.writeText(guest.phone);
+                                                                        toast.success(`Copied mobile number: ${guest.phone}`);
+                                                                    }}
+                                                                    className="opacity-0 group-hover/phone:opacity-100 p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                                                                >
+                                                                    <Copy className="size-3" />
+                                                                </button>
+                                                            </div>
                                                             {guest.email && (
                                                                 <p className="text-[11px] text-muted-foreground truncate max-w-[180px]">
                                                                     {guest.email}
@@ -1228,7 +1266,7 @@ export function UsersPage() {
                                                     </td>
 
                                                     {/* Organization & Purpose */}
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         <div className="space-y-0.5">
                                                             <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
                                                                 <BuildingIcon className="size-3 text-muted-foreground" />
@@ -1241,7 +1279,7 @@ export function UsersPage() {
                                                     </td>
 
                                                     {/* Created By */}
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         <div className="space-y-0.5">
                                                             <p className="text-xs font-medium text-foreground">
                                                                 {guest.createdBy?.name || "Administrator"}
@@ -1258,7 +1296,7 @@ export function UsersPage() {
                                                     </td>
 
                                                     {/* Access Validity */}
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         {isExp ? (
                                                             <div className="space-y-0.5">
                                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400">
@@ -1308,7 +1346,7 @@ export function UsersPage() {
                                                     </td>
 
                                                     {/* Actions */}
-                                                    <td className="px-6 py-4 text-right">
+                                                    <td className="px-3.5 py-2 text-right">
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             {/* Extend access button */}
                                                             <Button
@@ -1422,211 +1460,236 @@ export function UsersPage() {
 
             {/* 1. CREATE GUEST USER DIALOG */}
             <Dialog open={createGuestModalOpen} onOpenChange={setCreateGuestModalOpen}>
-                <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 rounded-2xl overflow-hidden">
-                    <DialogHeader className="px-6 py-4 border-b border-border/60 shrink-0">
-                        <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-                            <Clock className="size-5 text-indigo-600 dark:text-indigo-400" />
-                            Create Guest User
-                        </DialogTitle>
-                        <DialogDescription className="text-xs">
-                            Register an external guest with automatic 15-day lookup access.
-                        </DialogDescription>
+                <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 rounded-xl overflow-hidden">
+                    <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                <Clock className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                    Create Guest User
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                                    Register an external guest with automatic 15-day lookup access.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
 
                     <form onSubmit={handleCreateGuestSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-                        {/* Dynamic Guest Fields (Standard + Custom, fully synced with Forms Management) */}
-                        <DynamicGuestFields
-                            fields={displayGuestFields}
-                            values={createGuestForm as any}
-                            onChange={(fieldKey, value) => {
-                                setCreateGuestForm(prev => ({
-                                    ...prev,
-                                    [fieldKey]: value,
-                                    customFields: {
-                                        ...prev.customFields,
-                                        [fieldKey]: value
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
+                            {/* Dynamic Guest Fields (Standard + Custom, fully synced with Forms Management) */}
+                            <DynamicGuestFields
+                                fields={displayGuestFields}
+                                values={createGuestForm as any}
+                                onChange={(fieldKey, value) => {
+                                    setCreateGuestForm(prev => ({
+                                        ...prev,
+                                        [fieldKey]: value,
+                                        customFields: {
+                                            ...prev.customFields,
+                                            [fieldKey]: value
+                                        }
+                                    }))
+                                    if (createGuestErrors[fieldKey]) {
+                                        setCreateGuestErrors(prev => ({ ...prev, [fieldKey]: undefined }))
                                     }
-                                }))
-                                if (createGuestErrors[fieldKey]) {
-                                    setCreateGuestErrors(prev => ({ ...prev, [fieldKey]: undefined }))
-                                }
-                            }}
-                            errors={createGuestErrors}
-                        />
+                                }}
+                                errors={createGuestErrors}
+                            />
 
-                        {/* 15-day notice */}
-                        <div className="p-3 bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-800/40 rounded-xl flex items-start gap-2.5">
-                            <InfoIcon className="size-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                            <div className="text-[11px] text-indigo-950 dark:text-indigo-200 leading-relaxed">
-                                <span className="font-bold">15-Day Access:</span> Account expires automatically in 15 days. On the 14th day, creators will receive an alert to extend or expire access.
+                            {/* 15-day notice */}
+                            <div className="p-2.5 sm:p-3 bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-800/40 rounded-lg flex items-start gap-2">
+                                <InfoIcon className="size-3.5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                                <div className="text-[11px] text-indigo-950 dark:text-indigo-200 leading-relaxed">
+                                    <span className="font-bold">15-Day Access:</span> Account expires automatically in 15 days. On the 14th day, creators will receive an alert to extend or expire access.
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <DialogFooter className="px-6 py-3.5 border-t border-border/60 bg-muted/20 shrink-0 gap-2 sm:gap-0">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setCreateGuestModalOpen(false)}
-                            className="rounded-xl text-xs"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={actionSubmitting}
-                            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5"
-                        >
-                            {actionSubmitting ? (
-                                <>
-                                    <Clock className="size-3.5 animate-spin" />
-                                    Creating...
-                                </>
-                            ) : (
-                                <>
-                                    <PlusIcon className="size-3.5" />
-                                    Create Guest User
-                                </>
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                        <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end gap-2.5">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setCreateGuestModalOpen(false)}
+                                className="h-8 rounded-lg px-4 text-xs font-semibold cursor-pointer"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={actionSubmitting}
+                                className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 cursor-pointer shadow-2xs"
+                            >
+                                {actionSubmitting ? (
+                                    <>
+                                        <Clock className="size-3.5 animate-spin" />
+                                        <span>Creating...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <PlusIcon className="size-3.5" />
+                                        <span>Create Guest User</span>
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* 2. EDIT GUEST USER DIALOG */}
             <Dialog open={editGuestModalOpen} onOpenChange={setEditGuestModalOpen}>
-                <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 rounded-2xl overflow-hidden">
-                    <DialogHeader className="px-6 py-4 border-b border-border/60 shrink-0">
-                        <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-                            <EditIcon className="size-5 text-primary" />
-                            Edit Guest User Details
-                        </DialogTitle>
-                        <DialogDescription className="text-xs">
-                            Update contact details, organization, or status for this guest account.
-                        </DialogDescription>
+                <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 rounded-xl overflow-hidden shadow-2xl">
+                    <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                <EditIcon className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                    Edit Guest User Details
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                    Update contact details, organization, or status for this guest account.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
 
                     <form onSubmit={handleEditGuestSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-                        {/* Dynamic Guest Fields (Standard + Custom, fully synced with Forms Management) */}
-                        <DynamicGuestFields
-                            fields={displayGuestFields}
-                            values={editGuestForm as any}
-                            onChange={(fieldKey, value) => {
-                                setEditGuestForm(prev => ({
-                                    ...prev,
-                                    [fieldKey]: value,
-                                    customFields: {
-                                        ...prev.customFields,
-                                        [fieldKey]: value
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
+                            {/* Dynamic Guest Fields (Standard + Custom, fully synced with Forms Management) */}
+                            <DynamicGuestFields
+                                fields={displayGuestFields}
+                                values={editGuestForm as any}
+                                onChange={(fieldKey, value) => {
+                                    setEditGuestForm(prev => ({
+                                        ...prev,
+                                        [fieldKey]: value,
+                                        customFields: {
+                                            ...prev.customFields,
+                                            [fieldKey]: value
+                                        }
+                                    }))
+                                    if (editGuestErrors[fieldKey]) {
+                                        setEditGuestErrors(prev => ({ ...prev, [fieldKey]: undefined }))
                                     }
-                                }))
-                                if (editGuestErrors[fieldKey]) {
-                                    setEditGuestErrors(prev => ({ ...prev, [fieldKey]: undefined }))
-                                }
-                            }}
-                            errors={editGuestErrors}
-                        />
+                                }}
+                                errors={editGuestErrors}
+                            />
 
-                        {/* Expiry Date */}
-                        <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs font-bold text-foreground block">
-                                    Access Expiry Date
-                                </label>
-                                {selectedGuest?.expiresAt && (
-                                    <span className="text-[11px] text-muted-foreground font-mono">
-                                        Current: {formatDate(selectedGuest.expiresAt)}
-                                    </span>
-                                )}
+                            {/* Expiry Date */}
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="text-[11px] font-semibold text-foreground/90 block">
+                                        Access Expiry Date
+                                    </label>
+                                    {selectedGuest?.expiresAt && (
+                                        <span className="text-[10px] text-muted-foreground font-mono">
+                                            Current: {formatDate(selectedGuest.expiresAt)}
+                                        </span>
+                                    )}
+                                </div>
+                                <Popover open={editCalendarOpen} onOpenChange={setEditCalendarOpen}>
+                                    <PopoverTrigger asChild>
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditCalendarOpen((prev) => !prev)}
+                                            className="w-full flex items-center justify-between rounded-lg h-7.5 sm:h-8 px-2.5 text-xs bg-background border border-input font-medium hover:bg-muted/30 focus:ring-2 focus:ring-indigo-500/30 shadow-2xs outline-none transition-all cursor-pointer text-left font-mono"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <CalendarIcon className="size-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                                                <span>
+                                                    {editGuestForm.expiresAt ? formatDate(editGuestForm.expiresAt) : "Pick date"}
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground font-sans">Change</span>
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-xl overflow-hidden bg-background" align="start">
+                                        <Calendar
+                                            selected={editGuestForm.expiresAt}
+                                            minDate={toInputDateFormat(new Date())}
+                                            onSelect={(_d, dateStr) => {
+                                                setEditGuestForm(prev => ({ ...prev, expiresAt: dateStr }))
+                                                setEditCalendarOpen(false)
+                                            }}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
                             </div>
-                            <Popover open={editCalendarOpen} onOpenChange={setEditCalendarOpen}>
-                                <PopoverTrigger asChild>
-                                    <button
-                                        type="button"
-                                        onClick={() => setEditCalendarOpen((prev) => !prev)}
-                                        className="w-full flex items-center justify-between rounded-xl h-10 px-3 text-xs bg-background border border-input font-medium hover:bg-muted/30 focus:ring-2 focus:ring-primary/40 shadow-xs outline-none transition-all cursor-pointer text-left font-mono"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <CalendarIcon className="size-3.5 text-primary shrink-0" />
-                                            <span>
-                                                {editGuestForm.expiresAt ? formatDate(editGuestForm.expiresAt) : "Pick date"}
-                                            </span>
-                                        </div>
-                                        <span className="text-[10px] text-muted-foreground">Change</span>
-                                    </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-2xl overflow-hidden bg-background" align="start">
-                                    <Calendar
-                                        selected={editGuestForm.expiresAt}
-                                        minDate={toInputDateFormat(new Date())}
-                                        onSelect={(_d, dateStr) => {
-                                            setEditGuestForm(prev => ({ ...prev, expiresAt: dateStr }))
-                                            setEditCalendarOpen(false)
-                                        }}
-                                    />
-                                </PopoverContent>
-                            </Popover>
+
+                            {/* Status */}
+                            <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
+                                    Account Status
+                                </label>
+                                <select
+                                    value={editGuestForm.status || "Active"}
+                                    onChange={(e) => setEditGuestForm(prev => ({ ...prev, status: e.target.value as any }))}
+                                    className="w-full h-7.5 sm:h-8 px-2.5 rounded-lg border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-indigo-500/30 outline-none transition-all"
+                                >
+                                    <option value="Active">Active (Permit Access)</option>
+                                    <option value="Expired">Expired (Access Blocked)</option>
+                                    <option value="Disabled">Disabled (Suspended)</option>
+                                </select>
+                            </div>
                         </div>
 
-                        {/* Status */}
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-foreground block">
-                                Account Status
-                            </label>
-                            <select
-                                value={editGuestForm.status || "Active"}
-                                onChange={(e) => setEditGuestForm(prev => ({ ...prev, status: e.target.value as any }))}
-                                className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary/30"
+                        <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end gap-2.5">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEditGuestModalOpen(false)}
+                                className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                             >
-                                <option value="Active">Active (Permit Access)</option>
-                                <option value="Expired">Expired (Access Blocked)</option>
-                                <option value="Disabled">Disabled (Suspended)</option>
-                            </select>
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={actionSubmitting}
+                                className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 cursor-pointer shadow-2xs"
+                            >
+                                {actionSubmitting ? (
+                                    <>
+                                        <Clock className="size-3.5 animate-spin" />
+                                        <span>Saving...</span>
+                                    </>
+                                ) : (
+                                    <span>Save Changes</span>
+                                )}
+                            </Button>
                         </div>
-                    </div>
-
-                    <DialogFooter className="px-6 py-3.5 border-t border-border/60 bg-muted/20 shrink-0 gap-2 sm:gap-0">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setEditGuestModalOpen(false)}
-                            className="rounded-xl text-xs"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={actionSubmitting}
-                            className="rounded-xl text-xs font-bold gap-1.5"
-                        >
-                            {actionSubmitting ? "Saving..." : "Save Changes"}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* 3. EXTEND GUEST ACCESS DIALOG */}
             <Dialog open={extendGuestModalOpen} onOpenChange={setExtendGuestModalOpen}>
-                <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 rounded-2xl overflow-hidden">
-                    <DialogHeader className="px-6 py-4 border-b border-border/60 shrink-0">
-                        <DialogTitle className="flex items-center gap-2 text-lg text-emerald-700 dark:text-emerald-400 font-bold">
-                            <ClockIcon className="size-5" />
-                            Confirm Access Extension
-                        </DialogTitle>
-                        <DialogDescription className="text-xs">
-                            Select or enter the new expiry date for <strong>{selectedGuest?.name}</strong> (+91 {selectedGuest?.phone}). Current expiry: {formatDate(selectedGuest?.expiresAt)}.
-                        </DialogDescription>
+                <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 rounded-xl overflow-hidden shadow-2xl">
+                    <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                <ClockIcon className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                    Confirm Access Extension
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                    Select or enter the new expiry date for <strong>{selectedGuest?.name}</strong> (+91 {selectedGuest?.phone}). Current expiry: {formatDate(selectedGuest?.expiresAt)}.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
                         {/* Shadcn Date Picker (Popover + Calendar) */}
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                                <CalendarIcon className="size-4 text-emerald-600 dark:text-emerald-400" />
+                        <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground/90">
+                                <CalendarIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                                 <span>Extension Expiry Date *</span>
                             </div>
 
@@ -1635,20 +1698,20 @@ export function UsersPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCalendarOpen((prev) => !prev)}
-                                        className="w-full flex items-center justify-between rounded-xl h-11 px-3 text-sm bg-background border border-input font-medium hover:bg-muted/30 focus:ring-2 focus:ring-emerald-500 shadow-xs outline-none transition-all cursor-pointer text-left"
+                                        className="w-full flex items-center justify-between rounded-lg h-7.5 sm:h-8 px-2.5 text-xs bg-background border border-input font-medium hover:bg-muted/30 focus:ring-2 focus:ring-emerald-500/30 shadow-2xs outline-none transition-all cursor-pointer text-left"
                                     >
-                                        <div className="flex items-center gap-2.5">
-                                            <CalendarIcon className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                            <span className="font-mono text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <CalendarIcon className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                            <span className="font-mono text-xs">
                                                 {customExtendExpiryDate ? formatDate(customExtendExpiryDate) : "Pick an expiry date"}
                                             </span>
                                         </div>
-                                        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md bg-emerald-500/10">
+                                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-md bg-emerald-500/10">
                                             {calendarOpen ? "Close" : "Pick Date"}
                                         </span>
                                     </button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-2xl overflow-hidden bg-background" align="start">
+                                <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-xl overflow-hidden bg-background" align="start">
                                     <Calendar
                                         selected={customExtendExpiryDate}
                                         minDate={toInputDateFormat(new Date())}
@@ -1691,7 +1754,7 @@ export function UsersPage() {
                                             onClick={() => handleSelectPill(opt.key, opt.days)}
                                             className={`py-1 px-1 text-[11px] rounded-lg border transition-all cursor-pointer font-medium text-center whitespace-nowrap ${
                                                 isSelected
-                                                    ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-semibold ring-2 ring-emerald-500/30"
+                                                    ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs font-semibold ring-2 ring-emerald-500/30"
                                                     : "bg-muted/40 hover:bg-muted text-muted-foreground border-border hover:text-foreground"
                                             }`}
                                         >
@@ -1704,7 +1767,7 @@ export function UsersPage() {
 
                         {/* Starting Date & Expiry Date preview box */}
                         {selectedGuest && (
-                            <div className="p-3 rounded-lg bg-muted/40 border text-xs space-y-1.5">
+                            <div className="p-2.5 rounded-lg bg-muted/30 border border-border/60 text-[11px] space-y-1.5">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Starting Date:</span>
                                     <span className="font-mono font-medium">
@@ -1721,12 +1784,13 @@ export function UsersPage() {
                         )}
                     </div>
 
-                    <DialogFooter className="px-6 py-3.5 border-t border-border/60 bg-muted/20 shrink-0 gap-2 sm:gap-0">
+                    <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end gap-2.5">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => setExtendGuestModalOpen(false)}
                             disabled={actionSubmitting}
+                            className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                         >
                             Cancel
                         </Button>
@@ -1734,95 +1798,107 @@ export function UsersPage() {
                             type="button"
                             onClick={handleExtendGuestSubmit}
                             disabled={actionSubmitting || !customExtendExpiryDate}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 cursor-pointer shadow-2xs"
                         >
                             {actionSubmitting ? (
                                 <>
-                                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                                    Updating Expiry...
+                                    <Clock className="size-3.5 animate-spin" />
+                                    <span>Updating Expiry...</span>
                                 </>
                             ) : (
                                 <>
-                                    <CheckCircle2Icon className="size-4" />
-                                    Confirm Extension
+                                    <CheckCircle2Icon className="size-3.5" />
+                                    <span>Confirm Extension</span>
                                 </>
                             )}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </DialogContent>
             </Dialog>
 
             {/* 4. REJECT / EXPIRE GUEST DIALOG */}
             <Dialog open={rejectGuestModalOpen} onOpenChange={setRejectGuestModalOpen}>
-                <DialogContent className="max-w-md rounded-2xl p-6">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-lg font-bold text-rose-600 dark:text-rose-400">
-                            <XCircleIcon className="size-5" />
-                            Expire Guest Access Immediately
-                        </DialogTitle>
-                        <DialogDescription className="text-xs">
-                            Revoke access for <strong>{selectedGuest?.name}</strong>. Their session will immediately be invalidated.
-                        </DialogDescription>
+                <DialogContent className="max-w-md p-0 rounded-xl overflow-hidden shadow-2xl">
+                    <DialogHeader className="px-5 py-3 border-b border-border/60 bg-rose-500/10 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 shrink-0">
+                                <XCircleIcon className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-rose-700 dark:text-rose-400">
+                                    Expire Guest Access Immediately
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                    Revoke access for <strong>{selectedGuest?.name}</strong>. Their session will immediately be invalidated.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
 
-                    <div className="space-y-4 pt-2">
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-foreground block">
+                    <div className="p-4 sm:p-5 space-y-3.5">
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
                                 Reason for Revocation / Rejection
                             </label>
                             <Input
                                 value={rejectReason}
                                 onChange={(e) => setRejectReason(e.target.value)}
                                 placeholder="e.g. Audit completed, Contractor inspection concluded"
-                                className="rounded-xl h-10 text-xs"
+                                className="rounded-lg h-7.5 sm:h-8 text-xs px-2.5"
                             />
                         </div>
+                    </div>
 
-                        <DialogFooter className="gap-2 sm:gap-0 pt-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setRejectGuestModalOpen(false)}
-                                className="rounded-xl text-xs"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={handleRejectGuestSubmit}
-                                disabled={actionSubmitting}
-                                className="rounded-xl text-xs font-bold gap-1.5"
-                            >
-                                {actionSubmitting ? "Revoking..." : "Revoke Access Now"}
-                            </Button>
-                        </DialogFooter>
+                    <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end gap-2.5">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setRejectGuestModalOpen(false)}
+                            className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleRejectGuestSubmit}
+                            disabled={actionSubmitting}
+                            className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                            {actionSubmitting ? "Revoking..." : "Revoke Access Now"}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
 
             {/* 5. EXTENSION HISTORY DIALOG */}
             <Dialog open={historyGuestModalOpen} onOpenChange={setHistoryGuestModalOpen}>
-                <DialogContent className="max-w-lg rounded-2xl p-6">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-                            <Clock className="size-5 text-primary" />
-                            Extension History — {selectedGuest?.name}
-                        </DialogTitle>
-                        <DialogDescription className="text-xs">
-                            Log of previous access extensions granted to this guest user.
-                        </DialogDescription>
+                <DialogContent className="max-w-lg p-0 rounded-xl overflow-hidden shadow-2xl">
+                    <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                <Clock className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                    Extension History — {selectedGuest?.name}
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                    Log of previous access extensions granted to this guest user.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
 
-                    <div className="py-2 max-h-[350px] overflow-y-auto space-y-2.5">
+                    <div className="p-4 sm:p-5 max-h-[350px] overflow-y-auto space-y-2">
                         {selectedGuest?.extensionHistory && selectedGuest.extensionHistory.length > 0 ? (
                             selectedGuest.extensionHistory.map((item, idx) => (
-                                <div key={idx} className="p-3 rounded-xl border border-border/60 bg-muted/20 text-xs space-y-1">
+                                <div key={idx} className="p-2.5 rounded-lg border border-border/60 bg-muted/20 text-xs space-y-1">
                                     <div className="flex items-center justify-between font-bold text-foreground">
-                                        <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                                        <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs">
                                             <CheckCircle2Icon className="size-3.5" />
                                             +{item.durationLabel || `${item.durationDays} days`}
                                         </span>
-                                        <span className="text-muted-foreground font-normal text-[11px]">
+                                        <span className="text-muted-foreground font-normal text-[10px]">
                                             {new Date(item.extendedAt).toLocaleString("en-IN", {
                                                 day: "2-digit",
                                                 month: "short",
@@ -1845,15 +1921,15 @@ export function UsersPage() {
                         )}
                     </div>
 
-                    <DialogFooter>
+                    <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end">
                         <Button
                             variant="outline"
                             onClick={() => setHistoryGuestModalOpen(false)}
-                            className="rounded-xl text-xs w-full sm:w-auto"
+                            className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                         >
                             Close
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </DialogContent>
             </Dialog>
 

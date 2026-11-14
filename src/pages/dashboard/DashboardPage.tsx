@@ -4,10 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import NoAccessPage from "../NoAccessPage";
 import { getDefaultAllowedPath } from "@/utils/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-    SlidersHorizontal} from "lucide-react";
-import { Button } from "@/components/ui/button";
+    LayoutDashboard,
+    Wrench,
+    Layers,
+    ArrowUpRight
+} from "lucide-react";
 
 import dashboardService from "@/services/dashboard.service";
 import type {
@@ -88,31 +92,11 @@ export function DashboardPage() {
         }
     }, [user]);
 
-    const handleFilterChange = (key: keyof DashboardFilterParams, value: string) => {
-        setFilters((prev) => ({ ...prev, [key]: value }));
-    };
-
-    const handleResetFilters = () => {
-        const userStore = user && user.role !== "Admin" && user.stores && user.stores.length === 1 ? user.stores[0] : null;
-        const storeIdStr = userStore ? String(typeof userStore === 'object' ? userStore._id : userStore) : "All";
-
-        const userProject = user && user.role !== "Admin" && user.projects && user.projects.length === 1 ? user.projects[0] : null;
-        const projIdStr = userProject ? String(typeof userProject === 'object' ? userProject._id : userProject) : "All";
-
-        setFilters({
-            division: "All",
-            project: projIdStr,
-            store: storeIdStr,
-            hub: "All",
-            category: "All",
-            status: "All",
-            startDate: "",
-            endDate: ""
-        });
-    };
-
     const handleAlertClick = (alert: AlertItem) => {
-        if (alert.type.includes("Inspection") || alert.type.includes("Expired")) {
+        if ((alert.type || "").toLowerCase().includes("expired")) {
+            return;
+        }
+        if (alert.type.includes("Inspection")) {
             setSelectedToolForExtension({
                 id: alert.toolId || "T-TOOL",
                 dbId: alert.toolDbId
@@ -141,70 +125,81 @@ export function DashboardPage() {
 
     if (loading || !dashboardData) {
         return (
-            <div className="w-full mx-auto p-4 space-y-6">
-                <Skeleton className="h-16 w-full rounded-2xl" />
-                <Skeleton className="h-28 w-full rounded-2xl" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
+            <div className="w-full space-y-3.5 pt-1 animate-pulse">
+                <div className="flex items-center justify-between">
+                    <Skeleton className="h-10 w-64 rounded-xl" />
+                    <Skeleton className="h-9 w-44 rounded-xl" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-3.5">
                     {Array.from({ length: 6 }).map((_, i) => (
                         <Skeleton key={i} className="h-32 rounded-2xl" />
                     ))}
+                </div>
+                <Skeleton className="h-14 w-full rounded-2xl" />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <Skeleton className="lg:col-span-6 h-96 rounded-2xl" />
+                    <Skeleton className="lg:col-span-6 h-96 rounded-2xl" />
                 </div>
             </div>
         );
     }
 
-    const allProjectsList = dashboardData?.hierarchyTree?.flatMap((d) => d.projects) || [];
-    const activeProj = allProjectsList.find((p) => p.id === filters.project);
-    const activeProjectName = activeProj ? activeProj.name : filters.project;
-
-    const allStoresList = allProjectsList.flatMap((p) => p.stores);
-    const activeSt = allStoresList.find((s) => s.id === filters.store);
-    const activeStoreName = activeSt ? activeSt.name : filters.store;
-
     return (
-        <div className="w-full mx-auto p-3 sm:p-5 space-y-6 pb-16 print:p-0">
-
-            {/* Active Filter Indicator Tag */}
-            {(filters.division !== "All" || filters.project !== "All" || filters.store !== "All" || filters.hub !== "All" || filters.status !== "All" || filters.category !== "All") && (
-                <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary font-semibold print:hidden">
-                    <div className="flex items-center gap-2">
-                        <SlidersHorizontal className="size-4" />
-                        <span>Active View Filters:</span>
-                        <div className="flex flex-wrap items-center gap-1.5 font-sans">
-                            {filters.division !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Div: {filters.division}</span>}
-                            {filters.project !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Project: {activeProjectName}</span>}
-                            {filters.store !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Store: {activeStoreName}</span>}
-                            {filters.hub !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">HUB Filter Active</span>}
-                            {filters.status !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Status: {filters.status}</span>}
-                            {filters.category !== "All" && <span className="bg-background px-2 py-0.5 rounded border border-primary/30">Category: {filters.category}</span>}
+        <div className="w-full h-full flex-1 flex flex-col space-y-2 pt-0.5 pb-0 print:p-0 animate-in fade-in duration-300 min-h-0">
+            {/* Executive Command Center Hero Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-1.5 border-b border-border/40 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20 ring-2 ring-indigo-500/10 shrink-0">
+                        <LayoutDashboard className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            <h1 className="text-sm sm:text-base font-bold tracking-tight text-foreground truncate">
+                                Equipment Management Center
+                            </h1>
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider shrink-0">
+                                L&T Command
+                            </span>
                         </div>
                     </div>
+                </div>
 
+                {/* Header Actions */}
+                <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                    {/* Quick Link to Tools Inventory */}
                     <Button
+                        variant="outline"
                         size="sm"
-                        variant="ghost"
-                        onClick={handleResetFilters}
-                        className="h-6 text-[11px] px-2 text-primary hover:bg-primary/20"
+                        onClick={() => navigate("/stores")}
+                        className="rounded-lg h-7 px-2 gap-1.5 text-[11px] font-semibold bg-primary/5 hover:bg-primary/10 text-primary border-primary/25 cursor-pointer shadow-2xs"
                     >
-                        Clear Filters
+                        <Wrench className="size-3" />
+                        <span>View Inventory</span>
+                        <ArrowUpRight className="size-2.5" />
+                    </Button>
+
+                    {/* Quick Link to Reports Hub */}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/settings/reports")}
+                        className="rounded-lg h-7 px-2 gap-1.5 text-[11px] font-semibold hover:bg-muted cursor-pointer shadow-2xs"
+                    >
+                        <Layers className="size-3 text-muted-foreground" />
+                        <span>Reports</span>
                     </Button>
                 </div>
-            )}
+            </div>
 
-            {/* 1. Main Summary Cards Grid */}
-            <SummaryCardsGrid
-                data={dashboardData.summaryCards}
-                hierarchyData={dashboardData.hierarchyTree}
-                filters={filters}
-                activeStatus={filters.status}
-                onCardClick={(statusVal) => handleFilterChange('status', filters.status === statusVal ? 'All' : statusVal)}
-                onChangeFilter={handleFilterChange}
-            />
+            {/* 1. Enhanced Summary Cards Grid with Fleet Allocation Bar */}
+            <div className="shrink-0">
+                <SummaryCardsGrid data={dashboardData.summaryCards} />
+            </div>
 
             {/* 2. Critical Operational Alerts & Recent Activity Feed */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch flex-1 min-h-[300px] lg:min-h-0">
                 {/* Critical Operational Alerts */}
-                <div className="lg:col-span-6">
+                <div className="lg:col-span-6 flex flex-col min-h-0 h-full">
                     <AlertsActionRequired
                         alerts={dashboardData.alerts}
                         onAlertClick={handleAlertClick}
@@ -212,7 +207,7 @@ export function DashboardPage() {
                 </div>
 
                 {/* Recent Activity Audit Feed */}
-                <div className="lg:col-span-6">
+                <div className="lg:col-span-6 flex flex-col min-h-0 h-full">
                     <RecentActivityFeed
                         activities={dashboardData.recentActivity}
                     />

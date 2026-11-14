@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useNavigate } from "react-router-dom"
-import { FileTextIcon, ArrowLeftIcon, BarChart3Icon, SlidersIcon } from "lucide-react"
+import { FileTextIcon, ArrowLeftIcon, BarChart3Icon, SlidersIcon, Settings2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -67,58 +67,55 @@ export function SettingsPage() {
     if (activeTab === 'profile') return <ProfileSettings onBack={() => setActiveTab(null)} />
 
     return (
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full pr-1 pb-12">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pt-5 gap-6">
-                <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/settings/forms')}>
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2.5 rounded-lg bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400">
-                                <FileTextIcon className="size-5" />
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
+            {/* Header */}
+            <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
+                    <Settings2 className="size-4" />
+                </div>
+                <div className="min-w-0">
+                    <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">Settings & Configurations</h1>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <Card className="cursor-pointer border border-border/60 bg-card shadow-2xs hover:border-primary/40 hover:shadow-xs rounded-xl transition-all" onClick={() => navigate('/settings/forms')}>
+                    <CardContent className="p-3.5 sm:p-4">
+                        <div className="flex items-center gap-2.5 mb-2">
+                            <div className="p-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400">
+                                <FileTextIcon className="size-4" />
                             </div>
-                            <h3 className="font-semibold">Forms Management</h3>
+                            <h3 className="font-bold text-xs sm:text-sm">Forms Management</h3>
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
+                        <p className="text-[11px] text-muted-foreground leading-normal">
                             Configure dynamic forms like Create Project, Store, and User.
                         </p>
                     </CardContent>
                 </Card>
 
-                {/* <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/challans/history')}>
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2.5 rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                                <FileTextIcon className="size-5" />
+                <Card className="cursor-pointer border border-border/60 bg-card shadow-2xs hover:border-primary/40 hover:shadow-xs rounded-xl transition-all" onClick={() => navigate('/settings/tool-quick-view')}>
+                    <CardContent className="p-3.5 sm:p-4">
+                        <div className="flex items-center gap-2.5 mb-2">
+                            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                <SlidersIcon className="size-4" />
                             </div>
-                            <h3 className="font-semibold">Challan Register</h3>
+                            <h3 className="font-bold text-xs sm:text-sm">Tool Quick View Layout</h3>
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                            View and manage delivery & return challan history.
-                        </p>
-                    </CardContent>
-                </Card> */}
-                <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/settings/tool-quick-view')}>
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2.5 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-                                <SlidersIcon className="size-5" />
-                            </div>
-                            <h3 className="font-semibold">Tool Quick View Layout</h3>
-                        </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
+                        <p className="text-[11px] text-muted-foreground leading-normal">
                             Configure fields and visibility on the Quick Tool View (/vt) module.
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="cursor-pointer border-2 border-transparent bg-card hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-in-out" onClick={() => navigate('/settings/reports')}>
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2.5 rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
-                                <BarChart3Icon className="size-5" />
+                <Card className="cursor-pointer border border-border/60 bg-card shadow-2xs hover:border-primary/40 hover:shadow-xs rounded-xl transition-all" onClick={() => navigate('/settings/reports')}>
+                    <CardContent className="p-3.5 sm:p-4">
+                        <div className="flex items-center gap-2.5 mb-2">
+                            <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                                <BarChart3Icon className="size-4" />
                             </div>
-                            <h3 className="font-semibold">Reports & Audit</h3>
+                            <h3 className="font-bold text-xs sm:text-sm">Reports & Audit</h3>
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
+                        <p className="text-[11px] text-muted-foreground leading-normal">
                             View operational reports, inventory analytics, and loss audit registers.
                         </p>
                     </CardContent>

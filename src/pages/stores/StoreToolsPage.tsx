@@ -33,7 +33,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, ChevronUp, Check, ClipboardCheck } from "lucide-react"
+import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Check, ClipboardCheck, Wrench } from "lucide-react"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import toolService from "@/services/tool.service"
@@ -387,6 +387,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [category, setCategory] = useState("All");
     const [status, setStatus] = useState("All");
     const [printStatus, setPrintStatus] = useState("All");
+    const [expiryFilter, setExpiryFilter] = useState("All"); // "All" | "expired" | "expiring_soon" | "valid"
 
     const requestedSearchTokens = useMemo(() => {
         if (!search || !search.trim()) return [];
@@ -434,7 +435,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 const tId = (t.toolId || '').toLowerCase();
                 const tCode = (t.toolCode || '').toLowerCase();
                 const tDesc = (t.description || '').toLowerCase();
-                return tId.includes(lowerTok) || tCode.includes(lowerTok) || tDesc.includes(lowerTok);
+                const tStatus = (t.status || '').toLowerCase();
+                const isPrintedMatch = (lowerTok === 'printed' && t.isPrinted) ||
+                    ((lowerTok === 'unprint' || lowerTok === 'unprinted' || lowerTok === 'not printed') && !t.isPrinted);
+                const isExpiredMatch = lowerTok === 'expired' && t.nextInspectionDueDate && new Date(t.nextInspectionDueDate) < new Date();
+                const isExpiringMatch = (lowerTok === 'expiry' || lowerTok === 'soon' || lowerTok === 'expiring' || lowerTok === 'expiring soon' || lowerTok === 'expiry soon') &&
+                    t.nextInspectionDueDate && new Date(t.nextInspectionDueDate) >= new Date() && new Date(t.nextInspectionDueDate) <= new Date(Date.now() + 90 * 86400000);
+                return tId.includes(lowerTok) || tCode.includes(lowerTok) || tDesc.includes(lowerTok) || tStatus === lowerTok || isPrintedMatch || isExpiredMatch || isExpiringMatch;
             });
 
             if (isMatch) {
@@ -490,6 +497,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [draftCategory, setDraftCategory] = useState("All");
     const [draftStatus, setDraftStatus] = useState("All");
     const [draftPrintStatus, setDraftPrintStatus] = useState("All");
+    const [draftExpiryFilter, setDraftExpiryFilter] = useState("All");
 
     useEffect(() => {
         if (isFilterSheetOpen) {
@@ -497,14 +505,16 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             setDraftCategory(category);
             setDraftStatus(status);
             setDraftPrintStatus(printStatus);
+            setDraftExpiryFilter(expiryFilter);
         }
-    }, [isFilterSheetOpen, advancedFilters, category, status, printStatus]);
+    }, [isFilterSheetOpen, advancedFilters, category, status, printStatus, expiryFilter]);
 
     const activeFilterCount =
         Object.values(advancedFilters).filter(val => val.trim() !== "").length +
         (category !== "All" ? 1 : 0) +
         (status !== "All" ? 1 : 0) +
-        (printStatus !== "All" ? 1 : 0);
+        (printStatus !== "All" ? 1 : 0) +
+        (expiryFilter !== "All" ? 1 : 0);
 
     const resetAllFilters = () => {
         const emptyFilters = {
@@ -528,10 +538,12 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         setCategory("All");
         setStatus("All");
         setPrintStatus("All");
+        setExpiryFilter("All");
         setAdvancedFilters(emptyFilters);
         setDraftCategory("All");
         setDraftStatus("All");
         setDraftPrintStatus("All");
+        setDraftExpiryFilter("All");
         setDraftAdvancedFilters(emptyFilters);
         setPage(1);
         toast.success("Filters reset");
@@ -549,6 +561,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         setCategory(draftCategory);
         setStatus(draftStatus);
         setPrintStatus(draftPrintStatus);
+        setExpiryFilter(draftExpiryFilter);
         setPage(1);
         setIsFilterSheetOpen(false);
         toast.success("Filters applied");
@@ -581,10 +594,10 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             return ["1 Year", "2 Years", "3 Years"];
         }
         if (field === 'status') {
-            return ["Available", "Moving", "Repair", "Printed", "Not Printed"];
+            return ["Available", "Moving", "Missing", "Repair"];
         }
         if (field === 'printStatus') {
-            return ["Printed", "Not Printed"];
+            return ["Printed", "Unprinted", "Not Printed"];
         }
         const backendOpts = filterOptions[field] || [];
         const stateOpts = Array.from(
@@ -604,7 +617,14 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     }, [filterOptions, tools]);
 
     const toolTypeOptions = useMemo(() => getOptionsForField('toolType'), [getOptionsForField]);
-    const statusOptions = useMemo(() => getOptionsForField('status'), [getOptionsForField]);
+    const statusAndPrintOptions = useMemo(() => [
+        { label: "Available", value: "Available" },
+        { label: "Moving", value: "Moving" },
+        { label: "Missing", value: "Missing" },
+        { label: "Printed", value: "Printed" },
+        { label: "Unprinted", value: "Unprinted" },
+        { label: "Repair", value: "Repair" },
+    ], []);
 
     const renderFilterInput = (label: string, field: string, placeholder?: string) => {
         const value = draftAdvancedFilters[field] ? draftAdvancedFilters[field] : "";
@@ -666,6 +686,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             if (printStatus && printStatus !== "All") {
                 queryParams.printStatus = printStatus;
             }
+            if (expiryFilter && expiryFilter !== "All") {
+                queryParams.expiryStatus = expiryFilter;
+            }
             const data = await toolService.getToolsByStore(storeId, queryParams);
             if (data?.success) {
                 setTools(data.data || []);
@@ -700,7 +723,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         } finally {
             setLoading(false);
         }
-    }, [storeId, page, limit, search, category, status, printStatus, sortBy, sortOrder, advancedFilters]);
+    }, [storeId, page, limit, search, category, status, printStatus, expiryFilter, sortBy, sortOrder, advancedFilters]);
 
     // On initial mount/refresh, fetch immediately without 300ms penalty; debounce subsequent filter/search keystrokes
     useEffect(() => {
@@ -904,112 +927,89 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     }
 
     return (
-        <div className="h-full flex flex-col overflow-hidden gap-4 mx-auto w-full animate-in fade-in duration-500">
+        <div className="h-full flex flex-col gap-3 mx-auto w-full pt-1 pb-3 animate-in fade-in duration-300">
             {/* Vendor Scope Banner */}
             {user?.role === "Vendor" && (
-                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-300 shadow-xs">
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-300 shadow-2xs">
                     <div className="flex items-center gap-2">
-                        <Truck className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <Truck className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                         <span>
                             <strong>Vendor Delivery Scope:</strong> Displaying tools explicitly assigned to <strong>{user.username || "your vendor account"}</strong> via active Delivery Challans (DC). Unassigned tools are hidden.
                         </span>
                     </div>
-                    <span className="font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                    <span className="font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px]">
                         {total} Assigned Tool(s)
                     </span>
                 </div>
             )}
 
             {/* Standard Application Layout Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 shrink-0">
-                <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">Tools</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Manage, track, and export tools for this location. ({total} total tools)
-                    </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5 shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
+                        <Wrench className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">Tools</h1>
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
+                            {total} Total Tools
+                        </p>
+                    </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger
                             render={
                                 <Button
                                     variant="outline"
-                                    size="lg"
-                                    className="rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all group"
+                                    size="sm"
+                                    className="h-7.5 px-2.5 text-[11px] font-semibold rounded-lg shadow-2xs border-border/80 hover:bg-muted/50 transition-all cursor-pointer group"
                                     disabled={exporting}
                                 />
                             }
                         >
                             {exporting ? (
-                                <Loader2 className="size-4 mr-2 animate-spin text-primary" />
+                                <Loader2 className="size-3.5 mr-1.5 animate-spin text-primary" />
                             ) : (
-                                <DownloadIcon className="size-4 mr-2 text-primary" />
+                                <DownloadIcon className="size-3.5 mr-1.5 text-primary" />
                             )}
                             Export Data
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
+                        <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-xl">
                             <DropdownMenuGroup>
-                                <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">Filtered Results</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleExport('filtered', 'excel')} className="rounded-lg cursor-pointer my-0.5">
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Filtered Results</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleExport('filtered', 'excel')} className="rounded-lg cursor-pointer my-0.5 text-xs">
                                     Export to Excel
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleExport('filtered', 'csv')} className="rounded-lg cursor-pointer my-0.5">
+                                <DropdownMenuItem onClick={() => handleExport('filtered', 'csv')} className="rounded-lg cursor-pointer my-0.5 text-xs">
                                     Export to CSV
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
-                            <DropdownMenuSeparator className="my-1.5" />
+                            <DropdownMenuSeparator className="my-1" />
                             <DropdownMenuGroup>
-                                <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">All Records</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleExport('all', 'excel')} className="rounded-lg cursor-pointer my-0.5">
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">All Records</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleExport('all', 'excel')} className="rounded-lg cursor-pointer my-0.5 text-xs">
                                     Export All to Excel
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleExport('all', 'csv')} className="rounded-lg cursor-pointer my-0.5">
+                                <DropdownMenuItem onClick={() => handleExport('all', 'csv')} className="rounded-lg cursor-pointer my-0.5 text-xs">
                                     Export All to CSV
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* {isAdmin && (
-                        <Button
-                            variant="outline"
-                            size="lg"
-                            className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-rose-600 dark:text-rose-400 hover:text-rose-700"
-                            onClick={() => navigate('/tools/trash')}
-                        >
-                            <Trash2 className="size-4 text-rose-500" />
-                            Trash / Deleted
-                        </Button>
-                    )} */}
-
-                    {/* <Button
-                        variant="outline"
-                        size="lg"
-                        className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all text-amber-600 dark:text-amber-400 hover:text-amber-700"
-                        onClick={() => {
-                            if (selectedToolIds.size > 0) {
-                                setIsScrapModalOpen(true);
-                            } else {
-                                navigate('/tools/scrap');
-                            }
-                        }}
-                    >
-                        <Archive className="size-4 text-amber-500" />
-                        Scrap {selectedToolIds.size > 0 ? `Selected (${selectedToolIds.size})` : ""}
-                    </Button> */}
-
                     {isAdmin && (
                         <Button
                             variant="outline"
-                            size="lg"
-                            className="gap-2 rounded-xl shadow-sm border-border/80 hover:bg-muted/50 transition-all"
+                            size="sm"
+                            className="h-7.5 px-2.5 text-[11px] font-semibold rounded-lg shadow-2xs border-border/80 hover:bg-muted/50 transition-all cursor-pointer gap-1.5"
                             onClick={() => {
                                 const newBreadcrumbs = [...currentBreadcrumbs, { label: 'Import Tools', href: `/stores/${storeId}/tools/import` }];
                                 navigate(`/stores/${storeId}/tools/import`, { state: { breadcrumbs: newBreadcrumbs } });
                             }}
                         >
-                            <FileUp className="size-4 text-primary" />
+                            <FileUp className="size-3.5 text-primary" />
                             Bulk Import
                         </Button>
                     )}
@@ -1017,8 +1017,8 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     {isAdmin && (
                         <Button
                             variant={selectedToolIds.size > 0 && !hasMissingTool && !hasMovingTool ? "default" : "outline"}
-                            size="lg"
-                            className={`gap-2 rounded-xl shadow-sm border-border/80 transition-all ${selectedToolIds.size > 0 && (hasMissingTool || hasMovingTool) ? "opacity-50 cursor-not-allowed" : ""}`}
+                            size="sm"
+                            className={`h-7.5 px-2.5 text-[11px] font-semibold rounded-lg shadow-2xs border-border/80 transition-all cursor-pointer gap-1.5 ${selectedToolIds.size > 0 && (hasMissingTool || hasMovingTool) ? "opacity-50 cursor-not-allowed" : ""}`}
                             onClick={handleOpenBulkEdit}
                             disabled={selectedToolIds.size > 0 && (hasMissingTool || hasMovingTool)}
                             title={
@@ -1029,7 +1029,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                         : undefined
                             }
                         >
-                            <Edit3 className="size-4" />
+                            <Edit3 className="size-3.5" />
                             Bulk Edit {selectedToolIds.size > 0 ? `(${selectedToolIds.size})` : ""}
                         </Button>
                     )}
@@ -1038,21 +1038,21 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 </div>
             </div>
 
-            <Card className="flex-1 min-h-0 flex flex-col border-border/50 shadow-lg shadow-black/5 overflow-hidden rounded-2xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl">
+            <Card className="flex-1 min-h-0 flex flex-col border-border/50 shadow-2xs overflow-hidden rounded-xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl">
                 {/* Floating Glassmorphic Filter Bar */}
-                <div className="p-4 border-b bg-muted/20 backdrop-blur-md shrink-0">
-                    <div className="flex flex-col md:flex-row items-center gap-3">
+                <div className="p-2.5 sm:p-3 border-b bg-muted/20 shrink-0">
+                    <div className="flex flex-col md:flex-row items-center gap-2.5">
                         <div className="relative group flex-1 w-full">
-                            <SearchIcon className="absolute left-3 top-2.5 size-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <Input
-                                placeholder="Search single or multiple Tool IDs (comma, space, or newline separated)..."
-                                className="pl-10 h-10 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-sm rounded-xl"
+                                placeholder="Search Tool IDs, Status, Print, Expiry (Expired, Soon)..."
+                                className="pl-8 h-7.5 text-xs bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-2xs rounded-lg"
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                             />
                         </div>
-                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full md:w-auto">
-                            <div className="w-full sm:w-44">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
+                            <div className="w-full sm:w-40">
                                 <SearchableSelect
                                     value={category}
                                     onValueChange={(val) => { setCategory(val); setPage(1); }}
@@ -1061,7 +1061,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     searchPlaceholder="Search tool type..."
                                     allLabel="All Types"
                                     allValue="All"
-                                    className="h-10 text-sm rounded-xl bg-background/50 border-border/60"
+                                    className="h-7.5 text-xs rounded-lg bg-background/50 border-border/60"
                                 />
                             </div>
                             <div className="w-full sm:w-44">
@@ -1069,26 +1069,52 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     value={
                                         status !== "All"
                                             ? status
-                                            : printStatus !== "All"
-                                                ? printStatus
-                                                : "All"
+                                            : printStatus === "Printed"
+                                                ? "Printed"
+                                                : (printStatus === "Not Printed" || printStatus === "Unprinted" || printStatus === "Unprint")
+                                                    ? "Unprinted"
+                                                    : "All"
                                     }
                                     onValueChange={(val) => {
-                                        if (val === "Printed" || val === "Not Printed") {
+                                        if (val === "Printed") {
                                             setStatus("All");
-                                            setPrintStatus(val);
+                                            setPrintStatus("Printed");
+                                        } else if (val === "Unprinted" || val === "Unprint" || val === "Not Printed") {
+                                            setStatus("All");
+                                            setPrintStatus("Not Printed");
+                                        } else if (val === "All") {
+                                            setStatus("All");
+                                            setPrintStatus("All");
                                         } else {
                                             setStatus(val);
                                             setPrintStatus("All");
                                         }
                                         setPage(1);
                                     }}
-                                    options={statusOptions}
-                                    placeholder="All Statuses"
-                                    searchPlaceholder="Search status..."
-                                    allLabel="All Statuses"
+                                    options={statusAndPrintOptions}
+                                    placeholder="All Status / Print"
+                                    searchPlaceholder="Search status (Available, Moving, Missing, Printed, Unprint)..."
+                                    allLabel="All Status / Print"
                                     allValue="All"
-                                    className="h-10 text-sm rounded-xl bg-background/50 border-border/60"
+                                    className="h-7.5 text-xs rounded-lg bg-background/50 border-border/60"
+                                />
+                            </div>
+                            <div className="w-full sm:w-44">
+                                <SearchableSelect
+                                    value={expiryFilter}
+                                    onValueChange={(val) => {
+                                        setExpiryFilter(val);
+                                        setPage(1);
+                                    }}
+                                    options={[
+                                        { label: "Already Expired", value: "expired" },
+                                        { label: "Expired within 3 Months", value: "expiring_soon" }
+                                    ]}
+                                    placeholder="All Validity / Expiry"
+                                    searchPlaceholder="Filter validity or expiry..."
+                                    allLabel="All Validity / Expiry"
+                                    allValue="All"
+                                    className="h-7.5 text-xs rounded-lg bg-background/50 border-border/60"
                                 />
                             </div>
 
@@ -1096,12 +1122,12 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <SheetTrigger render={
                                     <Button
                                         variant="outline"
-                                        className="h-10 gap-2 rounded-xl border-border/80 hover:bg-muted/50 transition-all font-semibold whitespace-nowrap shrink-0 shadow-sm"
+                                        className="h-7.5 px-2.5 text-[11px] gap-1.5 rounded-lg border-border/80 hover:bg-muted/50 transition-all font-semibold whitespace-nowrap shrink-0 shadow-2xs cursor-pointer"
                                     >
-                                        <SlidersHorizontal className="size-4 text-primary" />
+                                        <SlidersHorizontal className="size-3 text-primary" />
                                         <span>Advanced Filter</span>
                                         {activeFilterCount > 0 && (
-                                            <span className="ml-1 px-2 py-0.5 text-xs font-bold rounded-full bg-primary text-primary-foreground">
+                                            <span className="ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
                                                 {activeFilterCount}
                                             </span>
                                         )}
@@ -1125,6 +1151,29 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {renderFilterInput("Tool ID", "toolId", "e.g. SSSSCP0050825UE0081")}
                                                 {renderFilterInput("Validation", "validityPeriod", "e.g. 1 Year, 3 Years...")}
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <label className="text-xs font-medium text-muted-foreground block">Expiry Status</label>
+                                                        {draftExpiryFilter !== "All" && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDraftExpiryFilter("All")}
+                                                                className="text-[10px] text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer"
+                                                            >
+                                                                Clear
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <select
+                                                        value={draftExpiryFilter}
+                                                        onChange={(e) => setDraftExpiryFilter(e.target.value)}
+                                                        className="w-full h-9 text-xs rounded-xl bg-background/50 border border-border/60 px-3 hover:bg-background focus:bg-background transition-all"
+                                                    >
+                                                        <option value="All">All Expiry Statuses</option>
+                                                        <option value="expired">Already Expired</option>
+                                                        <option value="expiring_soon">Expired within 3 Months</option>
+                                                    </select>
+                                                </div>
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1.5">
                                                         <label className="text-xs font-medium text-muted-foreground block">Category / Tool Type</label>
@@ -1370,11 +1419,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 <CardContent className="p-0 flex-1 min-h-0 flex flex-col overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-hidden relative">
                         <div className="h-full overflow-auto">
-                            <table className="h-full min-w-full text-sm text-left whitespace-nowrap">
+                            <table className="w-full text-xs text-left whitespace-nowrap">
 
                                 <thead className="sticky top-0 z-10 bg-card shadow-xs">
-                                    <tr className="border-b bg-muted text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                                        <th className="w-12 px-4 py-4 select-none text-center">
+                                    <tr className="border-b bg-muted text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                                        <th className="w-10 px-2.5 py-2 select-none text-center">
                                             <button
                                                 type="button"
                                                 onClick={handleSelectAllFiltered}
@@ -1383,25 +1432,25 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                 title="Select all filtered tools"
                                             >
                                                 {isSelectingAll ? (
-                                                    <Loader2 className="size-4 animate-spin text-primary" />
+                                                    <Loader2 className="size-3.5 animate-spin text-primary" />
                                                 ) : isAllFilteredSelected && total > 0 ? (
-                                                    <CheckSquare className="size-4 text-primary" />
+                                                    <CheckSquare className="size-3.5 text-primary" />
                                                 ) : (
-                                                    <Square className="size-4" />
+                                                    <Square className="size-3.5" />
                                                 )}
                                             </button>
                                         </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolId')}>
+                                        <th className="px-3.5 py-2 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('toolId')}>
                                             <div className="flex items-center">System ID {renderSortIcon('toolId')}</div>
                                         </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('status')}>
+                                        <th className="px-3.5 py-2 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('status')}>
                                             <div className="flex items-center">Status {renderSortIcon('status')}</div>
                                         </th>
-                                        <th className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('isPrinted')}>
+                                        <th className="px-3.5 py-2 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort('isPrinted')}>
                                             <div className="flex items-center">Print Status {renderSortIcon('isPrinted')}</div>
                                         </th>
                                         {TOOL_COLUMNS.map((col) => (
-                                            <th key={col.key} className="px-6 py-4 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(col.key)}>
+                                            <th key={col.key} className="px-3.5 py-2 cursor-pointer select-none group hover:bg-muted/60 transition-colors" onClick={() => handleSort(col.key)}>
                                                 <div className="flex items-center">{col.label} {renderSortIcon(col.key)}</div>
                                             </th>
                                         ))}
@@ -1410,7 +1459,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <tbody className="divide-y divide-border/40">
                                     {loading || tools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={100} className="px-6 py-24 text-center select-none opacity-0">
+                                            <td colSpan={100} className="px-3.5 py-16 text-center select-none opacity-0">
                                                 &nbsp;
                                             </td>
                                         </tr>
@@ -1436,45 +1485,77 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                 navigate(targetPath, { state: { initialTool: t, backgroundLocation: location, fromStoreId: storeId, projectId: currentProjId, breadcrumbs: newBreadcrumbs } });
                                             }}
                                         >
-                                            <td className="px-4 py-4 text-center" onClick={(e) => handleToggleTool(t, e)}>
+                                            <td className="px-2.5 py-2 text-center" onClick={(e) => handleToggleTool(t, e)}>
                                                 <button
                                                     type="button"
                                                     className="flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
                                                 >
                                                     {selectedToolIds.has(t._id) ? (
-                                                        <CheckSquare className="size-4 text-primary" />
+                                                        <CheckSquare className="size-3.5 text-primary" />
                                                     ) : (
-                                                        <Square className="size-4" />
+                                                        <Square className="size-3.5" />
                                                     )}
                                                 </button>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="font-mono text-xs font-semibold text-primary/80 bg-primary/10 inline-flex px-2 py-1 rounded-md border border-primary/20">
+                                            <td className="px-3.5 py-2">
+                                                <div className="font-mono text-xs font-semibold text-primary/80 bg-primary/10 inline-flex px-1.5 py-0.5 rounded-md border border-primary/20">
                                                     {t.toolId}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide ${statusColors[t.status] || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'}`}>
-                                                    {t.status === "Available" && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />}
+                                            <td className="px-3.5 py-2">
+                                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tracking-wide ${statusColors[t.status] || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'}`}>
+                                                    {t.status === "Available" && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />}
                                                     {t.status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-3.5 py-2">
                                                 {t.isPrinted ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 ring-1 ring-emerald-500/30">
-                                                        <Printer className="size-3" />
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 ring-1 ring-emerald-500/30">
+                                                        <Printer className="size-2.5" />
                                                         Printed
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400 ring-1 ring-slate-500/30">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-500/15 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400 ring-1 ring-slate-500/30">
                                                         Not Printed
                                                     </span>
                                                 )}
                                             </td>
 
                                             {TOOL_COLUMNS.map((col) => (
-                                                <td key={col.key} className="px-6 py-4 text-foreground/80">
-                                                    {renderFieldValue(t, col.key)}
+                                                <td key={col.key} className="px-3.5 py-2 text-foreground/80 text-xs">
+                                                    {col.key === 'validation' ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span>{renderFieldValue(t, col.key)}</span>
+                                                            {(() => {
+                                                                const dueDate = t.nextInspectionDueDate ? new Date(t.nextInspectionDueDate) : null;
+                                                                if (!dueDate || isNaN(dueDate.getTime())) return null;
+                                                                const now = new Date();
+                                                                const threeMonthsAhead = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+                                                                if (dueDate < now) {
+                                                                    return (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 shrink-0"
+                                                                            title={`Expired on ${dueDate.toLocaleDateString('en-IN')}`}
+                                                                        >
+                                                                            Expired
+                                                                        </span>
+                                                                    );
+                                                                } else if (dueDate <= threeMonthsAhead) {
+                                                                    return (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 shrink-0"
+                                                                            title={`Expires on ${dueDate.toLocaleDateString('en-IN')}`}
+                                                                        >
+                                                                            Expiring Soon
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
+                                                        </div>
+                                                    ) : (
+                                                        renderFieldValue(t, col.key)
+                                                    )}
                                                 </td>
                                             ))}
                                         </tr>
@@ -1501,7 +1582,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => { setSearch(""); setCategory("All"); setStatus("All"); }}
+                                        onClick={() => { setSearch(""); setCategory("All"); setStatus("All"); setPrintStatus("All"); }}
                                     >
                                         Clear all filters
                                     </Button>
@@ -1510,21 +1591,21 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         )}
                     </div>
 
-                    {/* Premium Pagination Bar */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t bg-muted/10 backdrop-blur-sm gap-4 shrink-0">
-                        <div className="text-sm font-medium text-muted-foreground w-full sm:w-1/4 text-center sm:text-left">
-                            Showing <span className="text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="text-foreground">{Math.min(page * limit, total)}</span> of <span className="text-foreground">{total}</span> items
+                    {/* Compact Pagination Bar */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between px-3.5 py-1.5 border-t border-border/50 bg-muted/15 gap-2 shrink-0">
+                        <div className="text-[11px] font-medium text-muted-foreground w-full sm:w-auto text-center sm:text-left">
+                            Showing <span className="font-semibold text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> of <span className="font-semibold text-foreground">{total}</span> items
                         </div>
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap flex-1 w-full">
+                        <div className="flex items-center justify-center gap-1 flex-wrap">
                             {/* First Page */}
                             {page > 1 && (
                                 <button
                                     onClick={() => setPage(1)}
                                     disabled={loading}
-                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                                     title="First Page"
                                 >
-                                    «
+                                    <ChevronsLeft className="size-3.5" />
                                 </button>
                             )}
 
@@ -1532,16 +1613,16 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1 || loading}
-                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                                 title="Previous Page"
                             >
-                                ‹
+                                <ChevronLeft className="size-3.5" />
                             </button>
 
                             {/* Page Range Buttons */}
                             {(() => {
                                 const pageRange = [];
-                                const maxVisiblePages = 10;
+                                const maxVisiblePages = 5;
                                 let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
                                 let endPage = startPage + maxVisiblePages - 1;
 
@@ -1561,10 +1642,10 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                             key={pNum}
                                             onClick={() => setPage(pNum)}
                                             disabled={loading}
-                                            className={`h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all cursor-pointer border ${
+                                            className={`h-6.5 min-w-[26px] px-1.5 rounded-md flex items-center justify-center text-[11px] transition-all cursor-pointer border ${
                                                 isActive
-                                                    ? "bg-primary border-primary text-primary-foreground shadow-md"
-                                                    : "bg-background border-border/85 hover:bg-muted text-foreground"
+                                                    ? "bg-primary border-primary text-primary-foreground font-bold shadow-2xs"
+                                                    : "bg-background border-border/70 hover:bg-muted text-foreground font-medium"
                                             }`}
                                         >
                                             {pNum}
@@ -1577,10 +1658,10 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page >= totalPages || loading}
-                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                                 title="Next Page"
                             >
-                                ›
+                                <ChevronRight className="size-3.5" />
                             </button>
 
                             {/* Last Page */}
@@ -1588,15 +1669,16 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                 <button
                                     onClick={() => setPage(totalPages)}
                                     disabled={loading}
-                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                                     title="Last Page"
                                 >
-                                    »
+                                    <ChevronsRight className="size-3.5" />
                                 </button>
                             )}
                         </div>
-                        {/* Spacer block to balance the layout and keep the center block aligned exactly in the middle */}
-                        <div className="hidden sm:block w-full sm:w-1/4" />
+                        <div className="hidden sm:block w-full sm:w-auto text-right text-[11px] text-muted-foreground">
+                            Page <span className="font-bold text-foreground">{page}</span> of <span className="font-bold text-foreground">{totalPages}</span>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -2143,13 +2225,15 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             />
 
             <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => !deleting && setDeleteDialog(prev => ({ ...prev, isOpen: open }))}>
-                <AlertDialogContent className="rounded-2xl max-w-md">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-rose-600">
-                            <Trash2 className="size-6 text-rose-500" />
+                <AlertDialogContent className="rounded-xl max-w-md p-4 sm:p-5 shadow-2xl border-border/80">
+                    <AlertDialogHeader className="space-y-1.5">
+                        <AlertDialogTitle className="flex items-center gap-2 text-sm sm:text-base font-bold text-rose-600 dark:text-rose-400">
+                            <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 shrink-0">
+                                <Trash2 className="size-4 text-rose-500" />
+                            </div>
                             <span>Confirm Tool Deletion</span>
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2 leading-relaxed">
+                        <AlertDialogDescription className="text-xs text-muted-foreground pt-1 leading-relaxed">
                             {deleteDialog.isBulk ? (
                                 <>Are you sure you want to delete <strong>{selectedToolIds.size}</strong> selected unprinted tools? They will move to <strong>Trash</strong>, and all remaining active tool IDs in this project will be automatically re-sequenced in batches.</>
                             ) : (
@@ -2157,17 +2241,17 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             )}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-4 border-t mt-4">
-                        <AlertDialogCancel disabled={deleting} className="rounded-xl">
+                    <AlertDialogFooter className="gap-2 sm:gap-2 pt-3 border-t border-border/60 mt-3">
+                        <AlertDialogCancel disabled={deleting} className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer">
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                             disabled={deleting}
                             onClick={confirmDelete}
-                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
+                            className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer shadow-2xs"
                         >
                             {deleting ? (
-                                <Loader2 className="size-4 animate-spin mr-1.5" />
+                                <Loader2 className="size-3.5 animate-spin mr-1.5" />
                             ) : null}
                             Delete
                         </AlertDialogAction>

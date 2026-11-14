@@ -6,6 +6,7 @@ export type FieldType =
   | 'email'
   | 'password'
   | 'date'
+  | 'calendar'
   | 'select'
   | 'radio'
   | 'checkbox'
@@ -91,7 +92,16 @@ export const useFormBuilderStore = create<FormBuilderState>((set) => ({
     }),
   updateField: (id, updates) =>
     set((state) => ({
-      fields: state.fields.map((f) => (f.id === id ? { ...f, ...updates } : f)),
+      fields: state.fields.map((f) => {
+        if (f.id !== id) return f;
+        const updated = { ...f, ...updates };
+        if (updates.type && !['text', 'textarea', 'password'].includes(updates.type)) {
+          if (updated.validations) {
+            updated.validations = updated.validations.filter((v: any) => v.type !== 'alphanumeric');
+          }
+        }
+        return updated;
+      }),
     })),
   reorderFields: (startIndex, endIndex) =>
     set((state) => {

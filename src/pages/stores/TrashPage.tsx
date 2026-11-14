@@ -25,7 +25,11 @@ import {
     X,
     AlertTriangle,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight
 } from "lucide-react"
 import toolService, { type ToolRecord } from "@/services/tool.service"
 import { toast } from "sonner"
@@ -252,29 +256,31 @@ export function TrashPage() {
     }
 
     return (
-        <div className="h-full flex flex-col overflow-hidden gap-4 mx-auto w-full animate-in fade-in duration-500">
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
                 <div>
-                    <div className="flex items-center gap-2.5">
-                        <Trash2 className="size-7 text-rose-500" />
-                        <h1 className="text-3xl font-extrabold tracking-tight">Deleted Tools / Trash</h1>
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                            <Trash2 className="size-4" />
+                        </div>
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">Deleted Tools / Trash</h1>
                     </div>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        View and restore deleted tools. Soft-deleted tools can be safely returned to their original inventory. ({total} deleted items)
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
+                     {total} Deleted Items
                     </p>
                 </div>
             </div>
 
-            <Card className="flex-1 min-h-0 flex flex-col border-border/50 shadow-lg shadow-black/5 overflow-hidden rounded-2xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl">
+            <Card className="flex-1 min-h-0 flex flex-col border-border/50 shadow-2xs overflow-hidden rounded-xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl">
                 {/* Search Bar */}
-                <div className="p-4 border-b bg-muted/20 backdrop-blur-md shrink-0">
-                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="p-2.5 sm:p-3 border-b bg-muted/20 shrink-0">
+                    <div className="flex flex-col sm:flex-row items-center gap-2.5">
                         <div className="relative group flex-1 w-full">
-                            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
+                            <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
                             <Input
                                 placeholder="Search deleted tools by ID, code, or description..."
-                                className="!pl-10 h-10 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-sm rounded-xl"
+                                className="!pl-8 h-7.5 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-2xs rounded-lg text-xs"
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setPage(1); setSelectedIds(new Set()); }}
                             />
@@ -285,10 +291,10 @@ export function TrashPage() {
                 <CardContent className="p-0 flex-1 min-h-0 flex flex-col overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <div className="h-full overflow-auto">
-                            <table className="h-full min-w-full text-sm text-left whitespace-nowrap">
+                            <table className="w-full text-xs text-left whitespace-nowrap">
                                 <thead className="sticky top-0 z-10 bg-card shadow-xs">
-                                    <tr className="border-b bg-muted text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                                        <th className="w-12 px-4 py-4 select-none text-center">
+                                    <tr className="border-b bg-muted text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                                        <th className="w-10 px-2.5 py-2 select-none text-center">
                                             <button
                                                 type="button"
                                                 onClick={handleToggleSelectAll}
@@ -297,43 +303,43 @@ export function TrashPage() {
                                                 title={isAllSelected ? "Deselect all" : `Select all ${total} deleted tools`}
                                             >
                                                 {isSelectingAll ? (
-                                                    <Loader2 className="size-4 animate-spin text-primary" />
+                                                    <Loader2 className="size-3.5 animate-spin text-primary" />
                                                 ) : isAllSelected ? (
-                                                    <CheckSquare className="size-4 text-primary" />
+                                                    <CheckSquare className="size-3.5 text-primary" />
                                                 ) : (
-                                                    <Square className="size-4" />
+                                                    <Square className="size-3.5" />
                                                 )}
                                             </button>
                                         </th>
-                                        <th className="px-6 py-4">Tool ID</th>
-                                        <th className="px-6 py-4">Description</th>
-                                        <th className="px-6 py-4">Tool Type</th>
-                                        <th className="px-6 py-4">Original Store / Site</th>
-                                        <th className="px-6 py-4">Project</th>
-                                        <th className="px-6 py-4">Deleted Date</th>
-                                        <th className="px-6 py-4">Deleted By</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
+                                        <th className="px-3.5 py-2">Tool ID</th>
+                                        <th className="px-3.5 py-2">Description</th>
+                                        <th className="px-3.5 py-2">Tool Type</th>
+                                        <th className="px-3.5 py-2">Original Store / Site</th>
+                                        <th className="px-3.5 py-2">Project</th>
+                                        <th className="px-3.5 py-2">Deleted Date</th>
+                                        <th className="px-3.5 py-2">Deleted By</th>
+                                        <th className="px-3.5 py-2 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={9} className="px-6 py-20 text-center">
+                                            <td colSpan={9} className="px-3.5 py-16 text-center">
                                                 <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                                    <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
-                                                    <p className="text-sm font-medium animate-pulse">Loading deleted tools...</p>
+                                                    <Loader2 className="size-6 animate-spin text-primary/50 mb-3" />
+                                                    <p className="text-xs font-medium animate-pulse">Loading deleted tools...</p>
                                                 </div>
                                             </td>
                                         </tr>
                                     ) : deletedTools.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="px-6 py-24 text-center">
+                                            <td colSpan={9} className="px-3.5 py-16 text-center">
                                                 <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                                                    <div className="size-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4 text-emerald-600">
-                                                        <RotateCcw className="size-8" />
+                                                    <div className="size-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3 text-emerald-600">
+                                                        <RotateCcw className="size-6" />
                                                     </div>
-                                                    <h3 className="text-lg font-semibold text-foreground mb-1">Trash is Empty</h3>
-                                                    <p className="text-sm text-muted-foreground text-balance">
+                                                    <h3 className="text-sm font-semibold text-foreground mb-0.5">Trash is Empty</h3>
+                                                    <p className="text-xs text-muted-foreground text-balance">
                                                         No soft-deleted tools found. Deleted tools will appear here and can be restored at any time.
                                                     </p>
                                                 </div>
@@ -355,50 +361,50 @@ export function TrashPage() {
                                                         selectedIds.has(t._id) ? "bg-primary/[0.05]" : ""
                                                     }`}
                                                 >
-                                                    <td className="px-4 py-4 text-center" onClick={(e) => handleToggleSelect(t._id, e)}>
+                                                    <td className="px-2.5 py-2 text-center" onClick={(e) => handleToggleSelect(t._id, e)}>
                                                         <button
                                                             type="button"
                                                             className="flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
                                                         >
                                                             {selectedIds.has(t._id) ? (
-                                                                <CheckSquare className="size-4 text-primary" />
+                                                                <CheckSquare className="size-3.5 text-primary" />
                                                             ) : (
-                                                                <Square className="size-4" />
+                                                                <Square className="size-3.5" />
                                                             )}
                                                         </button>
                                                     </td>
-                                                    <td className="px-6 py-4 font-mono text-xs font-semibold text-rose-600 dark:text-rose-400">
-                                                        <span className="bg-rose-500/10 px-2 py-1 rounded-md border border-rose-500/20">
+                                                    <td className="px-3.5 py-2 font-mono text-xs font-semibold text-rose-600 dark:text-rose-400">
+                                                        <span className="bg-rose-500/10 px-1.5 py-0.5 rounded-md border border-rose-500/20 text-xs">
                                                             {cleanToolId(t.toolId)}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 font-medium text-foreground">
+                                                    <td className="px-3.5 py-2 font-medium text-foreground text-xs">
                                                         {t.description || '-'}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-xs">
                                                         {t.toolType || t.toolVariant || 'General'}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-xs">
                                                         {storeName}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-xs">
                                                         {projectName}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground text-xs">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-[11px]">
                                                         {deletedDateStr}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground text-xs font-medium">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-xs font-medium">
                                                         {deletedByName}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
+                                                    <td className="px-3.5 py-2 text-right">
+                                                        <div className="flex items-center justify-end gap-1.5">
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
-                                                                className="h-8 rounded-lg gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900"
+                                                                className="h-7 rounded-lg gap-1 px-2 text-[11px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 cursor-pointer"
                                                                 onClick={() => triggerSingleRestore(t)}
                                                             >
-                                                                <RotateCcw className="size-3.5" />
+                                                                <RotateCcw className="size-3" />
                                                                 Restore
                                                             </Button>
 
@@ -406,10 +412,10 @@ export function TrashPage() {
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
-                                                                    className="h-8 rounded-lg gap-1.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                                                    className="h-7 rounded-lg gap-1 px-2 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
                                                                     onClick={() => triggerSinglePermanent(t)}
                                                                 >
-                                                                    <Trash2 className="size-3.5" />
+                                                                    <Trash2 className="size-3" />
                                                                     Permanent Delete
                                                                 </Button>
                                                             )}
@@ -424,29 +430,55 @@ export function TrashPage() {
                         </div>
                     </div>
 
-                    {/* Pagination */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t bg-muted/10 backdrop-blur-sm gap-4 shrink-0">
-                        <div className="text-sm font-medium text-muted-foreground w-full sm:w-1/4 text-center sm:text-left">
-                            Showing <span className="text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="text-foreground">{Math.min(page * limit, total)}</span> of <span className="text-foreground">{total}</span> deleted items
+                    {/* Compact Pagination Bar */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between px-3.5 py-1.5 border-t border-border/50 bg-muted/15 gap-2 shrink-0">
+                        <div className="text-[11px] font-medium text-muted-foreground w-full sm:w-auto text-center sm:text-left">
+                            Showing <span className="font-semibold text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> of <span className="font-semibold text-foreground">{total}</span> deleted items
                         </div>
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap flex-1 w-full">
+                        <div className="flex items-center justify-center gap-1">
+                            {page > 1 && (
+                                <button
+                                    onClick={() => setPage(1)}
+                                    disabled={loading}
+                                    className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                                    title="First Page"
+                                >
+                                    <ChevronsLeft className="size-3.5" />
+                                </button>
+                            )}
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1 || loading}
-                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
+                                className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                                title="Previous Page"
                             >
-                                ‹
+                                <ChevronLeft className="size-3.5" />
                             </button>
-                            <span className="text-sm font-semibold px-3">Page {page} of {totalPages}</span>
+                            <span className="text-[11px] font-semibold text-muted-foreground px-2">
+                                Page <span className="font-bold text-foreground">{page}</span> of <span className="font-bold text-foreground">{totalPages}</span>
+                            </span>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page >= totalPages || loading}
-                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
+                                className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                                title="Next Page"
                             >
-                                ›
+                                <ChevronRight className="size-3.5" />
                             </button>
+                            {page < totalPages && (
+                                <button
+                                    onClick={() => setPage(totalPages)}
+                                    disabled={loading}
+                                    className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                                    title="Last Page"
+                                >
+                                    <ChevronsRight className="size-3.5" />
+                                </button>
+                            )}
                         </div>
-                        <div className="hidden sm:block w-full sm:w-1/4" />
+                        <div className="hidden sm:block w-full sm:w-auto text-right text-[11px] text-muted-foreground">
+                            {limit} per page
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -554,22 +586,26 @@ export function TrashPage() {
 
             {/* Confirmation Dialog */}
             <AlertDialog open={dialogState.isOpen} onOpenChange={(open) => !actionLoading && setDialogState(prev => ({ ...prev, isOpen: open }))}>
-                <AlertDialogContent className="rounded-2xl max-w-md">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold">
+                <AlertDialogContent className="rounded-xl max-w-md p-4 sm:p-5 shadow-2xl border-border/80">
+                    <AlertDialogHeader className="space-y-1.5">
+                        <AlertDialogTitle className="flex items-center gap-2 text-sm sm:text-base font-bold text-foreground">
                             {dialogState.type.includes('permanent') ? (
                                 <>
-                                    <AlertTriangle className="size-6 text-rose-500" />
-                                    <span>Confirm Permanent Deletion</span>
+                                    <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 shrink-0">
+                                        <AlertTriangle className="size-4" />
+                                    </div>
+                                    <span className="text-rose-600 dark:text-rose-400">Confirm Permanent Deletion</span>
                                 </>
                             ) : (
                                 <>
-                                    <RotateCcw className="size-6 text-emerald-500" />
+                                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0">
+                                        <RotateCcw className="size-4" />
+                                    </div>
                                     <span>Confirm Tool Restoration</span>
                                 </>
                             )}
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
+                        <AlertDialogDescription className="text-xs text-muted-foreground pt-1 leading-relaxed">
                             {dialogState.type === 'restore' && (
                                 <>Are you sure you want to restore tool <strong className="text-foreground font-mono">{dialogState.targetToolId}</strong>? It will return to its original Project/Store inventory with its exact Tool ID and history.</>
                             )}
@@ -588,21 +624,21 @@ export function TrashPage() {
                             )}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-4 border-t mt-4">
-                        <AlertDialogCancel disabled={actionLoading} className="rounded-xl">
+                    <AlertDialogFooter className="gap-2 sm:gap-2 pt-3 border-t border-border/60 mt-3">
+                        <AlertDialogCancel disabled={actionLoading} className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer">
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                             disabled={actionLoading}
                             onClick={handleConfirmAction}
-                            className={`rounded-xl ${
+                            className={`h-8 rounded-lg px-4.5 text-xs font-semibold cursor-pointer shadow-2xs ${
                                 dialogState.type.includes('permanent')
                                     ? 'bg-rose-600 hover:bg-rose-700 text-white'
                                     : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                             }`}
                         >
                             {actionLoading ? (
-                                <Loader2 className="size-4 animate-spin mr-1.5" />
+                                <Loader2 className="size-3.5 animate-spin mr-1.5" />
                             ) : null}
                             {dialogState.type.includes('permanent') ? 'Permanently Delete' : 'Restore'}
                         </AlertDialogAction>

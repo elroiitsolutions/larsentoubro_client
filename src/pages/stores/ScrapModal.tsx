@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +18,18 @@ import {
     Phone, 
     Mail, 
     PlusCircle, 
-    Calendar, 
+    Calendar as CalendarIcon, 
     ArrowRight, 
     MapPin, 
     Hash, 
     RefreshCw, 
     Loader2,
     FileText,
-    Eye
+    Eye,
+    X
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
 import challanService from "@/services/challan.service";
 import { generateDeliveryChallanPDF } from "@/utils/pdf/challanPdfGenerator";
@@ -54,8 +57,25 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
     // Form inputs for Challan Date, Delivery Date, Remarks, Notes
     const [challanDate, setChallanDate] = useState<string>(new Date().toISOString().split("T")[0]);
     const [deliveryDate, setDeliveryDate] = useState<string>(new Date().toISOString().split("T")[0]);
+    const [challanCalendarOpen, setChallanCalendarOpen] = useState(false);
+    const [deliveryCalendarOpen, setDeliveryCalendarOpen] = useState(false);
     const [scrapReason, setScrapReason] = useState("");
     const [notes, setNotes] = useState("");
+
+    const formatDateDisplay = (dateStr: string) => {
+        try {
+            if (!dateStr) return "";
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            });
+        } catch {
+            return dateStr;
+        }
+    };
 
     // Quick Add Scrap Dealer state
     const [isCreatingDealer, setIsCreatingDealer] = useState(false);
@@ -252,102 +272,117 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
 
     return (
         <Dialog open={open} onOpenChange={(o) => { if (!isGenerating) onOpenChange(o); }}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col p-6">
-                <DialogHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                                <Archive className="size-5" />
-                                Create Scrap Disposal Delivery Challan (SDC)
-                            </DialogTitle>
-                            <DialogDescription className="text-sm text-muted-foreground mt-1">
-                                Select destination Scrap Dealer and issue a Delivery Challan for <span className="font-bold text-foreground">{selectedTools.length} selected tool(s)</span>.
-                            </DialogDescription>
+            <DialogContent hideClose={true} className="max-w-2xl max-h-[90vh] flex flex-col p-0 rounded-xl overflow-hidden shadow-2xl">
+                <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                                <Archive className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-amber-700 dark:text-amber-400">
+                                    Create Scrap Disposal Delivery Challan (SDC)
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                    Select destination Scrap Dealer and issue a Delivery Challan for <span className="font-bold text-foreground">{selectedTools.length} selected tool(s)</span>.
+                                </DialogDescription>
+                            </div>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs flex items-center gap-1.5 border-amber-500/30 hover:bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                            onClick={() => setIsCreatingDealer(!isCreatingDealer)}
-                        >
-                            <PlusCircle className="size-3.5" />
-                            {isCreatingDealer ? "Cancel Quick Add" : "Add Scrap Dealer"}
-                        </Button>
+                        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs font-semibold flex items-center gap-1.5 border-amber-500/30 hover:bg-amber-500/10 text-amber-700 dark:text-amber-400 h-7.5 px-3 rounded-lg cursor-pointer shrink-0"
+                                onClick={() => setIsCreatingDealer(!isCreatingDealer)}
+                            >
+                                <PlusCircle className="size-3.5" />
+                                {isCreatingDealer ? "Cancel Quick Add" : "Add Scrap Dealer"}
+                            </Button>
+                            <button
+                                type="button"
+                                onClick={() => onOpenChange(false)}
+                                className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 cursor-pointer"
+                                aria-label="Close modal"
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
                     </div>
                 </DialogHeader>
 
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
                 {isCreatingDealer && (
-                    <form onSubmit={handleQuickAddDealer} className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/30 space-y-3 my-2">
-                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                            <PlusCircle className="size-4 text-amber-600" /> Quick Add New Scrap Dealer
+                    <form onSubmit={handleQuickAddDealer} className="bg-amber-500/10 p-3 rounded-lg border border-amber-500/30 space-y-2.5">
+                        <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                            <PlusCircle className="size-3.5 text-amber-600" /> Quick Add New Scrap Dealer
                         </h4>
-                        {creatingError && <p className="text-xs text-rose-500 font-medium">{creatingError}</p>}
-                        <div className="grid grid-cols-2 gap-3">
+                        {creatingError && <p className="text-[10px] text-rose-500 font-medium">{creatingError}</p>}
+                        <div className="grid grid-cols-2 gap-2">
                             <div>
-                                <Label className="text-xs">Firm / Dealer Name *</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Firm / Dealer Name *</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 bg-background"
+                                    className="h-7.5 sm:h-8 text-xs rounded-lg px-2.5 bg-background"
                                     placeholder="e.g. SHREE METALS SCRAP DEALERS"
                                     value={newDealer.name}
                                     onChange={e => setNewDealer({ ...newDealer, name: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">Dealer Code</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Dealer Code</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 font-mono uppercase bg-background"
+                                    className="h-7.5 sm:h-8 text-xs font-mono uppercase rounded-lg px-2.5 bg-background"
                                     placeholder="e.g. SCR-0001"
                                     value={newDealer.code}
                                     onChange={e => setNewDealer({ ...newDealer, code: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">Scrap License No.</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Scrap License No.</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 font-mono bg-background"
+                                    className="h-7.5 sm:h-8 text-xs font-mono rounded-lg px-2.5 bg-background"
                                     placeholder="e.g. PCB/SCRAP/2026/0892"
                                     value={newDealer.licenseNumber}
                                     onChange={e => setNewDealer({ ...newDealer, licenseNumber: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">GST Number</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">GST Number</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 font-mono bg-background"
+                                    className="h-7.5 sm:h-8 text-xs font-mono rounded-lg px-2.5 bg-background"
                                     placeholder="27AAACS1234P1Z5"
                                     value={newDealer.gstNumber}
                                     onChange={e => setNewDealer({ ...newDealer, gstNumber: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">Contact Person</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Contact Person</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 bg-background"
+                                    className="h-7.5 sm:h-8 text-xs rounded-lg px-2.5 bg-background"
                                     placeholder="e.g. Ramesh Patel"
                                     value={newDealer.contactPerson}
                                     onChange={e => setNewDealer({ ...newDealer, contactPerson: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs">Phone Number</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Phone Number</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 bg-background"
+                                    className="h-7.5 sm:h-8 text-xs rounded-lg px-2.5 bg-background"
                                     placeholder="e.g. 9820012345"
                                     value={newDealer.contactPhone}
                                     onChange={e => setNewDealer({ ...newDealer, contactPhone: e.target.value })}
                                 />
                             </div>
                             <div className="col-span-2">
-                                <Label className="text-xs">Yard / Address</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 block mb-1">Yard / Address</Label>
                                 <Input
                                     size={1}
-                                    className="h-8 text-xs mt-1 bg-background"
+                                    className="h-7.5 sm:h-8 text-xs rounded-lg px-2.5 bg-background"
                                     placeholder="Enter scrap yard address"
                                     value={newDealer.address}
                                     onChange={e => setNewDealer({ ...newDealer, address: e.target.value })}
@@ -355,16 +390,16 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 pt-1">
-                            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setIsCreatingDealer(false)}>Cancel</Button>
-                            <Button type="submit" size="sm" className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white">Save Scrap Dealer</Button>
+                            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg" onClick={() => setIsCreatingDealer(false)}>Cancel</Button>
+                            <Button type="submit" size="sm" className="h-7 text-xs rounded-lg font-semibold bg-amber-600 hover:bg-amber-700 text-white">Save Scrap Dealer</Button>
                         </div>
                     </form>
                 )}
 
                 {/* Scrap Dealer Selection */}
-                <div className="space-y-3 my-2">
+                <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5">
                             <Building2 className="size-3.5 text-amber-600 dark:text-amber-400" />
                             Select Destination Scrap Dealer (Dynamic from Profile Management) *
                         </Label>
@@ -372,27 +407,27 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-6 text-xs px-2 text-muted-foreground hover:text-foreground"
+                            className="h-6 text-[10px] px-2 text-muted-foreground hover:text-foreground rounded-md cursor-pointer"
                             onClick={() => fetchScrapDealers()}
                         >
-                            <RefreshCw className="size-3 mr-1" />
+                            <RefreshCw className="size-2.5 mr-1" />
                             Refresh List
                         </Button>
                     </div>
 
                     {loading ? (
-                        <div className="h-10 rounded-xl border border-dashed flex items-center justify-center text-xs text-muted-foreground gap-2 bg-muted/20">
-                            <Loader2 className="size-4 animate-spin text-amber-600" />
+                        <div className="h-8 rounded-lg border border-dashed flex items-center justify-center text-xs text-muted-foreground gap-2 bg-muted/20">
+                            <Loader2 className="size-3.5 animate-spin text-amber-600" />
                             Fetching Scrap Dealer profiles from database...
                         </div>
                     ) : scrapDealers.length === 0 ? (
-                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center text-xs space-y-2">
+                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center text-xs space-y-1.5">
                             <p className="font-semibold text-amber-700 dark:text-amber-400">No Scrap Dealer profiles found in database.</p>
-                            <p className="text-muted-foreground">Click "Add Scrap Dealer" above or register Scrap Dealer profiles in Profile Management.</p>
+                            <p className="text-muted-foreground text-[11px]">Click "Add Scrap Dealer" above or register Scrap Dealer profiles in Profile Management.</p>
                         </div>
                     ) : (
                         <Select value={selectedDealerId || ""} onValueChange={(val: any) => handleDealerChange(val)}>
-                            <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all shadow-xs cursor-pointer truncate">
+                            <SelectTrigger className="h-7.5 sm:h-8 w-full rounded-lg border border-input bg-background px-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all shadow-2xs cursor-pointer truncate">
                                 <SelectValue placeholder={`-- Select Scrap Dealer (${scrapDealers.length} Available) --`}>
                                     {(val: any) => {
                                         if (!val) return null;
@@ -403,9 +438,9 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
                                     }}
                                 </SelectValue>
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="rounded-xl">
                                 {scrapDealers.map(d => (
-                                    <SelectItem key={d._id} value={d._id}>
+                                    <SelectItem key={d._id} value={d._id} className="text-xs">
                                         {d.name} ({d.code}){d.gstNumber ? ` - GST: ${d.gstNumber}` : ""}
                                     </SelectItem>
                                 ))}
@@ -415,77 +450,77 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
 
                     {/* Dealer Details Card */}
                     {selectedDealerDetails ? (
-                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-3 transition-all animate-in fade-in-50 duration-200">
-                            <div className="flex items-start justify-between border-b border-amber-500/20 pb-2.5">
+                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-2 transition-all">
+                            <div className="flex items-start justify-between border-b border-amber-500/20 pb-2">
                                 <div>
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="font-bold text-base text-foreground flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                        <h4 className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
                                             {selectedDealerDetails.name}
                                         </h4>
-                                        <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
+                                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
                                             {selectedDealerDetails.code}
                                         </span>
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold">
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold">
                                             {selectedDealerDetails.status || "Active"}
                                         </span>
                                     </div>
                                     {selectedDealerDetails.gstNumber && (
-                                        <p className="text-xs font-mono text-muted-foreground mt-1 flex items-center gap-1">
+                                        <p className="text-[11px] font-mono text-muted-foreground mt-0.5 flex items-center gap-1">
                                             <Hash className="size-3 text-amber-600" />
                                             GST: <strong className="text-foreground">{selectedDealerDetails.gstNumber}</strong>
                                         </p>
                                     )}
                                 </div>
                                 {detailsLoading && (
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                        <Loader2 className="size-3.5 animate-spin text-amber-600" />
+                                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                        <Loader2 className="size-3 animate-spin text-amber-600" />
                                         Updating...
                                     </div>
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <User className="size-3.5 text-amber-600 shrink-0" />
+                            <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <User className="size-3 text-amber-600 shrink-0" />
                                     <span>Contact: <strong className="text-foreground">{selectedDealerDetails.contactPerson || "Not Specified"}</strong></span>
                                 </div>
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Phone className="size-3.5 text-amber-600 shrink-0" />
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Phone className="size-3 text-amber-600 shrink-0" />
                                     <span>Phone: <strong className="text-foreground font-mono">{selectedDealerDetails.contactPhone || "N/A"}</strong></span>
                                 </div>
                                 {selectedDealerDetails.contactEmail && (
-                                    <div className="flex items-center gap-2 text-muted-foreground col-span-2">
-                                        <Mail className="size-3.5 text-amber-600 shrink-0" />
+                                    <div className="flex items-center gap-1.5 text-muted-foreground col-span-2">
+                                        <Mail className="size-3 text-amber-600 shrink-0" />
                                         <span>Email: <strong className="text-foreground">{selectedDealerDetails.contactEmail}</strong></span>
                                     </div>
                                 )}
-                                <div className="flex items-start gap-2 text-muted-foreground col-span-2">
-                                    <MapPin className="size-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                <div className="flex items-start gap-1.5 text-muted-foreground col-span-2">
+                                    <MapPin className="size-3 text-amber-600 shrink-0 mt-0.5" />
                                     <span>Yard Address: <strong className="text-foreground">{selectedDealerDetails.address || "No address on file"}</strong></span>
                                 </div>
                             </div>
                         </div>
                     ) : !loading && scrapDealers.length > 0 && (
-                        <div className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">
+                        <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
                             Please select a Scrap Dealer profile from the dropdown.
                         </div>
                     )}
                 </div>
 
                 {/* Review Selected Tools */}
-                <div className="space-y-2 mt-2">
-                    <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                        <FileText className="size-3.5 text-primary" />
+                <div className="space-y-1.5 pt-1">
+                    <Label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5">
+                        <FileText className="size-3.5 text-amber-600" />
                         Selected Tools for Scrap Transfer ({selectedTools.length})
                     </Label>
-                    <div className="max-h-36 overflow-y-auto border border-border/60 rounded-xl bg-background p-2 divide-y divide-border/40">
+                    <div className="max-h-28 overflow-y-auto border border-border/60 rounded-lg bg-background p-1 divide-y divide-border/40">
                         {selectedTools.map(t => (
-                            <div key={t._id} className="py-1.5 px-2 flex items-center justify-between text-xs">
+                            <div key={t._id} className="py-1 px-2 flex items-center justify-between text-xs">
                                 <div>
                                     <span className="font-mono font-bold text-foreground mr-2">{t.toolId || t.toolCode || t._id}</span>
                                     <span className="text-muted-foreground">{t.description || "Tool"}</span>
                                 </div>
-                                <span className="px-2 py-0.5 rounded bg-muted text-[10px] font-semibold text-muted-foreground">
+                                <span className="px-1.5 py-0.2 rounded bg-muted text-[10px] font-semibold text-muted-foreground">
                                     {t.toolType || "Tool"}
                                 </span>
                             </div>
@@ -494,53 +529,95 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
                 </div>
 
                 {/* Dispatch & Scrap Metadata */}
-                <div className="grid grid-cols-2 gap-4 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                        <Label className="text-xs flex items-center gap-1.5 mb-1.5">
-                            <Calendar className="size-3.5 text-amber-600" /> Challan Date *
+                        <Label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5 mb-1">
+                            <CalendarIcon className="size-3.5 text-amber-600 shrink-0" /> Challan Date *
                         </Label>
-                        <Input
-                            type="date"
-                            className="h-9 text-sm"
-                            value={challanDate}
-                            onChange={e => setChallanDate(e.target.value)}
-                        />
+                        <Popover open={challanCalendarOpen} onOpenChange={setChallanCalendarOpen}>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={() => setChallanCalendarOpen(prev => !prev)}
+                                    className="h-7.5 sm:h-8 px-2.5 text-xs w-full rounded-lg border border-input bg-background flex items-center justify-between font-mono hover:bg-muted/30 focus:ring-2 focus:ring-amber-500/30 shadow-2xs outline-none transition-all cursor-pointer text-left"
+                                >
+                                    <div className="flex items-center gap-1.5">
+                                        <CalendarIcon className="size-3 text-muted-foreground shrink-0" />
+                                        <span>{challanDate ? formatDateDisplay(challanDate) : "Select challan date"}</span>
+                                    </div>
+                                    <span className="text-[10px] text-amber-600 font-semibold px-1.5 py-0.5 rounded bg-amber-500/10">
+                                        {challanCalendarOpen ? "Close" : "Change"}
+                                    </span>
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-xl overflow-hidden bg-background z-50" align="start">
+                                <Calendar
+                                    selected={challanDate}
+                                    onSelect={(_d, dateStr) => {
+                                        setChallanDate(dateStr);
+                                        setChallanCalendarOpen(false);
+                                    }}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
                     <div>
-                        <Label className="text-xs flex items-center gap-1.5 mb-1.5">
-                            <Calendar className="size-3.5 text-amber-600" /> Expected Disposal Date
+                        <Label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5 mb-1">
+                            <CalendarIcon className="size-3.5 text-amber-600 shrink-0" /> Expected Disposal Date
                         </Label>
-                        <Input
-                            type="date"
-                            className="h-9 text-sm"
-                            value={deliveryDate}
-                            onChange={e => setDeliveryDate(e.target.value)}
-                        />
+                        <Popover open={deliveryCalendarOpen} onOpenChange={setDeliveryCalendarOpen}>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={() => setDeliveryCalendarOpen(prev => !prev)}
+                                    className="h-7.5 sm:h-8 px-2.5 text-xs w-full rounded-lg border border-input bg-background flex items-center justify-between font-mono hover:bg-muted/30 focus:ring-2 focus:ring-amber-500/30 shadow-2xs outline-none transition-all cursor-pointer text-left"
+                                >
+                                    <div className="flex items-center gap-1.5">
+                                        <CalendarIcon className="size-3 text-muted-foreground shrink-0" />
+                                        <span>{deliveryDate ? formatDateDisplay(deliveryDate) : "Select disposal date"}</span>
+                                    </div>
+                                    <span className="text-[10px] text-amber-600 font-semibold px-1.5 py-0.5 rounded bg-amber-500/10">
+                                        {deliveryCalendarOpen ? "Close" : "Change"}
+                                    </span>
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 border border-border/80 shadow-2xl rounded-xl overflow-hidden bg-background z-50" align="start">
+                                <Calendar
+                                    selected={deliveryDate}
+                                    minDate={challanDate || undefined}
+                                    onSelect={(_d, dateStr) => {
+                                        setDeliveryDate(dateStr);
+                                        setDeliveryCalendarOpen(false);
+                                    }}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     <div className="col-span-2">
-                        <Label className="text-xs mb-1.5 block">Scrap Reason / Dispatch Instructions</Label>
+                        <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Scrap Reason / Dispatch Instructions</Label>
                         <Textarea
                             placeholder="e.g. End-of-life wear & tear, unserviceable. Transferred for scrap metal disposal."
-                            className="text-xs min-h-[55px]"
+                            className="text-xs min-h-[48px] rounded-lg p-2"
                             value={scrapReason}
                             onChange={e => setScrapReason(e.target.value)}
                         />
                     </div>
 
                     <div className="col-span-2">
-                        <Label className="text-xs mb-1.5 block">Internal Reference Notes (Optional)</Label>
+                        <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Internal Reference Notes (Optional)</Label>
                         <Textarea
                             placeholder="Additional internal reference notes..."
-                            className="text-xs min-h-[50px]"
+                            className="text-xs min-h-[48px] rounded-lg p-2"
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
                         />
                     </div>
                 </div>
+                </div>
 
-                <DialogFooter className="mt-6 pt-4 border-t flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground">
+                <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="text-[11px] text-muted-foreground">
                         Selected: <strong className="text-foreground font-mono">{selectedTools.length}</strong> tool(s) to scrap
                     </div>
                     <div className="flex items-center gap-2">
@@ -548,7 +625,7 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                             disabled={isGenerating}
-                            className="h-9 text-xs"
+                            className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                         >
                             Cancel
                         </Button>
@@ -556,7 +633,7 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
                             variant="outline"
                             onClick={handleProceedToPreview}
                             disabled={!selectedDealerDetails || selectedTools.length === 0 || isGenerating}
-                            className="h-9 px-3 text-xs font-semibold gap-1.5 border-border/80 text-foreground hover:bg-muted"
+                            className="h-8 px-3 rounded-lg text-xs font-semibold gap-1.5 border-border/80 text-foreground hover:bg-muted cursor-pointer"
                         >
                             <Eye className="size-3.5 text-primary" />
                             Preview Challan First
@@ -575,17 +652,17 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
                                         <Button
                                             disabled={!selectedDealerDetails || selectedTools.length === 0 || isGenerating}
                                             onClick={handleDirectCreateScrapDC}
-                                            className="bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-1.5 shadow-md h-9 px-4 cursor-pointer font-semibold text-xs"
+                                            className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-1.5 cursor-pointer shadow-2xs"
                                         >
                                             {isGenerating ? (
                                                 <>
-                                                    <Loader2 className="size-3.5 animate-spin mr-1" />
+                                                    <Loader2 className="size-3 animate-spin mr-1" />
                                                     Generating DC...
                                                 </>
                                             ) : (
                                                 <>
                                                     <span>Confirm & Create DC ({selectedTools.length})</span>
-                                                    <ArrowRight className="size-4" />
+                                                    <ArrowRight className="size-3.5" />
                                                 </>
                                             )}
                                         </Button>
@@ -599,7 +676,7 @@ export function ScrapModal({ open, onOpenChange, selectedTools, storeId, onSucce
                             </Tooltip>
                         </TooltipProvider>
                     </div>
-                </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     );

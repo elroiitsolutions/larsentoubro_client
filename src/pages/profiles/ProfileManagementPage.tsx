@@ -129,49 +129,49 @@ export function ProfileManagementPage() {
     // const taxRecordsCount = visibleProfiles.filter(p => p.gstNumber || p.panNumber || p.licenseNumber).length
     // const totalDocsCount = visibleProfiles.reduce((sum, p) => sum + (p.documents?.length || 0), 0)
 
-    const bentoCardClass = "rounded-[24px] border border-border/50 bg-card/40 backdrop-blur-md shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
-
     if (isRestricted) {
         return <NoAccessPage />
     }
 
     return (
-        <div className="flex flex-col gap-5 sm:gap-6 w-full p-3 sm:p-4 md:p-6 pb-12 animate-in fade-in duration-300">
+        <div className="flex flex-col space-y-3 w-full pt-1 pb-4 animate-in fade-in duration-300">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Centralized Profile Management</h1>
-                    <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-                        Create, configure, and manage business records for Subcontractors, Scrap Dealers, and Suppliers with document attachments and dynamic forms.
-                    </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
+                        <Building2 className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">Centralized Profile Management</h1>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
                     <Button
-                        className="gap-2 rounded-xl shadow-md bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-10 px-5 w-full sm:w-auto justify-center"
+                        className="gap-1.5 rounded-lg shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer h-7.5 px-3 text-[11px] w-full sm:w-auto justify-center"
                         onClick={() => {
                             setEditingProfile(null)
                             setShowModal(true)
                         }}
                     >
-                        <PlusIcon className="size-4" />
+                        <PlusIcon className="size-3.5" />
                         Create {activeTab === "Subcontractor" ? "Subcontractor" : activeTab === "ScrapDealer" ? "Scrap Dealer" : "Supplier"} Profile
                     </Button>
                 </div>
             </div>
 
             {/* Profile Type Navigation Tabs */}
-            <div className="flex items-center gap-2 border-b border-border/60 pb-1 overflow-x-auto">
+            <div className="flex items-center gap-1.5 border-b border-border/60 pb-1 overflow-x-auto">
                 <button
                     onClick={() => handleTabChange("Subcontractor")}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer shrink-0 ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer shrink-0 ${
                         activeTab === "Subcontractor"
-                            ? "bg-blue-600 text-white shadow-sm"
+                            ? "bg-blue-600 text-white shadow-xs"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     }`}
                 >
-                    <Building2 className="size-4" />
+                    <Building2 className="size-3.5" />
                     <span>Subcontractors (Vendors)</span>
-                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
                         activeTab === "Subcontractor" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
                     }`}>
                         {activeTab === "Subcontractor" ? profiles.length : "Select"}
@@ -180,15 +180,15 @@ export function ProfileManagementPage() {
 
                 <button
                     onClick={() => handleTabChange("ScrapDealer")}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer shrink-0 ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer shrink-0 ${
                         activeTab === "ScrapDealer"
-                            ? "bg-amber-600 text-white shadow-sm"
+                            ? "bg-amber-600 text-white shadow-xs"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     }`}
                 >
-                    <Building2 className="size-4" />
+                    <Building2 className="size-3.5" />
                     <span>Scrap Dealers</span>
-                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
                         activeTab === "ScrapDealer" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
                     }`}>
                         {activeTab === "ScrapDealer" ? profiles.length : "Select"}
@@ -197,15 +197,15 @@ export function ProfileManagementPage() {
 
                 <button
                     onClick={() => handleTabChange("Supplier")}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer shrink-0 ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer shrink-0 ${
                         activeTab === "Supplier"
-                            ? "bg-emerald-600 text-white shadow-sm"
+                            ? "bg-emerald-600 text-white shadow-xs"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     }`}
                 >
-                    <Building2 className="size-4" />
+                    <Building2 className="size-3.5" />
                     <span>Suppliers (Purchaser Name)</span>
-                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
                         activeTab === "Supplier" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
                     }`}>
                         {activeTab === "Supplier" ? profiles.length : "Select"}
@@ -253,14 +253,14 @@ export function ProfileManagementPage() {
             </div> */}
 
             {/* Profile Table Card */}
-            <Card className={`${bentoCardClass} flex flex-col mt-1`}>
-                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/50 bg-muted/20 px-4 py-4 sm:px-6 sm:py-5">
+            <Card className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs shadow-2xs overflow-hidden flex flex-col mt-0.5">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border/50 bg-muted/20 px-3.5 py-2.5 sm:px-4 sm:py-3">
                     <div className="w-full sm:w-auto">
-                        <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
-                            <Building2 className="size-5 text-primary shrink-0" />
+                        <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-bold">
+                            <Building2 className="size-4 text-primary shrink-0" />
                             <span>{activeTab === "Subcontractor" ? "Subcontractors & Vendor Companies" : activeTab === "ScrapDealer" ? "Scrap Dealers Directory" : "Suppliers & Procurement Sources"}</span>
                         </CardTitle>
-                        <CardDescription className="mt-1 text-xs">
+                        <CardDescription className="mt-0.5 text-[11px]">
                             {activeTab === "Subcontractor"
                                 ? "Used in Delivery Challans, Return Challans, tool issues, and project assignments."
                                 : activeTab === "ScrapDealer"
@@ -269,12 +269,12 @@ export function ProfileManagementPage() {
                         </CardDescription>
                     </div>
 
-                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                        <div className="relative flex-1 sm:w-80">
-                            <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:w-72">
+                            <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
                             <Input
                                 placeholder="Search by name, code, GST, phone..."
-                                className="pl-9 h-9 rounded-xl border-border/50 bg-background/50 text-xs focus-visible:ring-primary/30 w-full"
+                                className="pl-8 h-7.5 rounded-lg border-border/50 bg-background/50 text-xs focus-visible:ring-primary/30 w-full"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -284,48 +284,48 @@ export function ProfileManagementPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => fetchProfiles()}
-                            className="h-9 w-9 p-0 rounded-xl border border-border/50 hover:bg-muted shrink-0"
+                            className="h-7.5 w-7.5 p-0 rounded-lg border border-border/50 hover:bg-muted shrink-0"
                             title="Refresh profiles"
                         >
-                            <RefreshCcw className="size-4" />
+                            <RefreshCcw className="size-3.5" />
                         </Button>
                     </div>
                 </CardHeader>
 
                 <CardContent className="p-0">
                     {error && (
-                        <div className="mx-6 my-4 rounded-xl bg-destructive/10 border border-destructive/20 p-4 text-sm font-medium text-destructive flex items-center gap-2">
+                        <div className="mx-4 my-3 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-xs font-medium text-destructive flex items-center gap-2">
                             <ShieldAlert className="size-4" />
                             {error}
                         </div>
                     )}
 
                     {loading ? (
-                        <div className="flex items-center justify-center py-16">
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="size-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent shadow-sm" />
-                                <p className="font-medium text-muted-foreground">Loading {activeTab} profiles...</p>
+                        <div className="flex items-center justify-center py-12">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="size-7 animate-spin rounded-full border-[2.5px] border-primary border-t-transparent shadow-xs" />
+                                <p className="text-xs font-medium text-muted-foreground">Loading {activeTab} profiles...</p>
                             </div>
                         </div>
                     ) : filteredProfiles.length === 0 ? (
-                        <div className="py-16 text-center text-muted-foreground">
+                        <div className="py-12 text-center text-muted-foreground">
                             <div className="flex flex-col items-center justify-center opacity-50">
-                                <Building2 className="size-12 mb-4 text-primary" />
-                                <p className="font-medium">No {activeTab} profiles found.</p>
+                                <Building2 className="size-10 mb-3 text-primary" />
+                                <p className="text-xs font-medium">No {activeTab} profiles found.</p>
                             </div>
                         </div>
                     ) : (
                         <div className="overflow-x-auto w-full">
-                            <table className="w-full text-sm min-w-[850px]">
+                            <table className="w-full text-xs min-w-[850px]">
                                 <thead>
                                     <tr className="border-b border-border/50 bg-muted/10">
-                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Name & Code</th>
-                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Contact Person</th>
-                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Phone & Email</th>
-                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Tax & Licenses</th>
-                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Documents</th>
-                                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Created By</th>
-                                        <th className="text-right px-6 py-4 font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">Actions</th>
+                                        <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Name & Code</th>
+                                        <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Contact Person</th>
+                                        <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Phone & Email</th>
+                                        <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Tax & Licenses</th>
+                                        <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Documents</th>
+                                        <th className="text-left px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Created By</th>
+                                        <th className="text-right px-3.5 py-2 font-semibold text-muted-foreground uppercase text-[10px] sm:text-[11px] tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -337,88 +337,83 @@ export function ProfileManagementPage() {
                                                 key={p._id}
                                                 className="border-b border-border/40 last:border-0 hover:bg-muted/40 transition-colors group"
                                             >
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="p-2.5 rounded-xl bg-primary/10 text-primary font-bold shrink-0">
-                                                            <Building2 className="size-5" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-foreground group-hover:text-primary transition-colors">{p.name}</p>
-                                                            <span className="inline-block mt-1 font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border/40">
-                                                                {p.code}
-                                                            </span>
-                                                        </div>
+                                                <td className="px-3.5 py-2">
+                                                    <div>
+                                                        <p className="font-bold text-foreground group-hover:text-primary transition-colors text-xs">{p.name}</p>
+                                                        <span className="inline-block mt-0.5 font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-muted text-muted-foreground border border-border/40">
+                                                            {p.code}
+                                                        </span>
                                                     </div>
                                                 </td>
 
-                                                <td className="px-6 py-4">
+                                                <td className="px-3.5 py-2">
                                                     <div>
-                                                        <p className="font-medium text-foreground flex items-center gap-1.5">
-                                                            <User className="size-3.5 text-muted-foreground" />
+                                                        <p className="font-medium text-foreground flex items-center gap-1.5 text-xs">
+                                                            <User className="size-3 text-muted-foreground" />
                                                             {p.contactPerson || "N/A"}
                                                         </p>
                                                         {p.contactDesignation && (
-                                                            <p className="text-xs text-muted-foreground mt-0.5 pl-5">{p.contactDesignation}</p>
+                                                            <p className="text-[10px] text-muted-foreground mt-0.5 pl-4">{p.contactDesignation}</p>
                                                         )}
                                                     </div>
                                                 </td>
 
-                                                <td className="px-6 py-4">
+                                                <td className="px-3.5 py-2">
                                                     <div>
                                                         <p className="font-mono text-xs font-medium text-foreground flex items-center gap-1.5">
-                                                            <Phone className="size-3.5 text-primary" />
+                                                            <Phone className="size-3 text-primary" />
                                                             {p.contactPhone || "N/A"}
                                                         </p>
                                                         {p.contactEmail && (
-                                                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate max-w-xs">
-                                                                <Mail className="size-3.5 text-muted-foreground" />
+                                                            <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate max-w-xs">
+                                                                <Mail className="size-3 text-muted-foreground" />
                                                                 {p.contactEmail}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </td>
 
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col gap-1 text-xs">
+                                                <td className="px-3.5 py-2">
+                                                    <div className="flex flex-col gap-0.5 text-xs">
                                                         {p.gstNumber && (
-                                                            <span className="font-mono font-semibold text-foreground flex items-center gap-1">
-                                                                <Hash className="size-3 text-primary" /> GST: {p.gstNumber}
+                                                            <span className="font-mono font-semibold text-foreground flex items-center gap-1 text-[11px]">
+                                                                <Hash className="size-2.5 text-primary" /> GST: {p.gstNumber}
                                                             </span>
                                                         )}
                                                         {p.panNumber && (
-                                                            <span className="font-mono text-muted-foreground">PAN: {p.panNumber}</span>
+                                                            <span className="font-mono text-muted-foreground text-[10px]">PAN: {p.panNumber}</span>
                                                         )}
                                                         {p.licenseNumber && (
-                                                            <span className="font-mono text-muted-foreground">Lic: {p.licenseNumber}</span>
+                                                            <span className="font-mono text-muted-foreground text-[10px]">Lic: {p.licenseNumber}</span>
                                                         )}
                                                         {!p.gstNumber && !p.panNumber && !p.licenseNumber && (
-                                                            <span className="text-muted-foreground italic">No IDs listed</span>
+                                                            <span className="text-muted-foreground italic text-[10px]">No IDs listed</span>
                                                         )}
                                                     </div>
                                                 </td>
 
-                                                <td className="px-6 py-4">
+                                                <td className="px-3.5 py-2">
                                                     <button
                                                         onClick={() => {
                                                             setEditingProfile(p)
                                                             setShowModal(true)
                                                         }}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors cursor-pointer"
+                                                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary/20 transition-colors cursor-pointer"
                                                     >
-                                                        <FileText className="size-3.5" />
+                                                        <FileText className="size-3" />
                                                         <span>{docCount} {docCount === 1 ? 'Doc' : 'Docs'}</span>
                                                     </button>
                                                 </td>
 
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col gap-1">
+                                                <td className="px-3.5 py-2">
+                                                    <div className="flex flex-col gap-0.5">
                                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                                            <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                                                                <UserCheck className="size-3.5 text-primary shrink-0" />
+                                                            <span className="font-bold text-xs text-foreground flex items-center gap-1">
+                                                                <UserCheck className="size-3 text-primary shrink-0" />
                                                                 {p.createdBy?.name || "Admin"}
                                                             </span>
                                                             <span
-                                                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-none border ${
+                                                                className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md leading-none border ${
                                                                     (p.createdBy?.role || "Admin").toLowerCase() === "admin"
                                                                         ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
                                                                         : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
@@ -427,7 +422,7 @@ export function ProfileManagementPage() {
                                                                 {p.createdBy?.role || "Admin"}
                                                             </span>
                                                         </div>
-                                                        <div className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                                                        <div className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
                                                             <span>Created:</span>
                                                             <span className="font-mono text-foreground/80 font-semibold">
                                                                 {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "-"}
@@ -436,8 +431,8 @@ export function ProfileManagementPage() {
                                                     </div>
                                                 </td>
 
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex items-center justify-end gap-1.5">
+                                                <td className="px-3.5 py-2 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
@@ -445,9 +440,9 @@ export function ProfileManagementPage() {
                                                                 setEditingProfile(p)
                                                                 setShowModal(true)
                                                             }}
-                                                            className="h-8 px-2.5 text-xs font-semibold hover:bg-primary/10 hover:text-primary gap-1.5 cursor-pointer"
+                                                            className="h-7 px-2 text-[11px] font-semibold hover:bg-primary/10 hover:text-primary gap-1 cursor-pointer"
                                                         >
-                                                            <EditIcon className="size-3.5" />
+                                                            <EditIcon className="size-3" />
                                                             <span>Edit</span>
                                                         </Button>
                                                         {(currentUser?.role === "Admin" || Boolean(
@@ -464,10 +459,10 @@ export function ProfileManagementPage() {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 onClick={() => setDeletingProfile({ id: p._id, name: p.name })}
-                                                                className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                                                className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                                                                 title="Delete Profile"
                                                             >
-                                                                <TrashIcon className="size-4" />
+                                                                <TrashIcon className="size-3.5" />
                                                             </Button>
                                                         )}
                                                     </div>
