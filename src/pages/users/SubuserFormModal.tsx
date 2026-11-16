@@ -67,7 +67,7 @@ const ALL_POSSIBLE_PAGES = [
     { title: "Stores", url: "/stores", desc: "Store inventory" },
     { title: "Tools", url: "/tools", desc: "Tool tracking" },
     { title: "Challan History", url: "/challans/history", desc: "Delivery challans" },
-    { title: "Scrap", url: "/tools/scrap", desc: "Scrap handling" },
+    { title: "Scrap", url: "/scrap", desc: "Scrap handling" },
     { title: "Profile Management", url: "/profiles", desc: "Vendors & suppliers" },
 ]
 
@@ -129,7 +129,7 @@ export function SubuserFormModal({
             return ALL_POSSIBLE_PAGES
         }
         const userPages = currentUser?.allowedPages || []
-        return ALL_POSSIBLE_PAGES.filter(p => userPages.includes(p.url))
+        return ALL_POSSIBLE_PAGES.filter(p => userPages.includes(p.url) || (p.url === "/scrap" && userPages.includes("/tools/scrap")))
     }, [currentUser])
 
     const parentHasInspection = Boolean(currentUser?.role === "Admin" || currentUser?.hasInspectionAccess)
@@ -172,7 +172,8 @@ export function SubuserFormModal({
             setEmail(editingSubuser.email || "")
             setUserId(editingSubuser.user_id || "")
             setPhone(editingSubuser.phonenumber || "")
-            setAllowedPages(editingSubuser.allowedPages || ["/dashboard"])
+            const initialPages = (editingSubuser.allowedPages || ["/dashboard"]).map((p: string) => p === "/tools/scrap" ? "/scrap" : p);
+            setAllowedPages(initialPages)
             setHasInspectionAccess(Boolean(editingSubuser.hasInspectionAccess))
             setDocuments(editingSubuser.documents || [])
 

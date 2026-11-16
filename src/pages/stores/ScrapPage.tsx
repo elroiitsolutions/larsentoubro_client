@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -452,7 +453,42 @@ export function ScrapPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
-                                    {loading || scrappedTools.length === 0 ? (
+                                    {loading ? (
+                                        Array.from({ length: Math.min(limit || 10, 8) }).map((_, idx) => (
+                                            <tr key={`scrap-skeleton-${idx}`} className="whitespace-nowrap">
+                                                <td className="px-4 py-3.5 text-center">
+                                                    <Skeleton className="size-3.5 mx-auto rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4.5 w-24 rounded-md" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-44 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-28 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-28 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-20 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-24 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-32 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-5 w-28 rounded-full" />
+                                                </td>
+                                                <td className="px-3.5 py-3 text-right">
+                                                    <Skeleton className="h-7 w-20 rounded-lg ml-auto" />
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : scrappedTools.length === 0 ? (
                                         <tr>
                                             <td colSpan={50} className="px-6 py-24 text-center select-none opacity-0">
                                                 &nbsp;
@@ -565,15 +601,6 @@ export function ScrapPage() {
                                 </tbody>
                             </table>
                         </div>
-
-                        {loading && (
-                            <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
-                                <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                    <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
-                                    <p className="text-sm font-medium animate-pulse">Loading scrapped tools...</p>
-                                </div>
-                            </div>
-                        )}
 
                         {!loading && scrappedTools.length === 0 && (
                             <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">

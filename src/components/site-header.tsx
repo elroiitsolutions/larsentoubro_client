@@ -68,9 +68,10 @@ const getPageDetails = (pathname: string, state?: any, lastBreadcrumbLabel?: str
     }
 
     if (/^\/stores\/[^\/]+\/tools$/.test(pathname) || pathname === '/tools') {
+        const isAll = pathname === '/tools' || pathname === '/stores/all/tools';
         return {
-            title: "Store Tools Inventory",
-            description: "Complete equipment registry, calibration tracking, issues, returns, and tool transfers."
+            title: isAll ? "All Tools Inventory" : "Store Tools Inventory",
+            description: isAll ? "Enterprise-wide tool directory, tracking, issues, returns, and tool transfers across all sites." : "Complete equipment registry, calibration tracking, issues, returns, and tool transfers."
         };
     }
 
@@ -260,7 +261,8 @@ const generateBreadcrumbs = (pathname: string, state?: any): Array<{ label: stri
     const projectId = state?.projectId || state?.fromProjectId;
     const storesHref = projectId ? `/projects/${projectId}/stores` : '/projects';
     const fromStoreId = state?.fromStoreId;
-    const toolsHref = fromStoreId ? `/stores/${fromStoreId}/tools` : storesHref;
+    const isFromAll = fromStoreId === 'all' || !fromStoreId || (state?.breadcrumbs && state.breadcrumbs[0]?.href === '/tools');
+    const toolsHref = (fromStoreId && fromStoreId !== 'all') ? `/stores/${fromStoreId}/tools` : '/tools';
 
     // 1. Explicit Route Maps for perfect structural matching
     const routes = [
@@ -287,44 +289,75 @@ const generateBreadcrumbs = (pathname: string, state?: any): Array<{ label: stri
             ]
         },
         {
+            test: /^\/stores\/all\/tools$/,
+            build: () => [
+                { label: 'Tools', href: '/tools' }
+            ]
+        },
+        {
             test: /^\/stores\/([^\/]+)\/tools$/,
-            build: (m: string[]) => [
-                { label: 'Projects', href: '/projects' },
-                { label: 'Stores', href: storesHref },
-                { label: 'Tools', href: `/stores/${m[1]}/tools` }
+            build: (m: string[]) => {
+                if (m[1] === 'all') {
+                    return [{ label: 'Tools', href: '/tools' }];
+                }
+                return [
+                    { label: 'Projects', href: '/projects' },
+                    { label: 'Stores', href: storesHref },
+                    { label: 'Tools', href: `/stores/${m[1]}/tools` }
+                ];
+            }
+        },
+        {
+            test: /^\/tools$/,
+            build: () => [
+                { label: 'Tools', href: '/tools' }
             ]
         },
         {
-            test: /^\/tools\/trash$/,
+            test: /^\/(?:tools\/)?trash$/,
             build: () => [
-                { label: 'Tools', href: '/stores' },
-                { label: 'Trash', href: '/tools/trash' }
+                { label: 'Trash', href: '/trash' }
             ]
         },
         {
-            test: /^\/tools\/scrap$/,
+            test: /^\/(?:tools\/)?scrap$/,
             build: () => [
-                { label: 'Tools', href: '/stores' },
-                { label: 'Scrap', href: '/tools/scrap' }
+                { label: 'Scrap', href: '/scrap' }
             ]
         },
         {
             test: /^\/vt\/([^\/]+)$/,
-            build: (m: string[]) => [
-                { label: 'Projects', href: '/projects' },
-                { label: 'Stores', href: storesHref },
-                { label: 'Tools', href: toolsHref },
-                { label: `Quick View (${m[1]})`, href: `/vt/${m[1]}` }
-            ]
+            build: (m: string[]) => {
+                if (isFromAll || toolsHref === '/tools') {
+                    return [
+                        { label: 'Tools', href: '/tools' },
+                        { label: `Quick View (${m[1]})`, href: `/vt/${m[1]}` }
+                    ];
+                }
+                return [
+                    { label: 'Projects', href: '/projects' },
+                    { label: 'Stores', href: storesHref },
+                    { label: 'Tools', href: toolsHref },
+                    { label: `Quick View (${m[1]})`, href: `/vt/${m[1]}` }
+                ];
+            }
         },
         {
             test: /^\/tooldetails\/([^\/]+)$/,
-            build: (m: string[]) => [
-                { label: 'Projects', href: '/projects' },
-                { label: 'Stores', href: storesHref },
-                { label: 'Tools', href: toolsHref },
-                { label: `Tool Details (${m[1]})`, href: `/tooldetails/${m[1]}` }
-            ]
+            build: (m: string[]) => {
+                if (isFromAll || toolsHref === '/tools') {
+                    return [
+                        { label: 'Tools', href: '/tools' },
+                        { label: `Tool Details (${m[1]})`, href: `/tooldetails/${m[1]}` }
+                    ];
+                }
+                return [
+                    { label: 'Projects', href: '/projects' },
+                    { label: 'Stores', href: storesHref },
+                    { label: 'Tools', href: toolsHref },
+                    { label: `Tool Details (${m[1]})`, href: `/tooldetails/${m[1]}` }
+                ];
+            }
         },
         {
             test: /^\/users\/([^\/]+)\/access$/,

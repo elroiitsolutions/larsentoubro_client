@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -323,14 +324,37 @@ export function TrashPage() {
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
                                     {loading ? (
-                                        <tr>
-                                            <td colSpan={9} className="px-3.5 py-16 text-center">
-                                                <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                                    <Loader2 className="size-6 animate-spin text-primary/50 mb-3" />
-                                                    <p className="text-xs font-medium animate-pulse">Loading deleted tools...</p>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                        Array.from({ length: Math.min(limit || 10, 8) }).map((_, idx) => (
+                                            <tr key={`trash-skeleton-${idx}`} className="whitespace-nowrap">
+                                                <td className="px-4 py-3.5 text-center">
+                                                    <Skeleton className="size-3.5 mx-auto rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4.5 w-24 rounded-md" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-44 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-20 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-28 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-28 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-24 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-20 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3 text-right">
+                                                    <Skeleton className="h-7 w-20 rounded-lg ml-auto" />
+                                                </td>
+                                            </tr>
+                                        ))
                                     ) : deletedTools.length === 0 ? (
                                         <tr>
                                             <td colSpan={9} className="px-3.5 py-16 text-center">

@@ -54,7 +54,7 @@ export const MoveToScrapModal: React.FC<MoveToScrapModalProps> = ({
                 toast.success(`${count} tool(s) moved to Scrap successfully!`, {
                     action: {
                         label: "View Scrap",
-                        onClick: () => navigate("/tools/scrap")
+                        onClick: () => navigate("/scrap")
                     }
                 });
                 setReason("");

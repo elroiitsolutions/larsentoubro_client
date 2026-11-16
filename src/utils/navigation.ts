@@ -19,7 +19,7 @@ export function getDefaultAllowedPath(user: any): string {
         return storeId ? `/stores/${storeId}/tools` : "/stores";
     }
     if (allowed.includes("/challans") || allowed.includes("/challans/history")) return "/challans/history";
-    if (allowed.includes("/scrap") || allowed.includes("/tools/scrap")) return "/tools/scrap";
+    if (allowed.includes("/scrap") || allowed.includes("/tools/scrap")) return "/scrap";
     if (allowed.includes("/reports")) return "/reports";
     if (allowed.includes("/profiles")) return "/profiles";
     if (allowed.includes("/settings")) return "/settings";

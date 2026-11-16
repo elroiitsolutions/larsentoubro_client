@@ -4,6 +4,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -35,9 +36,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { SearchIcon, Loader2, ArrowUpIcon, ArrowDownIcon, DownloadIcon, FileUp, SlidersHorizontal, RotateCcw, X, CheckSquare, Square, Truck, Edit3, Trash2, Printer, Archive, ArrowRightLeft, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Check, ClipboardCheck, Wrench } from "lucide-react"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
-import { useParams, useNavigate, useLocation } from "react-router-dom"
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom"
 import toolService from "@/services/tool.service"
 import storeService from "@/services/store.service"
+import projectService from "@/services/project.service"
 import { toast } from "sonner"
 import formService from "@/services/form.service"
 import { ToolFormModal } from "./ToolFormModal"
@@ -48,6 +50,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { MoveToScrapModal } from "./MoveToScrapModal"
 import { ToolInspectionModal } from "./ToolInspectionModal"
 import { DeleteProgressModal } from "./DeleteProgressModal"
+import { QuickToolViewModal } from "@/components/tools/QuickToolViewModal"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
 
@@ -162,7 +165,15 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const { storeId: paramStoreId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const storeId = overrideStoreId || paramStoreId || (location.state as any)?.fromStoreId;
+    const [searchParams] = useSearchParams();
+    const isAllToolsMode = (!paramStoreId && !overrideStoreId) || paramStoreId === 'all' || overrideStoreId === 'all' || location.pathname === '/tools';
+    const storeId = (overrideStoreId && overrideStoreId !== 'all')
+        ? overrideStoreId
+        : (paramStoreId && paramStoreId !== 'all')
+            ? paramStoreId
+            : ((location.state as any)?.fromStoreId && (location.state as any)?.fromStoreId !== 'all')
+                ? (location.state as any)?.fromStoreId
+                : (isAllToolsMode ? 'all' : undefined);
 
     const { user } = useAuth();
     const isAdmin = user?.role === "Admin";
@@ -184,6 +195,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
+    const [quickViewTool, setQuickViewTool] = useState<any | null>(null);
     const [isSelectingAll, setIsSelectingAll] = useState(false);
     const [isBulkActionsOpen, setIsBulkActionsOpen] = useState(false);
     const bulkActionsRef = useRef<HTMLDivElement>(null);
@@ -258,9 +270,44 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         return Array.from(selectedToolIds).map(id => selectedToolsMap[id] || tools.find(t => t._id === id)).filter(Boolean);
     }, [selectedToolIds, selectedToolsMap, tools]);
 
+    const effectiveSourceStoreId = useMemo(() => {
+        if (storeId && storeId !== 'all') return storeId;
+        const firstTool = selectedToolsList[0];
+        if (!firstTool) return "";
+        return firstTool.currentSite?._id || firstTool.currentSite || firstTool.store?._id || firstTool.store || "";
+    }, [storeId, selectedToolsList]);
+
     const totalSelected = selectedToolIds.size;
-    const printedCount = useMemo(() => selectedToolsList.filter(t => t.isPrinted).length, [selectedToolsList]);
-    const unprintedCount = useMemo(() => selectedToolsList.filter(t => !t.isPrinted).length, [selectedToolsList]);
+    const { printedCount, unprintedCount, hasRepairTool, hasMovingTool, hasMissingTool, hasNonDeletableTool } = useMemo(() => {
+        let printed = 0;
+        let unprinted = 0;
+        let repair = false;
+        let moving = false;
+        let missing = false;
+        let nonDeletable = false;
+
+        for (let i = 0; i < selectedToolsList.length; i++) {
+            const t = selectedToolsList[i];
+            if (t.isPrinted) {
+                printed++;
+            } else {
+                unprinted++;
+            }
+            if (t.status === "Repair") repair = true;
+            if (t.status === "Moving") moving = true;
+            if (t.status === "Missing") missing = true;
+            if (!isToolDeletable(t.status)) nonDeletable = true;
+        }
+
+        return {
+            printedCount: printed,
+            unprintedCount: unprinted,
+            hasRepairTool: repair,
+            hasMovingTool: moving,
+            hasMissingTool: missing,
+            hasNonDeletableTool: nonDeletable
+        };
+    }, [selectedToolsList]);
 
     // "Mark as Printed" is only clickable if ALL selected tools are NOT printed (0 are printed)
     const canMarkAsPrinted = totalSelected > 0 && printedCount === 0 && unprintedCount === totalSelected;
@@ -273,11 +320,6 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
     // Only Admin can delete tools, and strictly unprinted tools only
     const canDeleteSelected = isAdmin && totalSelected > 0 && printedCount === 0 && unprintedCount === totalSelected;
-
-    const hasRepairTool = useMemo(() => selectedToolsList.some(t => t.status === "Repair"), [selectedToolsList]);
-    const hasMovingTool = useMemo(() => selectedToolsList.some(t => t.status === "Moving"), [selectedToolsList]);
-    const hasMissingTool = useMemo(() => selectedToolsList.some(t => t.status === "Missing"), [selectedToolsList]);
-    const hasNonDeletableTool = useMemo(() => selectedToolsList.some(t => !isToolDeletable(t.status)), [selectedToolsList]);
 
     const handleMarkPrinted = async () => {
         if (isInspectionRestricted) {
@@ -330,9 +372,10 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     const confirmDelete = async () => {
         setDeleting(true);
         try {
+            const deleteStoreScope = storeId && storeId !== 'all' ? storeId : undefined;
             if (deleteDialog.isBulk) {
                 const targetIds = Array.from(selectedToolIds);
-                const res = await toolService.bulkDeleteTools(targetIds, storeId, true);
+                const res = await toolService.bulkDeleteTools(targetIds, deleteStoreScope, true);
                 if (res.success && res.data?.jobId) {
                     setDeleteDialog(prev => ({ ...prev, isOpen: false }));
                     setDeleteProgressModal({
@@ -347,7 +390,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     setDeleteDialog(prev => ({ ...prev, isOpen: false }));
                 }
             } else if (deleteDialog.toolId) {
-                const res = await toolService.deleteTool(deleteDialog.toolId, storeId, true);
+                const res = await toolService.deleteTool(deleteDialog.toolId, deleteStoreScope, true);
                 if (res.success && res.data?.jobId) {
                     setDeleteDialog(prev => ({ ...prev, isOpen: false }));
                     setDeleteProgressModal({
@@ -385,9 +428,79 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("All");
-    const [status, setStatus] = useState("All");
+    const [status, setStatus] = useState(() => searchParams.get("status") || "All");
     const [printStatus, setPrintStatus] = useState("All");
     const [expiryFilter, setExpiryFilter] = useState("All"); // "All" | "expired" | "expiring_soon" | "valid"
+
+    // Enterprise All Tools Mode Project & Store Filters
+    const [selectedProject, setSelectedProject] = useState<string>("All");
+    const [selectedStore, setSelectedStore] = useState<string>("All");
+    const [projectsList, setProjectsList] = useState<{ label: string; value: string }[]>([]);
+    const [allStoresList, setAllStoresList] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!isAllToolsMode) return;
+        Promise.all([
+            projectService.getProjects(),
+            storeService.getStores()
+        ]).then(([projRes, storeRes]) => {
+            if (projRes.success && projRes.data) {
+                setProjectsList(projRes.data.map((p: any) => ({
+                    label: p.name,
+                    value: p._id
+                })));
+            }
+            if (storeRes.success && storeRes.data) {
+                setAllStoresList(storeRes.data);
+            }
+        }).catch(err => console.error("Error loading projects/stores for filter:", err));
+    }, [isAllToolsMode]);
+
+    const filteredStoreOptions = useMemo(() => {
+        let stores = allStoresList;
+        if (selectedProject && selectedProject !== 'All') {
+            stores = stores.filter(s => {
+                const pId = typeof s.project === 'object' ? s.project?._id : (s.projectId || s.project);
+                return pId === selectedProject;
+            });
+        }
+        return stores.map(s => ({
+            label: s.name,
+            value: s._id
+        }));
+    }, [allStoresList, selectedProject]);
+
+    const handleProjectChange = (projId: string) => {
+        setSelectedProject(projId);
+        setPage(1);
+        if (projId !== 'All') {
+            const currentStoreObj = allStoresList.find(s => s._id === selectedStore);
+            const currentStoreProjId = currentStoreObj ? (typeof currentStoreObj.project === 'object' ? currentStoreObj.project?._id : (currentStoreObj.projectId || currentStoreObj.project)) : null;
+            if (currentStoreProjId !== projId) {
+                setSelectedStore('All');
+            }
+        }
+    };
+
+    const handleStoreChange = (storeIdVal: string) => {
+        setSelectedStore(storeIdVal);
+        setPage(1);
+        if (storeIdVal !== 'All' && selectedProject === 'All') {
+            const st = allStoresList.find(s => s._id === storeIdVal);
+            const pId = st ? (typeof st.project === 'object' ? st.project?._id : (st.projectId || st.project)) : null;
+            if (pId) {
+                setSelectedProject(pId);
+            }
+        }
+    };
+
+    useEffect(() => {
+        const urlStatus = searchParams.get("status");
+        if (urlStatus && urlStatus !== status) {
+            setStatus(urlStatus);
+            setPage(1);
+        }
+    }, [searchParams]);
 
     const requestedSearchTokens = useMemo(() => {
         if (!search || !search.trim()) return [];
@@ -511,10 +624,12 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
     const activeFilterCount =
         Object.values(advancedFilters).filter(val => val.trim() !== "").length +
-        (category !== "All" ? 1 : 0) +
+        (!isAllToolsMode && category !== "All" ? 1 : 0) +
         (status !== "All" ? 1 : 0) +
         (printStatus !== "All" ? 1 : 0) +
-        (expiryFilter !== "All" ? 1 : 0);
+        (expiryFilter !== "All" ? 1 : 0) +
+        (isAllToolsMode && selectedProject !== "All" ? 1 : 0) +
+        (isAllToolsMode && selectedStore !== "All" ? 1 : 0);
 
     const resetAllFilters = () => {
         const emptyFilters = {
@@ -539,6 +654,8 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         setStatus("All");
         setPrintStatus("All");
         setExpiryFilter("All");
+        setSelectedProject("All");
+        setSelectedStore("All");
         setAdvancedFilters(emptyFilters);
         setDraftCategory("All");
         setDraftStatus("All");
@@ -689,6 +806,15 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             if (expiryFilter && expiryFilter !== "All") {
                 queryParams.expiryStatus = expiryFilter;
             }
+            if (isAllToolsMode) {
+                if (selectedProject && selectedProject !== "All") {
+                    queryParams.projectId = selectedProject;
+                }
+                if (selectedStore && selectedStore !== "All") {
+                    queryParams.storeFilter = selectedStore;
+                    queryParams.selectedStoreId = selectedStore;
+                }
+            }
             const data = await toolService.getToolsByStore(storeId, queryParams);
             if (data?.success) {
                 setTools(data.data || []);
@@ -697,7 +823,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
                 // If we don't have breadcrumbs in state (e.g. on hard refresh),
                 // infer the projectId from the tools and reconstruct the breadcrumbs!
-                if (!hasSetBreadcrumbsRef.current && !(location.state as any)?.breadcrumbs && data.data && data.data.length > 0) {
+                if (!isAllToolsMode && storeId !== 'all' && !hasSetBreadcrumbsRef.current && !(location.state as any)?.breadcrumbs && data.data && data.data.length > 0) {
                     const project = data.data[0].project;
                     const projId = typeof project === 'object' ? project._id : project;
                     if (projId) {
@@ -723,7 +849,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         } finally {
             setLoading(false);
         }
-    }, [storeId, page, limit, search, category, status, printStatus, expiryFilter, sortBy, sortOrder, advancedFilters]);
+    }, [storeId, page, limit, search, category, status, printStatus, expiryFilter, sortBy, sortOrder, advancedFilters, isAllToolsMode, selectedProject, selectedStore]);
 
     // On initial mount/refresh, fetch immediately without 300ms penalty; debounce subsequent filter/search keystrokes
     useEffect(() => {
@@ -739,7 +865,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
     }, [fetchTools]);
 
     useEffect(() => {
-        if (!storeId) return;
+        if (!storeId || isAllToolsMode || storeId === 'all') return;
         storeService.getStoreById(storeId).then((res) => {
             if (res.success && res.data) {
                 const storeObj: any = res.data;
@@ -812,11 +938,22 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 category,
                 status,
                 ...advancedFilters,
-                page: "1",
-                limit: "10000"
+                allIds: "true"
             };
             if (printStatus && printStatus !== "All") {
                 queryParams.printStatus = printStatus;
+            }
+            if (expiryFilter && expiryFilter !== "All") {
+                queryParams.expiryStatus = expiryFilter;
+            }
+            if (isAllToolsMode) {
+                if (selectedProject && selectedProject !== "All") {
+                    queryParams.projectId = selectedProject;
+                }
+                if (selectedStore && selectedStore !== "All") {
+                    queryParams.storeFilter = selectedStore;
+                    queryParams.selectedStoreId = selectedStore;
+                }
             }
             const res = await toolService.getToolsByStore(storeId, queryParams);
             const filteredTools = res.data || [];
@@ -883,6 +1020,18 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             if (printStatus && printStatus !== "All") {
                 queryParams.printStatus = printStatus;
             }
+            if (expiryFilter && expiryFilter !== "All") {
+                queryParams.expiryStatus = expiryFilter;
+            }
+            if (isAllToolsMode) {
+                if (selectedProject && selectedProject !== "All") {
+                    queryParams.projectId = selectedProject;
+                }
+                if (selectedStore && selectedStore !== "All") {
+                    queryParams.storeFilter = selectedStore;
+                    queryParams.selectedStoreId = selectedStore;
+                }
+            }
             const blob = await toolService.exportTools(storeId, queryParams);
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -916,7 +1065,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
         user &&
         user.role !== "Admin" &&
         user.role !== "Vendor" &&
+        !isAllToolsMode &&
         storeId &&
+        storeId !== "all" &&
         user.stores &&
         user.stores.length > 0 &&
         !assignedStoreIds.includes(String(storeId))
@@ -950,9 +1101,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         <Wrench className="size-4" />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">Tools</h1>
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">{isAllToolsMode ? "All Tools" : "Tools"}</h1>
                         <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
-                            {total} Total Tools
+                            {loading && total === 0 ? (
+                                <Skeleton className="h-3 w-24 rounded inline-block" />
+                            ) : (
+                                `${total} ${isAllToolsMode ? "Total Equipment Units" : "Total Tools"}`
+                            )}
                         </p>
                     </div>
                 </div>
@@ -999,7 +1154,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {isAdmin && (
+                    {!isAllToolsMode && isAdmin && (
                         <Button
                             variant="outline"
                             size="sm"
@@ -1034,7 +1189,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                         </Button>
                     )}
 
-                    <ToolFormModal storeId={storeId!} onSuccess={fetchTools} />
+                    {!isAllToolsMode && storeId && storeId !== 'all' && (
+                        <ToolFormModal storeId={storeId} onSuccess={fetchTools} />
+                    )}
                 </div>
             </div>
 
@@ -1052,18 +1209,54 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             />
                         </div>
                         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
-                            <div className="w-full sm:w-40">
-                                <SearchableSelect
-                                    value={category}
-                                    onValueChange={(val) => { setCategory(val); setPage(1); }}
-                                    options={toolTypeOptions}
-                                    placeholder="All Types"
-                                    searchPlaceholder="Search tool type..."
-                                    allLabel="All Types"
-                                    allValue="All"
-                                    className="h-7.5 text-xs rounded-lg bg-background/50 border-border/60"
-                                />
-                            </div>
+                            {/* All Types filter - Hidden on All Tools, Shown only on Store Tools pages */}
+                            {!isAllToolsMode && (
+                                <div className="w-full sm:w-40">
+                                    <SearchableSelect
+                                        value={category}
+                                        onValueChange={(val) => { setCategory(val); setPage(1); }}
+                                        options={toolTypeOptions}
+                                        placeholder="All Types"
+                                        searchPlaceholder="Search tool type..."
+                                        allLabel="All Types"
+                                        allValue="All"
+                                        className="h-7.5 text-xs rounded-lg bg-background/50 border-border/60"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Project Filter - Only on All Tools page */}
+                            {isAllToolsMode && (
+                                <div className="w-full sm:w-36 md:w-40">
+                                    <SearchableSelect
+                                        value={selectedProject}
+                                        onValueChange={handleProjectChange}
+                                        options={projectsList}
+                                        placeholder="All Projects"
+                                        searchPlaceholder="Search project..."
+                                        allLabel="All Projects"
+                                        allValue="All"
+                                        className="h-7.5 text-xs rounded-lg bg-background/50 border-border/60"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Store Filter - Only on All Tools page */}
+                            {isAllToolsMode && (
+                                <div className="w-full sm:w-36 md:w-40">
+                                    <SearchableSelect
+                                        value={selectedStore}
+                                        onValueChange={handleStoreChange}
+                                        options={filteredStoreOptions}
+                                        placeholder="All Stores"
+                                        searchPlaceholder="Search store..."
+                                        allLabel="All Stores"
+                                        allValue="All"
+                                        className="h-7.5 text-xs rounded-lg bg-background/50 border-border/60"
+                                    />
+                                </div>
+                            )}
+
                             <div className="w-full sm:w-44">
                                 <SearchableSelect
                                     value={
@@ -1120,18 +1313,33 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
 
                             <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
                                 <SheetTrigger render={
-                                    <Button
-                                        variant="outline"
-                                        className="h-7.5 px-2.5 text-[11px] gap-1.5 rounded-lg border-border/80 hover:bg-muted/50 transition-all font-semibold whitespace-nowrap shrink-0 shadow-2xs cursor-pointer"
-                                    >
-                                        <SlidersHorizontal className="size-3 text-primary" />
-                                        <span>Advanced Filter</span>
-                                        {activeFilterCount > 0 && (
-                                            <span className="ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
-                                                {activeFilterCount}
-                                            </span>
-                                        )}
-                                    </Button>
+                                    isAllToolsMode ? (
+                                        <Button
+                                            variant="outline"
+                                            className="h-7.5 px-2 rounded-lg border-border/80 hover:bg-muted/50 transition-all font-semibold shrink-0 shadow-2xs cursor-pointer relative flex items-center justify-center gap-1"
+                                            title="Advanced Filter"
+                                        >
+                                            <SlidersHorizontal className="size-3 text-primary" />
+                                            {activeFilterCount > 0 && (
+                                                <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                                                    {activeFilterCount}
+                                                </span>
+                                            )}
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            className="h-7.5 px-2.5 text-[11px] gap-1.5 rounded-lg border-border/80 hover:bg-muted/50 transition-all font-semibold whitespace-nowrap shrink-0 shadow-2xs cursor-pointer"
+                                        >
+                                            <SlidersHorizontal className="size-3 text-primary" />
+                                            <span>Advanced Filter</span>
+                                            {activeFilterCount > 0 && (
+                                                <span className="ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                                                    {activeFilterCount}
+                                                </span>
+                                            )}
+                                        </Button>
+                                    )
                                 } />
                                 <SheetContent className="w-full !max-w-full sm:!max-w-[750px] lg:!max-w-[860px] overflow-y-auto flex flex-col justify-between p-6 sm:p-8 bg-background/95 backdrop-blur-xl">
                                     <div className="space-y-6">
@@ -1457,7 +1665,40 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
-                                    {loading || tools.length === 0 ? (
+                                    {loading ? (
+                                        Array.from({ length: Math.min(limit || 15, 12) }).map((_, idx) => (
+                                            <tr key={`skeleton-row-${idx}`} className="whitespace-nowrap">
+                                                <td className="w-10 px-2.5 py-2.5 text-center">
+                                                    <Skeleton className="size-3.5 mx-auto rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-2.5">
+                                                    <Skeleton className="h-5 w-28 rounded-md" />
+                                                </td>
+                                                <td className="px-3.5 py-2.5">
+                                                    <Skeleton className="h-5 w-20 rounded-full" />
+                                                </td>
+                                                <td className="px-3.5 py-2.5">
+                                                    <Skeleton className="h-5 w-20 rounded-full" />
+                                                </td>
+                                                {TOOL_COLUMNS.map((col) => {
+                                                    const widthClass =
+                                                        col.key === 'description' ? 'w-44' :
+                                                        col.key === 'purchaserName' ? 'w-32' :
+                                                        col.key === 'validation' ? 'w-24' :
+                                                        col.key === 'dateOfSupply' ? 'w-24' :
+                                                        col.key === 'supplierCode' ? 'w-20' :
+                                                        col.key === 'makeYear' ? 'w-14' :
+                                                        col.key === 'capacity' ? 'w-12' :
+                                                        col.key === 'safeWorkingLoad' ? 'w-16' : 'w-24';
+                                                    return (
+                                                        <td key={col.key} className="px-3.5 py-2.5">
+                                                            <Skeleton className={`h-4 ${widthClass} rounded`} />
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))
+                                    ) : tools.length === 0 ? (
                                         <tr>
                                             <td colSpan={100} className="px-3.5 py-16 text-center select-none opacity-0">
                                                 &nbsp;
@@ -1469,20 +1710,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                             className={`group hover:bg-primary/[0.03] transition-colors duration-200 cursor-pointer whitespace-nowrap ${selectedToolIds.has(t._id) ? "bg-primary/[0.05]" : ""
                                                 }`}
                                             onClick={() => {
-                                                const toolId = t.toolId || t._id;
-                                                const currentProjId = (location.state as any)?.projectId || (typeof t.project === 'object' ? t.project?._id : t.project);
-                                                const targetPath = `/vt/${encodeURIComponent(toolId)}`;
-
-                                                const existingBreadcrumbs = (location.state as any)?.breadcrumbs || [
-                                                    { label: 'Projects', href: '/projects' },
-                                                    { label: 'Stores', href: (location.state as any)?.projectId ? `/projects/${(location.state as any).projectId}/stores` : '/projects' },
-                                                    { label: 'Tools', href: `/stores/${storeId}/tools` }
-                                                ];
-                                                const newBreadcrumbs = [
-                                                    ...existingBreadcrumbs,
-                                                    { label: `Quick View (${toolId})`, href: targetPath }
-                                                ];
-                                                navigate(targetPath, { state: { initialTool: t, backgroundLocation: location, fromStoreId: storeId, projectId: currentProjId, breadcrumbs: newBreadcrumbs } });
+                                                setQuickViewTool(t);
                                             }}
                                         >
                                             <td className="px-2.5 py-2 text-center" onClick={(e) => handleToggleTool(t, e)}>
@@ -1564,15 +1792,6 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                             </table>
                         </div>
 
-                        {loading && (
-                            <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
-                                <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                    <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
-                                    <p className="text-sm font-medium animate-pulse">Loading inventory...</p>
-                                </div>
-                            </div>
-                        )}
-
                         {!loading && tools.length === 0 && (
                             <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
                                 <div className="pointer-events-auto flex flex-col items-center justify-center text-muted-foreground max-w-sm mx-auto p-4 text-center">
@@ -1594,7 +1813,11 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     {/* Compact Pagination Bar */}
                     <div className="flex flex-col sm:flex-row items-center justify-between px-3.5 py-1.5 border-t border-border/50 bg-muted/15 gap-2 shrink-0">
                         <div className="text-[11px] font-medium text-muted-foreground w-full sm:w-auto text-center sm:text-left">
-                            Showing <span className="font-semibold text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> of <span className="font-semibold text-foreground">{total}</span> items
+                            {loading && total === 0 ? (
+                                <Skeleton className="h-3.5 w-40 rounded inline-block" />
+                            ) : (
+                                <>Showing <span className="font-semibold text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> of <span className="font-semibold text-foreground">{total}</span> items</>
+                            )}
                         </div>
                         <div className="flex items-center justify-center gap-1 flex-wrap">
                             {/* First Page */}
@@ -2016,6 +2239,13 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                                         }`}
                                                                         onClick={() => {
                                                                             if (!areAllSelectedPrinted || hasRepairTool) return;
+                                                                            if (isAllToolsMode || storeId === 'all') {
+                                                                                const storeSet = new Set(selectedToolsList.map(t => String(t.currentSite?._id || t.currentSite || t.store?._id || t.store || '')));
+                                                                                if (storeSet.size > 1) {
+                                                                                    toast.error("All selected tools must belong to the same source store for transfer. Please select tools from a single store.");
+                                                                                    return;
+                                                                                }
+                                                                            }
                                                                             setIsTransferModalOpen(true);
                                                                             setIsBulkActionsOpen(false);
                                                                         }}
@@ -2171,7 +2401,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     setIsVendorModalOpen(val);
                 }}
                 selectedTools={Object.values(selectedToolsMap)}
-                storeId={storeId}
+                storeId={effectiveSourceStoreId}
             />
 
             <MoveToScrapModal
@@ -2190,7 +2420,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
             <BulkEditToolsModal
                 open={isAdmin && isBulkEditModalOpen}
                 onOpenChange={setIsBulkEditModalOpen}
-                storeId={storeId!}
+                storeId={storeId && storeId !== 'all' ? storeId : ''}
                 selectedToolIds={Array.from(selectedToolIds)}
                 totalCount={selectedToolIds.size}
                 onSuccess={() => {
@@ -2205,7 +2435,7 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                     if (isInspectionRestricted) return;
                     setIsTransferModalOpen(val);
                 }}
-                sourceStoreId={storeId!}
+                sourceStoreId={effectiveSourceStoreId}
                 selectedToolIds={Array.from(selectedToolIds)}
                 selectedTools={tools.filter(t => selectedToolIds.has(t._id))}
                 onSuccess={() => {
@@ -2265,6 +2495,12 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                 totalCount={deleteProgressModal.totalCount}
                 onComplete={handleDeleteJobComplete}
                 onClose={() => setDeleteProgressModal({ open: false, jobId: null, totalCount: 0 })}
+            />
+
+            <QuickToolViewModal
+                tool={quickViewTool}
+                open={Boolean(quickViewTool)}
+                onClose={() => setQuickViewTool(null)}
             />
         </div>
     )

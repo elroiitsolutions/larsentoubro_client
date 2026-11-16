@@ -128,9 +128,11 @@ function AppRoutes() {
                         <Route path="/projects" element={<ProjectsPage />} />
                         <Route path="/projects/:projectId/stores" element={<StoresPage />} />
                         <Route path="/stores" element={<StoresPage />} />
+                        <Route path="/stores/all/tools" element={<Navigate to="/tools" replace />} />
                         <Route path="/stores/:storeId/tools" element={<StoreToolsPage />} />
                         <Route path="/stores/:storeId/tools/import" element={<ImportToolsPage />} />
-                        <Route path="/tools/scrap" element={<ScrapPage />} />
+                        <Route path="/tools" element={<StoreToolsPage />} />
+                        <Route path="/tools/scrap" element={<Navigate to="/scrap" replace />} />
                         <Route path="/scrap" element={<ScrapPage />} />
                         <Route path="/vt/:toolId" element={<QuickToolViewPage />} />
                         <Route path="/tooldetails/:toolId" element={<ToolDetailsRedirect />} />
@@ -161,7 +163,7 @@ function AppRoutes() {
 
                         {/* Admin-only Protected Routes */}
                         <Route element={<AdminRoute />}>
-                            <Route path="/tools/trash" element={<TrashPage />} />
+                            <Route path="/tools/trash" element={<Navigate to="/trash" replace />} />
                             <Route path="/trash" element={<TrashPage />} />
                             <Route path="/reports/logins" element={<ReportsPage defaultTab="logins" />} />
                             <Route path="/settings" element={<SettingsPage />} />

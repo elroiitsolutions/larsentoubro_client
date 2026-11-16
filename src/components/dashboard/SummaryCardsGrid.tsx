@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Wrench,
     CheckCircle2,
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
+    const navigate = useNavigate();
     const total = data.totalTools || 1;
     const available = data.available || 0;
     const moving = data.inTransit ?? data.moving ?? 0;
@@ -35,6 +37,7 @@ export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
             title: "Total Tools",
             count: data.totalTools,
             subtext: "100% Registered",
+            link: "/tools",
             icon: Wrench,
             bgGradient: "from-blue-50/70 via-blue-50/30 to-white dark:from-blue-950/30 dark:via-blue-900/15 dark:to-card",
             borderColor: "border-blue-200/90 hover:border-blue-300 dark:border-blue-800/60 dark:hover:border-blue-700",
@@ -48,6 +51,7 @@ export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
             title: "Available",
             count: data.available,
             subtext: `${availPct.toFixed(1)}% of fleet`,
+            link: "/tools?status=Available",
             icon: CheckCircle2,
             bgGradient: "from-emerald-50/70 via-emerald-50/30 to-white dark:from-emerald-950/30 dark:via-emerald-900/15 dark:to-card",
             borderColor: "border-emerald-200/90 hover:border-emerald-300 dark:border-emerald-800/60 dark:hover:border-emerald-700",
@@ -61,6 +65,7 @@ export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
             title: "In Transit / Moving",
             count: moving,
             subtext: "Active Gate Pass",
+            link: "/tools?status=Moving",
             icon: Truck,
             bgGradient: "from-cyan-50/70 via-cyan-50/30 to-white dark:from-cyan-950/30 dark:via-cyan-900/15 dark:to-card",
             borderColor: "border-cyan-200/90 hover:border-cyan-300 dark:border-cyan-800/60 dark:hover:border-cyan-700",
@@ -74,6 +79,7 @@ export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
             title: "Under Repair",
             count: repair,
             subtext: "Service Required",
+            link: "/tools?status=Repair",
             icon: Hammer,
             bgGradient: "from-amber-50/90 via-amber-100/40 to-amber-200/40 dark:from-amber-950/30 dark:via-amber-900/15 dark:to-card",
             borderColor: "border-amber-300/90 hover:border-amber-400 dark:border-amber-700/60 dark:hover:border-amber-600",
@@ -87,6 +93,7 @@ export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
             title: "Reported Missing",
             count: missing,
             subtext: "Urgent Action",
+            link: "/tools?status=Missing",
             icon: HelpCircle,
             bgGradient: "from-rose-50/80 via-rose-100/30 to-pink-50/50 dark:from-rose-950/30 dark:via-rose-900/15 dark:to-card",
             borderColor: "border-rose-200/90 hover:border-rose-300 dark:border-rose-800/60 dark:hover:border-rose-700",
@@ -100,6 +107,7 @@ export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
             title: "Scrapped / Disposed",
             count: scrap,
             subtext: "Disposal Manifest",
+            link: "/scrap",
             icon: Archive,
             bgGradient: "from-purple-50/80 via-purple-100/30 to-violet-50/50 dark:from-purple-950/30 dark:via-purple-900/15 dark:to-card",
             borderColor: "border-purple-200/90 hover:border-purple-300 dark:border-purple-800/60 dark:hover:border-purple-700",
@@ -120,7 +128,16 @@ export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
                     return (
                         <div
                             key={card.key}
-                            className={`group relative overflow-hidden cursor-default transition-all duration-200 hover:-translate-y-0.5 p-2.5 sm:p-3 flex flex-col justify-between rounded-2xl border ${card.borderColor} bg-gradient-to-br ${card.bgGradient} shadow-xs hover:shadow-md select-none`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => navigate(card.link)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    navigate(card.link);
+                                }
+                            }}
+                            className={`group relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all duration-200 hover:-translate-y-0.5 p-2.5 sm:p-3 flex flex-col justify-between rounded-2xl border ${card.borderColor} bg-gradient-to-br ${card.bgGradient} shadow-xs hover:shadow-md select-none`}
                         >
                             {/* Decorative soft ambient glow */}
                             <div className={`absolute -right-6 -top-6 size-20 rounded-full ${card.glowColor} blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500`} />

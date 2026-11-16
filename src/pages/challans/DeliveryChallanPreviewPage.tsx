@@ -310,7 +310,7 @@ export function DeliveryChallanPreviewPage() {
 
                 setTimeout(() => {
                     if (isScrapDC) {
-                        navigate("/tools/scrap");
+                        navigate("/scrap");
                     } else if (storeId) {
                         navigate(`/stores/${storeId}/tools`);
                     } else {

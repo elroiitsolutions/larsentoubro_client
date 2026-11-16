@@ -137,7 +137,9 @@ export const toolService = {
      */
     getToolsByStore: async (storeId: string, queryParams?: Record<string, string>): Promise<ToolListResponse> => {
         const query = new URLSearchParams(queryParams || {});
-        const url = `/api/stores/${storeId}/tools?${query.toString()}`;
+        const url = (!storeId || storeId === 'all')
+            ? `/api/tools?${query.toString()}`
+            : `/api/stores/${storeId}/tools?${query.toString()}`;
         const response = await api.get<ToolListResponse>(url);
         return response.data;
     },
@@ -169,7 +171,7 @@ export const toolService = {
      * Soft deletes multiple tools by ID list (supports async mode for live progress bar).
      */
     bulkDeleteTools: async (toolIds: string[], storeId?: string, isAsync = false): Promise<{ success: boolean; message?: string; data?: any }> => {
-        const url = storeId ? `/api/stores/${storeId}/tools/bulk-delete` : `/api/tools/bulk-delete`;
+        const url = (storeId && storeId !== 'all') ? `/api/stores/${storeId}/tools/bulk-delete` : `/api/tools/bulk-delete`;
         const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, { toolIds, async: isAsync });
         return response.data;
     },
@@ -289,7 +291,9 @@ export const toolService = {
      */
     exportTools: async (storeId: string, queryParams?: Record<string, string>): Promise<Blob> => {
         const query = new URLSearchParams(queryParams || {});
-        const url = `/api/stores/${storeId}/tools/export?${query.toString()}`;
+        const url = (!storeId || storeId === 'all')
+            ? `/api/tools/export?${query.toString()}`
+            : `/api/stores/${storeId}/tools/export?${query.toString()}`;
         const response = await api.get(url, { responseType: "blob" });
         return response.data;
     },
@@ -396,11 +400,16 @@ export const toolService = {
     },
 
     getToolFilterOptions: async (storeId: string): Promise<Record<string, string[]>> => {
-        const url = `/api/stores/${storeId}/tools/filter-options`;
+        const url = (!storeId || storeId === 'all')
+            ? `/api/tools/filter-options`
+            : `/api/stores/${storeId}/tools/filter-options`;
         const response = await api.get<{ success: boolean; data: Record<string, string[]> }>(url);
         return response.data?.data || {};
     },
 
+    /**
+     * Applies bulk edits across multiple tools.
+     */
     bulkEditTools: async (
         storeId: string,
         payload: {
@@ -409,7 +418,7 @@ export const toolService = {
             updates: Record<string, any>;
         }
     ): Promise<{ success: boolean; message?: string; data?: any }> => {
-        const url = storeId ? `/api/stores/${storeId}/tools/bulk-edit` : `/api/tools/bulk-edit`;
+        const url = (storeId && storeId !== 'all') ? `/api/stores/${storeId}/tools/bulk-edit` : `/api/tools/bulk-edit`;
         const response = await api.post<{ success: boolean; message?: string; data?: any }>(url, payload);
         return response.data;
     },

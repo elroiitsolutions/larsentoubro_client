@@ -3,12 +3,45 @@ import {
     Card,
     CardContent,
 } from "@/components/ui/card"
-import { FileTextIcon, CheckCircle2 } from "lucide-react"
+import { 
+    FileTextIcon, 
+    Building2, 
+    Home, 
+    Contact, 
+    RefreshCw, 
+    Users, 
+    ShoppingBag, 
+    Settings, 
+    ShieldCheck 
+} from "lucide-react"
 import { FormEditor } from "./FormEditor"
 import { toast } from "sonner"
 import formService from "@/services/form.service"
 import { useAuth } from "@/contexts/AuthContext"
 import NoAccessPage from "../NoAccessPage"
+
+const getFormIcon = (slug: string) => {
+    switch (slug) {
+        case 'create-project':
+            return <Building2 className="size-4" />;
+        case 'create-store':
+            return <Home className="size-4" />;
+        case 'guest-user-form':
+            return <Contact className="size-4" />;
+        case 'scrap-dealer-form':
+            return <RefreshCw className="size-4" />;
+        case 'subcontractor-form':
+            return <Users className="size-4" />;
+        case 'supplier-form':
+            return <ShoppingBag className="size-4" />;
+        case 'tool-form':
+            return <Settings className="size-4" />;
+        case 'user-admin-form':
+            return <ShieldCheck className="size-4" />;
+        default:
+            return <FileTextIcon className="size-4" />;
+    }
+};
 
 export function SettingsFormManagementPage() {
     const { user } = useAuth()
@@ -121,31 +154,25 @@ export function SettingsFormManagementPage() {
                     <p className="text-xs font-medium">Loading form schemas...</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {forms.map((form) => (
                         <Card 
                             key={form.slug} 
-                            className="group cursor-pointer border border-border/60 bg-card hover:border-primary/50 hover:shadow-xs transition-all duration-200 rounded-xl flex flex-col justify-between overflow-hidden shadow-2xs"
+                            className="group cursor-pointer border border-border/60 bg-card hover:border-primary/50 hover:shadow-xs transition-all duration-200 rounded-xl overflow-hidden shadow-2xs"
                             onClick={() => handleEditForm(form)}
                         >
-                            <CardContent className="p-3.5 sm:p-4 space-y-2.5">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary dark:bg-primary/20">
-                                        <FileTextIcon className="size-4" />
+                            <CardContent className="p-3 sm:p-3.5">
+                                <div className="flex items-center gap-2.5 mb-2 min-w-0">
+                                    <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                                        {getFormIcon(form.slug)}
                                     </div>
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-                                        <CheckCircle2 className="size-2.5" />
-                                        Active
-                                    </span>
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors">
+                                    <h3 className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors tracking-tight truncate min-w-0">
                                         {form.name}
                                     </h3>
-                                    <p className="text-[11px] text-muted-foreground leading-normal line-clamp-2">
-                                        {form.description || "Configure custom fields and validation constraints for this schema."}
-                                    </p>
                                 </div>
+                                <p className="text-[11px] text-muted-foreground leading-normal line-clamp-2">
+                                    {form.description || "Configure custom fields and validation constraints for this schema."}
+                                </p>
                             </CardContent>
                         </Card>
                     ))}
