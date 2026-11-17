@@ -42,6 +42,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select"
 import { ScrapModal } from "./ScrapModal"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
+import { useSearchParams } from "react-router-dom"
 
 export function ScrapPage() {
     const { user } = useAuth()
@@ -57,7 +58,10 @@ export function ScrapPage() {
     const [search, setSearch] = useState("")
     const [selectedProject, setSelectedProject] = useState("All")
     const [selectedStore, setSelectedStore] = useState("All")
-    const [disposalStatus, setDisposalStatus] = useState<"pending" | "disposed" | "all">("pending")
+    const [searchParams, setSearchParams] = useSearchParams()
+    const urlStatus = searchParams.get("disposalStatus") as "pending" | "disposed" | "all" | null
+    const [disposalStatus, setDisposalStatus] = useState<"pending" | "disposed" | "all">(urlStatus || "all")
+    const [statusCounts, setStatusCounts] = useState<{ pending: number; disposed: number; all: number }>({ pending: 0, disposed: 0, all: 0 })
 
     // Master filter options
     const [projects, setProjects] = useState<ProjectRecord[]>([])
@@ -145,6 +149,9 @@ export function ScrapPage() {
                 setScrappedTools(res.data || [])
                 setTotal(res.total || 0)
                 setTotalPages(res.totalPages || 1)
+                if ((res as any).counts) {
+                    setStatusCounts((res as any).counts)
+                }
             }
         } catch (error: any) {
             console.error(error)
@@ -229,12 +236,17 @@ export function ScrapPage() {
         setSearch("")
         setSelectedProject("All")
         setSelectedStore("All")
-        setDisposalStatus("pending")
+        setDisposalStatus("all")
         setPage(1)
         setSelectedIds(new Set())
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev)
+            next.delete("disposalStatus")
+            return next
+        }, { replace: true })
     }
 
-    const isAnyFilterActive = search !== "" || selectedProject !== "All" || selectedStore !== "All" || disposalStatus !== "pending"
+    const isAnyFilterActive = search !== "" || selectedProject !== "All" || selectedStore !== "All" || disposalStatus !== "all"
 
     // Confirm dialog triggers
     const triggerSingleRestore = (tool: ToolRecord) => {
@@ -301,9 +313,9 @@ export function ScrapPage() {
     }))
 
     const disposalStatusOptions = [
-        { label: "Available for Disposal", value: "pending" },
-        { label: "Disposed via DC", value: "disposed" },
-        { label: "All Scrapped Tools", value: "all" }
+        { label: `All Scrapped Tools${statusCounts.all > 0 ? ` (${statusCounts.all})` : ''}`, value: "all" },
+        { label: `Available for Disposal${statusCounts.pending > 0 ? ` (${statusCounts.pending})` : ' (0)'}`, value: "pending" },
+        { label: `Disposed via DC${statusCounts.disposed > 0 ? ` (${statusCounts.disposed})` : ' (0)'}`, value: "disposed" }
     ]
 
     return (
@@ -609,13 +621,26 @@ export function ScrapPage() {
                                         <Archive className="size-8" />
                                     </div>
                                     <h3 className="text-lg font-semibold text-foreground mb-1">
-                                        {disposalStatus === "disposed" ? "No Disposed Tools" : "No Scrapped Tools Found"}
+                                        {disposalStatus === "disposed" ? "No Disposed Tools" : disposalStatus === "pending" ? "No Tools Waiting for Disposal" : "No Scrapped Tools Found"}
                                     </h3>
                                     <p className="text-sm text-muted-foreground text-balance">
                                         {disposalStatus === "pending"
-                                            ? "No tools waiting for disposal. Tools marked as Scrap from store inventory will appear here."
+                                            ? statusCounts.disposed > 0
+                                                ? `No tools are waiting for disposal. You have ${statusCounts.disposed} tool(s) already disposed via DC.`
+                                                : "No tools waiting for disposal. Tools marked as Scrap from store inventory will appear here."
                                             : "No matching scrap tool records found for the selected filter criteria."}
                                     </p>
+                                    {disposalStatus === "pending" && statusCounts.disposed > 0 && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setDisposalStatus("all")}
+                                            className="mt-3 rounded-xl text-xs gap-1.5 border-amber-300 dark:border-amber-800 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                        >
+                                            <Archive className="size-3.5" />
+                                            View All Scrapped & Disposed Tools ({statusCounts.all})
+                                        </Button>
+                                    )}
                                     {isAnyFilterActive && (
                                         <Button
                                             variant="outline"

@@ -221,35 +221,58 @@ export function TrashPage() {
         setActionLoading(true)
         try {
             if (dialogState.type === 'restore' && dialogState.targetId) {
-                const res = await toolService.restoreTool(dialogState.targetId)
+                const targetId = dialogState.targetId
+                setDeletedTools(prev => prev.filter(t => t._id !== targetId))
+                setTotal(prev => Math.max(0, prev - 1))
+                setSelectedIds(prev => {
+                    const next = new Set(prev)
+                    next.delete(targetId)
+                    return next
+                })
+                const res = await toolService.restoreTool(targetId)
                 if (res.success) {
                     toast.success(res.message || "Tool restored successfully")
                     fetchDeletedTools()
                 }
             } else if (dialogState.type === 'bulk-restore') {
-                const res = await toolService.bulkRestoreTools(Array.from(selectedIds))
+                const ids = Array.from(selectedIds)
+                setDeletedTools(prev => prev.filter(t => !selectedIds.has(t._id)))
+                setTotal(prev => Math.max(0, prev - ids.length))
+                handleClearSelection()
+                const res = await toolService.bulkRestoreTools(ids)
                 if (res.success) {
                     toast.success(res.message || "Selected tools restored successfully")
-                    handleClearSelection()
                     fetchDeletedTools()
                 }
             } else if (dialogState.type === 'permanent' && dialogState.targetId) {
-                const res = await toolService.permanentDeleteTool(dialogState.targetId)
+                const targetId = dialogState.targetId
+                setDeletedTools(prev => prev.filter(t => t._id !== targetId))
+                setTotal(prev => Math.max(0, prev - 1))
+                setSelectedIds(prev => {
+                    const next = new Set(prev)
+                    next.delete(targetId)
+                    return next
+                })
+                const res = await toolService.permanentDeleteTool(targetId)
                 if (res.success) {
                     toast.success(res.message || "Tool permanently deleted")
                     fetchDeletedTools()
                 }
             } else if (dialogState.type === 'bulk-permanent') {
-                const res = await toolService.bulkPermanentDeleteTools(Array.from(selectedIds))
+                const ids = Array.from(selectedIds)
+                setDeletedTools(prev => prev.filter(t => !selectedIds.has(t._id)))
+                setTotal(prev => Math.max(0, prev - ids.length))
+                handleClearSelection()
+                const res = await toolService.bulkPermanentDeleteTools(ids)
                 if (res.success) {
                     toast.success(res.message || "Selected tools permanently deleted")
-                    handleClearSelection()
                     fetchDeletedTools()
                 }
             }
         } catch (error: any) {
             console.error(error)
             toast.error(error?.response?.data?.message || "Action failed")
+            fetchDeletedTools()
         } finally {
             setActionLoading(false)
             setDialogState(prev => ({ ...prev, isOpen: false }))

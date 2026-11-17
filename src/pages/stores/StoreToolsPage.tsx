@@ -2332,22 +2332,28 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                 <TooltipProvider delay={100}>
                                                     <Tooltip>
                                                         <TooltipTrigger>
-                                                            <span className={`sm:col-span-2 block w-full ${hasNonDeletableTool ? "cursor-not-allowed" : ""}`}>
+                                                            <span className={`sm:col-span-2 block w-full ${(hasNonDeletableTool || printedCount > 0) ? "cursor-not-allowed" : ""}`}>
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    disabled={hasNonDeletableTool}
+                                                                    disabled={hasNonDeletableTool || printedCount > 0}
                                                                     className={`h-9 w-full text-xs font-medium rounded-xl flex items-center justify-center gap-1.5 ${
-                                                                        hasNonDeletableTool
+                                                                        (hasNonDeletableTool || printedCount > 0)
                                                                             ? "text-slate-400 border-border bg-muted/40 cursor-not-allowed opacity-50"
                                                                             : "text-rose-600 border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30"
                                                                     }`}
                                                                     onClick={() => {
-                                                                        if (hasNonDeletableTool) return;
+                                                                        if (hasNonDeletableTool || printedCount > 0) return;
                                                                         handleBulkDelete();
                                                                         setIsBulkActionsOpen(false);
                                                                     }}
-                                                                    title={hasNonDeletableTool ? "Only Available and Missing tools can be deleted" : "Delete Selected"}
+                                                                    title={
+                                                                        hasNonDeletableTool
+                                                                            ? "Only Available and Missing tools can be deleted"
+                                                                            : printedCount > 0
+                                                                                ? `Cannot delete: ${printedCount} selected tool(s) are printed. Only unprinted tools can be moved to Trash. Use Unprint first.`
+                                                                                : "Delete Selected"
+                                                                    }
                                                                 >
                                                                     <Trash2 className="size-3.5 shrink-0" />
                                                                     <span className="truncate">Delete Selected ({selectedToolIds.size})</span>
@@ -2357,7 +2363,9 @@ export function StoreToolsPage({ overrideStoreId }: { overrideStoreId?: string }
                                                         <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xl max-w-xs text-center z-[100]">
                                                             {hasNonDeletableTool
                                                                 ? "Disabled: Selected tool(s) include Moving or non-deletable equipment. Only Available and Missing tools can be deleted."
-                                                                : `Delete ${selectedToolIds.size} selected tool(s)`}
+                                                                : printedCount > 0
+                                                                    ? `Disabled: ${printedCount} selected tool(s) are Printed. Only unprinted tools can be moved to Trash. Use "Unprint" first or "Scrap Selected".`
+                                                                    : `Delete ${selectedToolIds.size} selected tool(s)`}
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </TooltipProvider>

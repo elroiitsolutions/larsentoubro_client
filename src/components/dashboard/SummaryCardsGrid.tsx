@@ -107,7 +107,7 @@ export const SummaryCardsGrid: React.FC<Props> = ({ data }) => {
             title: "Scrapped / Disposed",
             count: scrap,
             subtext: "Disposal Manifest",
-            link: "/scrap",
+            link: "/scrap?disposalStatus=all",
             icon: Archive,
             bgGradient: "from-purple-50/80 via-purple-100/30 to-violet-50/50 dark:from-purple-950/30 dark:via-purple-900/15 dark:to-card",
             borderColor: "border-purple-200/90 hover:border-purple-300 dark:border-purple-800/60 dark:hover:border-purple-700",
