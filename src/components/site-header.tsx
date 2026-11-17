@@ -16,7 +16,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import React from "react"
-import { ChevronRightIcon, MoreVertical, Info } from "lucide-react"
+// import { ChevronRightIcon, MoreVertical, Info } from "lucide-react"
 
 interface PageDetail {
     title: string;
@@ -256,6 +256,8 @@ const getPageDetails = (pathname: string, state?: any, lastBreadcrumbLabel?: str
         description: `Overview and management controls for ${title.toLowerCase()}.`
     };
 };
+import { ChevronRightIcon, MoreVertical, Info } from "lucide-react"
+import { NotificationBell } from "@/components/notifications/NotificationBell"
 
 const generateBreadcrumbs = (pathname: string, state?: any): Array<{ label: string, href: string }> => {
     const projectId = state?.projectId || state?.fromProjectId;
@@ -493,7 +495,7 @@ export function SiteHeader() {
                                         <BreadcrumbPage className="font-semibold text-foreground bg-primary/10 px-2.5 py-0.5 rounded-md text-primary text-xs">{label}</BreadcrumbPage>
                                     ) : (
                                         <BreadcrumbLink render={(props) => (
-                                            <Link to={href} className="hover:text-primary transition-colors text-xs" {...props}>{label}</Link>
+                                             <Link to={href} className="hover:text-primary transition-colors text-xs" {...props}>{label}</Link>
                                         )} />
                                     )}
                                 </BreadcrumbItem>
@@ -547,6 +549,11 @@ export function SiteHeader() {
                     )}
                 </BreadcrumbList>
             </Breadcrumb>
+
+            {/* Top-Right Notification Bell (14th-Day Guest Expiry Alerts & Actions) */}
+            <div className="ml-auto flex items-center gap-2">
+                <NotificationBell />
+            </div>
         </header>
     )
 }

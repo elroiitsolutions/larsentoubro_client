@@ -76,15 +76,17 @@ export function AlertDialogAction({
   children,
   onClick,
   disabled = false,
-  className = ""
+  className = "",
+  variant = "default"
 }: {
   children: React.ReactNode
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   disabled?: boolean
   className?: string
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 }) {
   return (
-    <Button onClick={onClick} disabled={disabled} className={className}>
+    <Button variant={variant} onClick={onClick} disabled={disabled} className={className}>
       {children}
     </Button>
   )
