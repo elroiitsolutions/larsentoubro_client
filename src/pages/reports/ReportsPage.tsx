@@ -38,6 +38,7 @@ import projectService, { type ProjectRecord } from "@/services/project.service";
 import storeService, { type StoreRecord } from "@/services/store.service";
 import vendorService, { type VendorRecord } from "@/services/vendor.service";
 import profileService, { type ProfileRecord } from "@/services/profile.service";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -427,30 +428,33 @@ export function ReportsPage({ defaultTab }: ReportsPageProps) {
     };
 
     return (
-        <div className="flex flex-col gap-6 w-full mx-auto p-4 pb-14 animate-in fade-in duration-300">
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Header & Title Section */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-1">
-                <div>
-                   
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-1.5 flex items-center gap-2.5">
-                        <Layers className="size-8 text-primary" />
-                        Reports & Audit Hub
-                    </h1>
-                    <p className="text-muted-foreground text-xs sm:text-sm mt-1 max-w-3xl">
-                        Comprehensive registers across tool inventory, gate pass delivery challans, loss & missing reconciliations, statutory inspection compliance, scrap disposal manifests, and security audits.
-                    </p>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 pb-1.5 border-b border-border/40">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-500/20 shrink-0">
+                        <Layers className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">
+                            Reports & Audit Hub
+                        </h1>
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 max-w-3xl leading-snug">
+                            Comprehensive registers across tool inventory, gate pass delivery challans, statutory compliance, and audits.
+                        </p>
+                    </div>
                 </div>
 
                 {/* Global Actions */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap shrink-0">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={fetchActiveReport}
                         disabled={loading}
-                        className="rounded-xl h-9 gap-1.5 text-xs font-semibold"
+                        className="rounded-lg h-7.5 px-2.5 gap-1.5 text-[11px] font-semibold"
                     >
-                        <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
                         Refresh
                     </Button>
 
@@ -459,10 +463,10 @@ export function ReportsPage({ defaultTab }: ReportsPageProps) {
                         size="sm"
                         disabled={exporting !== null || loading}
                         onClick={() => handleExport("excel")}
-                        className="rounded-xl h-9 gap-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30"
+                        className="rounded-lg h-7.5 px-2.5 gap-1.5 text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30"
                     >
-                        {exporting === "excel" ? <Loader2 className="size-3.5 animate-spin" /> : <FileSpreadsheet className="size-3.5 text-emerald-600" />}
-                        Export Excel (.xlsx)
+                        {exporting === "excel" ? <Loader2 className="size-3 animate-spin" /> : <FileSpreadsheet className="size-3 text-emerald-600" />}
+                        Export Excel
                     </Button>
 
                     <Button
@@ -470,9 +474,9 @@ export function ReportsPage({ defaultTab }: ReportsPageProps) {
                         size="sm"
                         disabled={exporting !== null || loading}
                         onClick={() => handleExport("csv")}
-                        className="rounded-xl h-9 gap-1.5 text-xs font-semibold"
+                        className="rounded-lg h-7.5 px-2.5 gap-1.5 text-[11px] font-semibold"
                     >
-                        {exporting === "csv" ? <Loader2 className="size-3.5 animate-spin text-blue-600" /> : <FileCode className="size-3.5 text-blue-600" />}
+                        {exporting === "csv" ? <Loader2 className="size-3 animate-spin text-blue-600" /> : <FileCode className="size-3 text-blue-600" />}
                         Export CSV
                     </Button>
                 </div>
@@ -483,13 +487,13 @@ export function ReportsPage({ defaultTab }: ReportsPageProps) {
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
                     <button
                         onClick={() => handleTabChange("tools")}
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${
                             activeTab === "tools"
-                                ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                                ? "bg-primary text-primary-foreground shadow-xs"
                                 : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                         }`}
                     >
-                        <Wrench className="size-4" />
+                        <Wrench className="size-3" />
                         <span>Tools Inventory</span>
                     </button>
 
@@ -1073,19 +1077,23 @@ export function ReportsPage({ defaultTab }: ReportsPageProps) {
                     <div className="flex items-center gap-2 flex-wrap">
                         <Calendar className="size-3.5 text-muted-foreground" />
                         <span className="font-semibold text-muted-foreground">Date Range:</span>
-                        <Input
-                            type="date"
-                            className="h-8 w-36 text-xs rounded-lg"
-                            value={startDate}
-                            onChange={e => { setStartDate(e.target.value); setPage(1); }}
-                        />
-                        <span className="text-muted-foreground">to</span>
-                        <Input
-                            type="date"
-                            className="h-8 w-36 text-xs rounded-lg"
-                            value={endDate}
-                            onChange={e => { setEndDate(e.target.value); setPage(1); }}
-                        />
+                        <div className="w-36 sm:w-40">
+                            <DatePickerField
+                                value={startDate}
+                                onChange={val => { setStartDate(val); setPage(1); }}
+                                placeholder="Start date"
+                                className="h-8 text-xs rounded-lg"
+                            />
+                        </div>
+                        <span className="text-muted-foreground font-medium">to</span>
+                        <div className="w-36 sm:w-40">
+                            <DatePickerField
+                                value={endDate}
+                                onChange={val => { setEndDate(val); setPage(1); }}
+                                placeholder="End date"
+                                className="h-8 text-xs rounded-lg"
+                            />
+                        </div>
 
                         <div className="flex items-center gap-1 ml-2">
                             <Button variant="ghost" size="sm" onClick={() => handleDatePreset("today")} className="h-7 text-[11px] px-2">

@@ -31,6 +31,7 @@ import {
     Users
 } from "lucide-react"
 import reportService, { type LoginLogItem } from "@/services/report.service"
+import { DatePickerField } from "@/components/DynamicForm/DynamicField"
 import { toast } from "sonner"
 
 export function LoginReportPage() {
@@ -292,11 +293,10 @@ export function LoginReportPage() {
 
                     {/* Start Date */}
                     <div>
-                        <Input
-                            type="date"
+                        <DatePickerField
                             value={startDate}
-                            onChange={(e) => {
-                                setStartDate(e.target.value)
+                            onChange={(val) => {
+                                setStartDate(val)
                                 setPage(1)
                             }}
                             className="h-9 rounded-xl bg-background border-border/70 text-xs"
@@ -306,11 +306,10 @@ export function LoginReportPage() {
 
                     {/* End Date */}
                     <div>
-                        <Input
-                            type="date"
+                        <DatePickerField
                             value={endDate}
-                            onChange={(e) => {
-                                setEndDate(e.target.value)
+                            onChange={(val) => {
+                                setEndDate(val)
                                 setPage(1)
                             }}
                             className="h-9 rounded-xl bg-background border-border/70 text-xs"

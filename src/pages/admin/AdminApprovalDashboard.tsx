@@ -119,18 +119,18 @@ export function AdminApprovalDashboard() {
     }
 
     return (
-        <div className="p-6 space-y-6 w-full">
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Header section */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card border border-border/60 rounded-2xl p-6 shadow-xs">
-                <div className="flex items-center gap-3.5">
-                    <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center ring-8 ring-primary/5">
-                        <ShieldCheck className="size-6 text-primary" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card border border-border/60 rounded-xl p-3 sm:p-3.5 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <ShieldCheck className="size-4.5 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
                             {user?.role === "Admin" ? "Admin Login Approvals" : "Login Approvals"}
                         </h1>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
                             {user?.role === "Admin"
                                 ? "Review and authorize real-time user login requests"
                                 : "Review and authorize real-time login requests for your subusers"}
@@ -138,17 +138,17 @@ export function AdminApprovalDashboard() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-muted/60 border border-border/50 text-xs font-semibold text-foreground">
-                        <Bell className="size-3.5 text-primary" />
-                        <span>Pending Requests:</span>
-                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-mono font-bold">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/50 text-[11px] font-semibold text-foreground">
+                        <Bell className="size-3 text-primary" />
+                        <span>Pending:</span>
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground text-[9px] font-mono font-bold">
                             {requests.length}
                         </span>
                     </div>
 
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-                        <Activity className="size-3.5 text-emerald-500" />
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold">
+                        <Activity className="size-3 text-emerald-500" />
                         <span>Online: {onlineCount}</span>
                     </div>
 
@@ -156,57 +156,57 @@ export function AdminApprovalDashboard() {
                         variant="outline" 
                         size="sm" 
                         onClick={fetchPendingRequests}
-                        className="rounded-xl h-9 gap-1.5 cursor-pointer text-xs"
+                        className="rounded-lg h-7.5 px-2.5 gap-1.5 cursor-pointer text-[11px] font-semibold"
                     >
-                        <RefreshCw className="size-3.5" />
+                        <RefreshCw className="size-3" />
                         Refresh
                     </Button>
                 </div>
             </div>
 
             {/* Pending Requests Queue Grid */}
-            <Card className="border-border/60 shadow-sm rounded-2xl">
-                <CardHeader>
-                    <CardTitle className="text-base font-bold flex items-center gap-2">
+            <Card className="border-border/60 shadow-2xs rounded-xl overflow-hidden">
+                <CardHeader className="px-3.5 py-2.5 sm:px-4 sm:py-3 border-b border-border/50 bg-muted/15">
+                    <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
                         <Clock className="size-4 text-primary" />
                         Pending Authorization Queue ({requests.length})
                     </CardTitle>
-                    <CardDescription className="text-xs">
+                    <CardDescription className="text-[11px] mt-0.5">
                         Users waiting for login approval. Approving grants immediate authenticated session tokens.
                     </CardDescription>
                 </CardHeader>
 
-                <CardContent>
+                <CardContent className="p-3 sm:p-4">
                     {loading ? (
-                        <div className="py-16 text-center text-xs text-muted-foreground italic">
+                        <div className="py-12 text-center text-xs text-muted-foreground italic">
                             Loading pending approval requests...
                         </div>
                     ) : requests.length === 0 ? (
-                        <div className="py-16 text-center border-2 border-dashed border-border/60 rounded-2xl bg-muted/20 flex flex-col items-center">
-                            <UserCheck className="size-10 mb-2.5 text-primary/40" />
+                        <div className="py-12 text-center border-2 border-dashed border-border/60 rounded-xl bg-muted/20 flex flex-col items-center">
+                            <UserCheck className="size-8 mb-2 text-primary/40" />
                             <h3 className="text-sm font-bold text-foreground">No Pending Requests</h3>
-                            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                            <p className="text-[11px] text-muted-foreground mt-0.5 max-w-sm">
                                 All user login authorization requests have been processed.
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {requests.map((req) => (
                                 <div 
                                     key={req.id} 
-                                    className="bg-background border border-border/70 hover:border-primary/40 transition-all rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4"
+                                    className="bg-background border border-border/70 hover:border-primary/40 transition-all rounded-xl p-3.5 shadow-2xs flex flex-col justify-between space-y-3"
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <div className="space-y-0.5">
-                                            <h4 className="font-bold text-foreground text-sm tracking-tight">{req.user_name}</h4>
-                                            <p className="text-xs text-muted-foreground">{req.user_email}</p>
+                                        <div className="space-y-0.5 min-w-0">
+                                            <h4 className="font-bold text-foreground text-xs tracking-tight truncate">{req.user_name}</h4>
+                                            <p className="text-[11px] text-muted-foreground truncate">{req.user_email}</p>
                                         </div>
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-bold uppercase tracking-wider">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[9px] font-mono font-bold uppercase tracking-wider shrink-0">
                                             {req.status}
                                         </span>
                                     </div>
 
-                                    <div className="bg-muted/40 rounded-xl p-3 border border-border/50 space-y-1 text-[11px] font-mono text-muted-foreground">
+                                    <div className="bg-muted/40 rounded-lg p-2 border border-border/50 space-y-0.5 text-[10px] font-mono text-muted-foreground">
                                         <div className="flex justify-between">
                                             <span>Requested:</span>
                                             <span className="text-foreground font-semibold">
@@ -221,14 +221,14 @@ export function AdminApprovalDashboard() {
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-2 pt-1">
+                                    <div className="flex items-center gap-2 pt-0.5">
                                         <Button
                                             size="sm"
                                             disabled={actionId === req.id}
                                             onClick={() => handleApprove(req.id, req.user_name)}
-                                            className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 gap-1.5 cursor-pointer shadow-xs"
+                                            className="flex-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] h-7.5 gap-1 cursor-pointer shadow-xs"
                                         >
-                                            <Check className="size-3.5" />
+                                            <Check className="size-3" />
                                             Approve
                                         </Button>
                                         <Button
@@ -236,9 +236,9 @@ export function AdminApprovalDashboard() {
                                             size="sm"
                                             disabled={actionId === req.id}
                                             onClick={() => handleReject(req.id, req.user_name)}
-                                            className="flex-1 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 text-xs font-semibold h-9 gap-1.5 cursor-pointer shadow-xs"
+                                            className="flex-1 rounded-lg border-destructive/30 text-destructive hover:bg-destructive/10 text-[11px] font-semibold h-7.5 gap-1 cursor-pointer shadow-xs"
                                         >
-                                            <X className="size-3.5" />
+                                            <X className="size-3" />
                                             Reject
                                         </Button>
                                     </div>

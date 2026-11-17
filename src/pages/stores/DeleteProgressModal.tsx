@@ -169,33 +169,33 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
             }
         }}>
             <DialogContent
-                className="max-w-md sm:max-w-lg rounded-2xl p-6 shadow-2xl border bg-card"
+                className="max-w-md rounded-xl p-4 sm:p-5 shadow-2xl border bg-card"
                 hideClose={isProcessing}
             >
-                <DialogHeader className="space-y-2">
-                    <div className="flex items-center gap-3">
+                <DialogHeader className="space-y-1.5">
+                    <div className="flex items-center gap-2.5">
                         {isProcessing && (
-                            <div className="size-10 rounded-xl bg-rose-500/15 text-rose-600 flex items-center justify-center shrink-0 animate-pulse">
-                                <Loader2 className="size-5 animate-spin" />
+                            <div className="size-9 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center shrink-0 animate-pulse">
+                                <Loader2 className="size-4.5 animate-spin" />
                             </div>
                         )}
                         {isFinished && (
-                            <div className="size-10 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
-                                <CheckCircle2 className="size-6 text-emerald-600" />
+                            <div className="size-9 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="size-5 text-emerald-600" />
                             </div>
                         )}
                         {isFailed && (
-                            <div className="size-10 rounded-xl bg-rose-500/15 text-rose-600 flex items-center justify-center shrink-0">
-                                <AlertTriangle className="size-6 text-rose-600" />
+                            <div className="size-9 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center shrink-0">
+                                <AlertTriangle className="size-5 text-rose-600" />
                             </div>
                         )}
                         <div>
-                            <DialogTitle className="text-lg font-bold text-foreground">
+                            <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
                                 {isProcessing && "Deleting Tools & Re-sequencing IDs"}
                                 {isFinished && "Deletion & Re-sequencing Completed"}
                                 {isFailed && "Deletion Failed"}
                             </DialogTitle>
-                            <DialogDescription className="text-xs text-muted-foreground">
+                            <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
                                 {isProcessing && "Batch processing and auto-resequencing remaining tools"}
                                 {isFinished && "All selected tools moved to Trash and IDs re-sequenced"}
                                 {isFailed && "An error occurred during deletion"}
@@ -204,11 +204,11 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
                     </div>
                 </DialogHeader>
 
-                <div className="space-y-5 pt-3">
+                <div className="space-y-3.5 pt-2">
                     {/* Live Progress Bar Container */}
-                    <div className="space-y-2 bg-muted/40 p-4 rounded-xl border border-border/50">
+                    <div className="space-y-2 bg-muted/40 p-3 rounded-lg border border-border/50">
                         <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
                                 {isProcessing && <RefreshCw className="size-3 animate-spin text-primary" />}
                                 {job.stage === 'deleting' && "Moving to Trash..."}
                                 {job.stage === 'preparing_ids' && "Batch Step 1: Assigning temporary IDs..."}
@@ -217,13 +217,13 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
                                 {job.stage === 'completed' && "Completed"}
                                 {job.stage === 'validating' && "Validating..."}
                             </span>
-                            <span className="font-mono text-primary font-bold text-sm">
+                            <span className="font-mono text-primary font-bold text-xs">
                                 {job.percentage}%
                             </span>
                         </div>
 
                         {/* Progress Bar with smooth transition */}
-                        <div className="h-3 w-full bg-muted rounded-full overflow-hidden shadow-inner">
+                        <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden shadow-inner">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ease-out ${
                                     isFailed
@@ -236,38 +236,38 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
                             />
                         </div>
 
-                        <p className="text-xs text-muted-foreground leading-relaxed pt-1 font-medium truncate">
+                        <p className="text-[11px] text-muted-foreground leading-relaxed pt-0.5 font-medium truncate">
                             {job.message}
                         </p>
                     </div>
 
                     {/* Stats Counters */}
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="p-3 rounded-xl bg-card border flex items-center gap-2.5 shadow-sm">
-                            <div className="size-8 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
-                                <Trash2 className="size-4" />
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2.5 rounded-lg bg-card border flex items-center gap-2 shadow-2xs">
+                            <div className="size-7 rounded-md bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
+                                <Trash2 className="size-3.5" />
                             </div>
                             <div>
-                                <span className="text-muted-foreground block text-[11px]">Deleted to Trash</span>
-                                <span className="font-bold text-foreground text-sm font-mono">
-                                    {job.deletedCount} <span className="text-muted-foreground text-xs font-normal">/ {job.totalToDelete}</span>
+                                <span className="text-muted-foreground block text-[10px]">Deleted to Trash</span>
+                                <span className="font-bold text-foreground text-xs font-mono">
+                                    {job.deletedCount} <span className="text-muted-foreground text-[10px] font-normal">/ {job.totalToDelete}</span>
                                 </span>
                             </div>
                         </div>
 
-                        <div className="p-3 rounded-xl bg-card border flex items-center gap-2.5 shadow-sm">
-                            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                                <Layers className="size-4" />
+                        <div className="p-2.5 rounded-lg bg-card border flex items-center gap-2 shadow-2xs">
+                            <div className="size-7 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <Layers className="size-3.5" />
                             </div>
                             <div>
-                                <span className="text-muted-foreground block text-[11px]">Tools Re-sequenced</span>
-                                <span className="font-bold text-foreground text-sm font-mono">
+                                <span className="text-muted-foreground block text-[10px]">Tools Re-sequenced</span>
+                                <span className="font-bold text-foreground text-xs font-mono">
                                     {job.resequencedCount > 0 ? (
                                         <>
-                                            {job.resequencedCount} <span className="text-muted-foreground text-xs font-normal">/ {job.totalToResequence}</span>
+                                            {job.resequencedCount} <span className="text-muted-foreground text-[10px] font-normal">/ {job.totalToResequence}</span>
                                         </>
                                     ) : (
-                                        <span className="text-muted-foreground text-xs italic font-normal">Auto-synced</span>
+                                        <span className="text-muted-foreground text-[10px] italic font-normal">Auto-synced</span>
                                     )}
                                 </span>
                             </div>
@@ -276,10 +276,10 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
 
                     {/* Explicit Notification Notice Box */}
                     {isFinished ? (
-                        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2.5">
-                            <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                            <div className="space-y-1">
-                                <p className="font-semibold text-emerald-900 dark:text-emerald-200">
+                        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2">
+                            <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5">
+                                <p className="font-semibold text-emerald-900 dark:text-emerald-200 text-xs">
                                     All remaining tool IDs have been updated!
                                 </p>
                                 <p className="text-emerald-700 dark:text-emerald-300/90 text-[11px] leading-relaxed">
@@ -288,10 +288,10 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
                             </div>
                         </div>
                     ) : isFailed ? (
-                        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-800 dark:text-rose-300 text-xs flex items-start gap-2.5">
-                            <AlertTriangle className="size-4 text-rose-600 shrink-0 mt-0.5" />
-                            <div className="space-y-1">
-                                <p className="font-semibold text-rose-900 dark:text-rose-200">
+                        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-800 dark:text-rose-300 text-xs flex items-start gap-2">
+                            <AlertTriangle className="size-3.5 text-rose-600 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5">
+                                <p className="font-semibold text-rose-900 dark:text-rose-200 text-xs">
                                     Operation halted
                                 </p>
                                 <p className="text-rose-700 dark:text-rose-300/90 text-[11px] leading-relaxed">
@@ -300,8 +300,8 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
                             </div>
                         </div>
                     ) : (
-                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-xs text-muted-foreground flex items-start gap-2.5">
-                            <Info className="size-4 text-primary shrink-0 mt-0.5" />
+                        <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground flex items-start gap-2">
+                            <Info className="size-3.5 text-primary shrink-0 mt-0.5" />
                             <p className="text-[11px] leading-relaxed">
                                 <strong>Batch Re-sequencing:</strong> When tools are deleted, active tool IDs in this project are automatically updated in batches of 500 to keep the serial sequence continuous without database locks.
                             </p>
@@ -309,22 +309,22 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
                     )}
 
                     {/* Footer Actions */}
-                    <div className="pt-2 flex justify-end gap-2">
+                    <div className="pt-1 flex justify-end gap-2">
                         {isProcessing && (
                             <Button
                                 disabled
-                                className="w-full h-10 rounded-xl bg-primary/80 text-white cursor-not-allowed"
+                                className="w-full h-8 rounded-lg text-xs font-semibold bg-primary/80 text-white cursor-not-allowed"
                             >
-                                <Loader2 className="size-4 animate-spin mr-2" />
+                                <Loader2 className="size-3.5 animate-spin mr-1.5" />
                                 Processing in batches...
                             </Button>
                         )}
                         {isFinished && (
                             <Button
                                 onClick={handlePrimaryAction}
-                                className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-all shadow-md shadow-emerald-600/20"
+                                className="w-full h-8 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-2xs"
                             >
-                                <CheckCircle2 className="size-4 mr-2" />
+                                <CheckCircle2 className="size-3.5 mr-1.5" />
                                 Done & Refresh Tools
                             </Button>
                         )}
@@ -332,7 +332,7 @@ export const DeleteProgressModal: React.FC<DeleteProgressModalProps> = ({
                             <Button
                                 variant="destructive"
                                 onClick={handlePrimaryAction}
-                                className="w-full h-10 rounded-xl"
+                                className="w-full h-8 rounded-lg text-xs font-semibold"
                             >
                                 Close
                             </Button>

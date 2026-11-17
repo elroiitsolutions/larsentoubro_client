@@ -22,6 +22,8 @@ export function DynamicForm({ formDefinition, onSubmit, defaultValues = {} }: Dy
     
     fields.forEach(field => {
       let fieldSchema: z.ZodTypeAny;
+      const fieldTypeLower = String(field.type || '').toLowerCase();
+      const isDateField = fieldTypeLower === 'date' || fieldTypeLower === 'calendar' || fieldTypeLower === 'calender';
 
       switch (field.type) {
         case 'number':
@@ -55,8 +57,10 @@ export function DynamicForm({ formDefinition, onSubmit, defaultValues = {} }: Dy
             if (v.type === 'email') strSchema = strSchema.email({ message: v.message });
             if (v.type === 'url') strSchema = strSchema.url({ message: v.message });
             if (v.type === 'regex') strSchema = strSchema.regex(new RegExp(v.value), { message: v.message });
-            // Client-side Alphanumeric Regex Validation
-            if (v.type === 'alphanumeric') strSchema = strSchema.regex(/^[a-zA-Z0-9\s]*$/, { message: v.message || 'Must be alphanumeric' });
+            // Client-side Alphanumeric Regex Validation (never enforce on date or calendar fields)
+            if (v.type === 'alphanumeric' && !isDateField && fieldTypeLower !== 'email' && fieldTypeLower !== 'url') {
+              strSchema = strSchema.regex(/^[a-zA-Z0-9\s]*$/, { message: v.message || 'Must be alphanumeric' });
+            }
             fieldSchema = strSchema as any;
           }
           if (fieldSchema instanceof z.ZodNumber) {

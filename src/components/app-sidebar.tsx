@@ -69,7 +69,7 @@ const data = {
     },
     {
       title: "Scrap",
-      url: "/tools/scrap",
+      url: "/scrap",
       icon: <ArchiveIcon />,
       isActive: false,
       items: [],
@@ -83,7 +83,7 @@ const data = {
     },
     {
       title: "Trash",
-      url: "/tools/trash",
+      url: "/trash",
       icon: <Trash2Icon />,
       isActive: false,
       items: [],
@@ -140,6 +140,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return data.navMain.filter((item) => item.url === "/stores" || item.url === "/qr-scanner")
     }
     const adminOnlyUrls = [
+      "/trash",
       "/tools/trash",
       "/reports/logins",
 
@@ -157,7 +158,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         if (item.url === "/stores") return allowed.includes("/stores");
         if (item.url === "/profiles") return allowed.includes("/profiles");
         if (item.url === "/challans/history") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/challans");
-        if (item.url === "/tools/scrap") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/scrap");
+        if (item.url === "/scrap" || item.url === "/tools/scrap") return allowed.includes("/stores") || allowed.includes("/tools") || allowed.includes("/scrap") || allowed.includes("/tools/scrap");
         return true;
       })
       .map((item) => {

@@ -35,6 +35,7 @@ import projectService from "@/services/project.service"
 import storeService from "@/services/store.service"
 import userService from "@/services/user.service"
 import type { UserRecord } from "@/services/user.service"
+import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 
 const AVAILABLE_PAGES = [
@@ -63,6 +64,7 @@ const avatarColors = [
 export function UserAccessPage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
+    const { user: currentUser } = useAuth()
 
     const [userRecord, setUserRecord] = React.useState<UserRecord | null>(null)
     const [loading, setLoading] = React.useState(true)
@@ -377,7 +379,9 @@ export function UserAccessPage() {
                 stores: selectedStores,
             }
 
-            const res = await userService.updateUser(userRecord._id, payload)
+            const res = (userRecord.role === "Subuser" && currentUser?.role !== "Admin")
+                ? await userService.updateSubuser(userRecord._id, payload)
+                : await userService.updateUser(userRecord._id, payload)
             if (res.success && res.data) {
                 toast.success("User permissions and access updated successfully!")
                 navigate("/users")
@@ -417,25 +421,24 @@ export function UserAccessPage() {
     const isAdmin = userRecord.role === "Admin"
 
     return (
-        /* CRITICAL: flex-1 min-h-0 overflow-y-auto ensures the page is fully scrollable inside SidebarLayout */
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full p-3 sm:p-4 gap-5 animate-in fade-in duration-200">
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Header with Essential User Info and Actions */}
-            <div className="bg-card/80 backdrop-blur-md rounded-2xl border border-border/70 p-4 shadow-xs shrink-0">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="bg-card/80 backdrop-blur-md rounded-xl border border-border/70 p-3 sm:p-3.5 shadow-2xs shrink-0">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                     {/* Left: Back Button + User Essential Profile */}
-                    <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={() => navigate("/users")}
-                            className="h-10 w-10 rounded-xl border-border/80 hover:bg-muted shrink-0 cursor-pointer"
+                            className="h-7.5 w-7.5 rounded-lg border-border/80 hover:bg-muted shrink-0 cursor-pointer"
                             title="Back to Users List"
                         >
-                            <ArrowLeftIcon className="size-5" />
+                            <ArrowLeftIcon className="size-4" />
                         </Button>
 
                         <div
-                            className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-base font-bold text-white shadow-sm ${
+                            className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white shadow-2xs ${
                                 avatarColors[userRecord.name.length % avatarColors.length]
                             }`}
                         >
@@ -444,25 +447,25 @@ export function UserAccessPage() {
 
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                                <h1 className="text-lg sm:text-xl font-extrabold text-foreground truncate">
+                                <h1 className="text-sm sm:text-base font-bold text-foreground truncate">
                                     {userRecord.name}
                                 </h1>
-                                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-mono font-bold shrink-0">
+                                <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.2 rounded-full font-mono font-bold shrink-0">
                                     {userRecord.user_id}
                                 </span>
                                 {isAdmin ? (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20">
-                                        <ShieldAlertIcon className="size-3" />
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded-md border border-rose-500/20">
+                                        <ShieldAlertIcon className="size-2.5" />
                                         Admin (Unrestricted)
                                     </span>
                                 ) : (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
-                                        <BadgeCheckIcon className="size-3" />
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.2 rounded-md">
+                                        <BadgeCheckIcon className="size-2.5" />
                                         Authorized Member
                                     </span>
                                 )}
                             </div>
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-muted-foreground mt-0.5">
                                 <span className="flex items-center gap-1 truncate">
                                     <MailIcon className="size-3 text-primary/70 shrink-0" />
                                     {userRecord.email}
@@ -478,21 +481,21 @@ export function UserAccessPage() {
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex items-center gap-2.5 shrink-0 self-end lg:self-center">
+                    <div className="flex items-center gap-2 shrink-0 self-end lg:self-center">
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setIsEditingProfile(!isEditingProfile)}
-                            className="h-9 rounded-xl text-xs font-semibold px-3.5 gap-1.5 cursor-pointer"
+                            className="h-7.5 rounded-lg text-[11px] font-semibold px-2.5 gap-1.5 cursor-pointer"
                         >
-                            <UserIcon className="size-3.5 text-primary" />
+                            <UserIcon className="size-3 text-primary" />
                             <span>{isEditingProfile ? "Hide Profile Editor" : "Edit Profile / Password"}</span>
                         </Button>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate("/users")}
-                            className="h-9 rounded-xl px-4 text-xs font-semibold cursor-pointer"
+                            className="h-7.5 rounded-lg px-2.5 text-[11px] font-semibold cursor-pointer"
                             disabled={saving}
                         >
                             Cancel
@@ -500,10 +503,10 @@ export function UserAccessPage() {
                         <Button
                             size="sm"
                             onClick={handleSave}
-                            className="h-9 rounded-xl px-5 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 cursor-pointer shadow-xs"
+                            className="h-7.5 rounded-lg px-3 text-[11px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 cursor-pointer shadow-xs"
                             disabled={saving}
                         >
-                            {saving && <Loader2 className="size-3.5 animate-spin" />}
+                            {saving && <Loader2 className="size-3 animate-spin" />}
                             <span>Save Permissions & Access</span>
                         </Button>
                     </div>
@@ -511,20 +514,20 @@ export function UserAccessPage() {
 
                 {/* Optional Collapsible Profile & Password Editor */}
                 {isEditingProfile && (
-                    <div className="mt-4 pt-4 border-t border-border/60 grid grid-cols-1 sm:grid-cols-4 gap-3 animate-in fade-in duration-200">
+                    <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-1 sm:grid-cols-4 gap-2.5 animate-in fade-in duration-200">
                         <div>
-                            <label className="text-xs font-bold text-foreground block mb-1">
+                            <label className="text-[11px] font-bold text-foreground block mb-1">
                                 Full Name
                             </label>
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="Full Name"
-                                className="h-9 rounded-xl text-xs"
+                                className="h-7.5 rounded-lg text-xs"
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-foreground block mb-1">
+                            <label className="text-[11px] font-bold text-foreground block mb-1">
                                 Email Address
                             </label>
                             <Input
@@ -532,42 +535,42 @@ export function UserAccessPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="Email Address"
-                                className="h-9 rounded-xl text-xs"
+                                className="h-7.5 rounded-lg text-xs"
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-foreground block mb-1">
+                            <label className="text-[11px] font-bold text-foreground block mb-1">
                                 Phone Number
                             </label>
                             <Input
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                                 placeholder="Phone Number"
-                                className="h-9 rounded-xl text-xs"
+                                className="h-7.5 rounded-lg text-xs"
                             />
                         </div>
-                        </div>
+                    </div>
                 )}
             </div>
 
             {/* SECTION 1: COMPACT PAGE PERMISSIONS */}
-            <Card className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md shadow-xs overflow-hidden shrink-0">
-                <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border/50 bg-muted/15 px-5 py-3">
+            <Card className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs shadow-2xs overflow-hidden shrink-0">
+                <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border/50 bg-muted/20 px-3.5 py-2.5 sm:px-4 sm:py-3">
                     <div className="flex items-center gap-2">
                         <LayoutDashboardIcon className="size-4 text-primary" />
-                        <CardTitle className="text-sm font-extrabold text-foreground">
+                        <CardTitle className="text-xs sm:text-sm font-bold text-foreground">
                             1. Page-Level Permissions
                         </CardTitle>
                     </div>
-                    <div className="flex items-center gap-2.5">
-                        <span className="text-[11px] font-bold font-mono px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                             {(userRecord?.role === "Admin" ? AVAILABLE_PAGES.length + 1 : allowedPages.length + (hasInspectionAccess ? 1 : 0))} of {AVAILABLE_PAGES.length + 1} Allowed
                         </span>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={handleSelectAllPages}
-                            className="h-7 rounded-lg text-[11px] font-semibold px-3 cursor-pointer"
+                            className="h-7 rounded-lg text-[11px] font-semibold px-2.5 cursor-pointer"
                         >
                             {(allowedPages.length === AVAILABLE_PAGES.length && hasInspectionAccess)
                                 ? "Revoke All"
@@ -577,32 +580,32 @@ export function UserAccessPage() {
                 </CardHeader>
                 <CardContent className="p-3.5 space-y-3">
                     {userRecord?.role === "Admin" ? (
-                        <div className="p-3.5 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center gap-3 text-xs text-blue-600 dark:text-blue-400">
-                            <ShieldCheckIcon className="size-5 shrink-0 text-blue-500" />
+                        <div className="p-2.5 sm:p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center gap-2.5 text-xs text-blue-600 dark:text-blue-400">
+                            <ShieldCheckIcon className="size-4 shrink-0 text-blue-500" />
                             <div>
-                                <p className="font-bold text-sm">Admin Role Active — Unrestricted Access</p>
-                                <p className="opacity-90">Admins automatically have full access to all application pages, modules, and settings. Page permissions do not need to be manually assigned.</p>
+                                <p className="font-bold text-xs">Admin Role Active — Unrestricted Access</p>
+                                <p className="text-[11px] opacity-90 mt-0.5">Admins automatically have full access to all application pages, modules, and settings. Page permissions do not need to be manually assigned.</p>
                             </div>
                         </div>
                     ) : userRecord?.role === "Vendor" ? (
-                        <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-3 text-xs text-amber-700 dark:text-amber-400">
-                            <ShieldCheckIcon className="size-5 shrink-0 text-amber-500" />
+                        <div className="p-2.5 sm:p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center gap-2.5 text-xs text-amber-700 dark:text-amber-400">
+                            <ShieldCheckIcon className="size-4 shrink-0 text-amber-500" />
                             <div>
-                                <p className="font-bold text-sm">Vendor Role Active — Simplified Workflow</p>
-                                <p className="opacity-90">Vendors are restricted to tool issue and return operations (/stores & /tools). Administrative modules are automatically disabled.</p>
+                                <p className="font-bold text-xs">Vendor Role Active — Simplified Workflow</p>
+                                <p className="text-[11px] opacity-90 mt-0.5">Vendors are restricted to tool issue and return operations (/stores & /tools). Administrative modules are automatically disabled.</p>
                             </div>
                         </div>
                     ) : null}
                     {userRecord?.role === "Subuser" && parentUserRecord && (
-                        <div className="p-3.5 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center gap-3 text-xs text-purple-600 dark:text-purple-400">
-                            <ShieldCheckIcon className="size-5 shrink-0 text-purple-500" />
+                        <div className="p-2.5 sm:p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center gap-2.5 text-xs text-purple-600 dark:text-purple-400">
+                            <ShieldCheckIcon className="size-4 shrink-0 text-purple-500" />
                             <div>
-                                <p className="font-bold text-sm">Subuser Account — Constrained by Parent User ({parentUserRecord.name})</p>
-                                <p className="opacity-90">Displaying only pages and operational modules authorized for the parent user. Subuser permissions cannot exceed parent privileges.</p>
+                                <p className="font-bold text-xs">Subuser Account — Constrained by Parent User ({parentUserRecord.name})</p>
+                                <p className="text-[11px] opacity-90 mt-0.5">Displaying only pages and operational modules authorized for the parent user. Subuser permissions cannot exceed parent privileges.</p>
                             </div>
                         </div>
                     )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                         {displayedAvailablePages.map((page) => {
                             const isChecked = userRecord?.role === "Admin"
                                 ? true
@@ -615,7 +618,7 @@ export function UserAccessPage() {
                                 <div
                                     key={page.url}
                                     onClick={() => !isLocked && togglePage(page.url)}
-                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                    className={`flex items-center gap-2.5 p-2 sm:p-2.5 rounded-lg border transition-all ${
                                         isLocked ? "cursor-default opacity-95" : "cursor-pointer"
                                     } ${
                                         isChecked
@@ -624,20 +627,20 @@ export function UserAccessPage() {
                                     }`}
                                 >
                                     <div
-                                        className={`size-4 rounded-md flex items-center justify-center border shrink-0 transition-colors ${
+                                        className={`size-3.5 rounded flex items-center justify-center border shrink-0 transition-colors ${
                                             isChecked
                                                 ? "bg-primary border-primary text-primary-foreground"
                                                 : "border-border/80 bg-background"
                                         }`}
                                     >
-                                        {isChecked && <CheckIcon className="size-3" />}
+                                        {isChecked && <CheckIcon className="size-2.5" />}
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="text-xs font-bold flex items-center gap-1.5 text-foreground truncate">
                                             <IconComponent className="size-3.5 shrink-0 text-primary" />
                                             {page.title}
                                         </p>
-                                        <p className="text-[11px] text-muted-foreground truncate">
+                                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                                             {page.desc}
                                         </p>
                                     </div>
@@ -652,7 +655,7 @@ export function UserAccessPage() {
                                     setHasInspectionAccess(prev => !prev)
                                 }
                             }}
-                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                            className={`flex items-center gap-2.5 p-2 sm:p-2.5 rounded-lg border transition-all ${
                                 userRecord?.role === "Admin" || !parentAllowsInspection ? "cursor-default opacity-95" : "cursor-pointer"
                             } ${
                                 (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
@@ -661,7 +664,7 @@ export function UserAccessPage() {
                             }`}
                         >
                             <div
-                                className={`size-4 rounded-md flex items-center justify-center border shrink-0 transition-colors ${
+                                className={`size-3.5 rounded flex items-center justify-center border shrink-0 transition-colors ${
                                     (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
                                         ? "bg-emerald-600 border-emerald-600 text-white"
                                         : "border-border/80 bg-background"
@@ -672,9 +675,9 @@ export function UserAccessPage() {
                             <div className="min-w-0 flex-1">
                                 <p className="text-xs font-bold flex items-center gap-1.5 text-foreground truncate">
                                     <ClipboardCheck className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                                    Tool Inspection
+                                    <span className="truncate">Tool Inspection</span>
                                 </p>
-                                <p className="text-[11px] text-muted-foreground truncate">
+                                <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                                     Quality pass/fail & repair/scrap
                                 </p>
                             </div>
@@ -684,23 +687,23 @@ export function UserAccessPage() {
             </Card>
 
             {/* SECTION: OPERATIONAL & ACTION PERMISSIONS (INSPECTION ACCESS & CREATE USER) */}
-            <Card className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md shadow-xs overflow-hidden shrink-0">
-                <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border/50 bg-muted/15 px-5 py-3">
+            <Card className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs shadow-2xs overflow-hidden shrink-0">
+                <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border/50 bg-muted/20 px-3.5 py-2 sm:px-4 sm:py-2.5">
                     <div className="flex items-center gap-2">
                         <ClipboardCheck className="size-4 text-primary" />
-                        <CardTitle className="text-sm font-extrabold text-foreground">
+                        <CardTitle className="text-xs sm:text-sm font-bold text-foreground">
                             2. Operational & Action Permissions
                         </CardTitle>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                             (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
                                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                                 : "bg-muted text-muted-foreground border-border"
                         }`}>
                             {userRecord?.role === "Admin" ? "Admin Unrestricted" : hasInspectionAccess ? "Inspection: Granted" : "Inspection: Disabled"}
                         </span>
-                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                             (userRecord?.role === "Admin" || canCreateUser)
                                 ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30"
                                 : "bg-muted text-muted-foreground border-border"
@@ -709,7 +712,7 @@ export function UserAccessPage() {
                         </span>
                     </div>
                 </CardHeader>
-                <CardContent className="p-4 space-y-3">
+                <CardContent className="p-3 sm:p-3.5 space-y-2.5">
                     {/* Tool Inspection Permission Card */}
                     <div
                         onClick={() => {
@@ -717,7 +720,7 @@ export function UserAccessPage() {
                                 setHasInspectionAccess(prev => !prev)
                             }
                         }}
-                        className={`flex items-center justify-between gap-4 p-4 rounded-xl border transition-all ${
+                        className={`flex items-center justify-between gap-3 p-3 rounded-lg border transition-all ${
                             userRecord?.role === "Admin" || !parentAllowsInspection
                                 ? "cursor-default opacity-95"
                                 : "cursor-pointer hover:border-border"
@@ -727,39 +730,39 @@ export function UserAccessPage() {
                                 : "bg-background/60 border-border/70 text-muted-foreground"
                         }`}
                     >
-                        <div className="flex items-start gap-3.5 min-w-0">
-                            <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                        <div className="flex items-start gap-2.5 min-w-0">
+                            <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
                                 (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
                                     ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                                     : "bg-muted border-border text-muted-foreground"
                             }`}>
-                                <ClipboardCheck className="size-5" />
+                                <ClipboardCheck className="size-4" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h4 className="text-sm font-bold text-foreground">
+                                    <h4 className="text-xs sm:text-sm font-bold text-foreground">
                                         Tool Inspection Access
                                     </h4>
                                     {(userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection)) ? (
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
+                                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
                                             Active
                                         </span>
                                     ) : (
-                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-500 border border-slate-500/20">
+                                        <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-slate-500/15 text-slate-500 border border-slate-500/20">
                                             Disabled
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                <p className="text-[11px] text-muted-foreground mt-0.5 leading-normal">
                                     Authorizes the user to select tools, perform Quality Inspections, mark tools as <strong className="text-emerald-600 font-semibold">Pass</strong> (updating Validation & Expiry) or <strong className="text-rose-600 font-semibold">Fail</strong> (routing to Repair or Scrap).
                                 </p>
                                 {userRecord?.role === "Admin" && (
-                                    <p className="text-[11px] text-blue-500 font-medium mt-1">
+                                    <p className="text-[10px] text-blue-500 font-medium mt-0.5">
                                         Admin accounts automatically have full Inspection access.
                                     </p>
                                 )}
                                 {!parentAllowsInspection && (
-                                    <p className="text-[11px] text-rose-500 font-medium mt-1">
+                                    <p className="text-[10px] text-rose-500 font-medium mt-0.5">
                                         Parent user does not have Inspection access. Subusers cannot receive higher permissions than their parent user.
                                     </p>
                                 )}
@@ -777,16 +780,16 @@ export function UserAccessPage() {
                                         setHasInspectionAccess(prev => !prev)
                                     }
                                 }}
-                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed ${
+                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed ${
                                     (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
                                         ? "bg-emerald-600"
                                         : "bg-muted-foreground/30"
                                 }`}
                             >
                                 <span
-                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
                                         (userRecord?.role === "Admin" || (hasInspectionAccess && parentAllowsInspection))
-                                            ? "translate-x-5"
+                                            ? "translate-x-4"
                                             : "translate-x-0"
                                     }`}
                                 />
@@ -801,7 +804,7 @@ export function UserAccessPage() {
                                 setCanCreateUser(prev => !prev)
                             }
                         }}
-                        className={`flex items-center justify-between gap-4 p-4 rounded-xl border transition-all ${
+                        className={`flex items-center justify-between gap-3 p-3 rounded-lg border transition-all ${
                             userRecord?.role === "Admin" || userRecord?.role === "Subuser"
                                 ? "cursor-default opacity-95"
                                 : "cursor-pointer hover:border-border"
@@ -811,39 +814,39 @@ export function UserAccessPage() {
                                 : "bg-background/60 border-border/70 text-muted-foreground"
                         }`}
                     >
-                        <div className="flex items-start gap-3.5 min-w-0">
-                            <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                        <div className="flex items-start gap-2.5 min-w-0">
+                            <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
                                 (userRecord?.role === "Admin" || canCreateUser)
                                     ? "bg-blue-500/15 border-blue-500/30 text-blue-600 dark:text-blue-400"
                                     : "bg-muted border-border text-muted-foreground"
                             }`}>
-                                <UsersIcon className="size-5" />
+                                <UsersIcon className="size-4" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h4 className="text-sm font-bold text-foreground">
+                                    <h4 className="text-xs sm:text-sm font-bold text-foreground">
                                         Create & Manage Subusers
                                     </h4>
                                     {(userRecord?.role === "Admin" || canCreateUser) ? (
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 border border-blue-500/30">
+                                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-blue-500/15 text-blue-600 border border-blue-500/30">
                                             Active
                                         </span>
                                     ) : (
-                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-500 border border-slate-500/20">
+                                        <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-slate-500/15 text-slate-500 border border-slate-500/20">
                                             Disabled
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                <p className="text-[11px] text-muted-foreground mt-0.5 leading-normal">
                                     Allows this user to create and manage their own subusers, assign authorized page and inventory permissions, and approve or reject subuser login requests.
                                 </p>
                                 {userRecord?.role === "Admin" && (
-                                    <p className="text-[11px] text-blue-500 font-medium mt-1">
+                                    <p className="text-[10px] text-blue-500 font-medium mt-0.5">
                                         Admin accounts automatically have full user and subuser creation privileges.
                                     </p>
                                 )}
                                 {userRecord?.role === "Subuser" && (
-                                    <p className="text-[11px] text-amber-500 font-medium mt-1">
+                                    <p className="text-[10px] text-amber-500 font-medium mt-0.5">
                                         Subuser accounts cannot create or manage other users.
                                     </p>
                                 )}
@@ -861,16 +864,16 @@ export function UserAccessPage() {
                                         setCanCreateUser(prev => !prev)
                                     }
                                 }}
-                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed ${
+                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed ${
                                     (userRecord?.role === "Admin" || canCreateUser)
                                         ? "bg-blue-600"
                                         : "bg-muted-foreground/30"
                                 }`}
                             >
                                 <span
-                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
                                         (userRecord?.role === "Admin" || canCreateUser)
-                                            ? "translate-x-5"
+                                            ? "translate-x-4"
                                             : "translate-x-0"
                                     }`}
                                 />
@@ -881,14 +884,14 @@ export function UserAccessPage() {
             </Card>
 
             {/* SECTION 3: PROJECT ACCESS */}
-            <Card className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md shadow-xs overflow-hidden shrink-0">
-                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 bg-muted/15 px-5 py-3.5">
+            <Card className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs shadow-2xs overflow-hidden shrink-0">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 bg-muted/20 px-3.5 py-2 sm:px-4 sm:py-2.5">
                     <div>
-                        <CardTitle className="flex items-center gap-2 text-sm font-extrabold text-foreground">
+                        <CardTitle className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground">
                             <FolderOpenIcon className="size-4 text-primary" />
                             3. Project Access ({selectedProjects.length} of {allProjects.length} Selected)
                         </CardTitle>
-                        <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                        <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
                             Select authorized Projects. Only selected Projects will reveal their child Stores in Step 4 below.
                         </CardDescription>
                     </div>
@@ -897,7 +900,7 @@ export function UserAccessPage() {
                             variant="outline"
                             size="sm"
                             onClick={handleSelectAllFilteredProjects}
-                            className="h-8 rounded-xl text-xs font-semibold px-3.5 cursor-pointer"
+                            className="h-7 rounded-lg text-[11px] font-semibold px-2.5 cursor-pointer"
                         >
                             {filteredProjects.length > 0 &&
                             filteredProjects.every((p) => selectedProjects.includes(p._id))
@@ -906,24 +909,24 @@ export function UserAccessPage() {
                         </Button>
                     </div>
                 </CardHeader>
-                <CardContent className="p-4 space-y-4">
+                <CardContent className="p-3 sm:p-3.5 space-y-3">
                     {/* Search and Filters Bar */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="relative flex-1 max-w-sm">
-                            <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                            <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
                             <Input
                                 placeholder="Search projects by name, code, location..."
                                 value={projectSearch}
                                 onChange={(e) => setProjectSearch(e.target.value)}
-                                className="pl-9 h-9 rounded-xl bg-background border-border/70 text-xs"
+                                className="pl-8 h-7.5 rounded-lg bg-background border-border/70 text-xs"
                             />
                             {projectSearch && (
                                 <button
                                     type="button"
                                     onClick={() => setProjectSearch("")}
-                                    className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                                    className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
                                 >
-                                    <XIcon className="size-4" />
+                                    <XIcon className="size-3.5" />
                                 </button>
                             )}
                         </div>
@@ -934,7 +937,7 @@ export function UserAccessPage() {
                                     key={mode}
                                     type="button"
                                     onClick={() => setProjectFilter(mode)}
-                                    className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
+                                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold capitalize transition-all cursor-pointer ${
                                         projectFilter === mode
                                             ? "bg-background text-foreground shadow-xs font-bold"
                                             : "text-muted-foreground hover:text-foreground"
@@ -963,7 +966,7 @@ export function UserAccessPage() {
                                     <div
                                         key={p._id}
                                         onClick={() => toggleProject(p._id)}
-                                        className={`flex items-start justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                        className={`flex items-start justify-between p-2.5 rounded-lg border cursor-pointer transition-all gap-2 ${
                                             isChecked
                                                 ? "bg-primary/10 border-primary text-foreground shadow-xs font-semibold"
                                                 : "bg-background/60 border-border/70 text-muted-foreground hover:border-border hover:text-foreground"
@@ -971,21 +974,21 @@ export function UserAccessPage() {
                                     >
                                         <div className="flex items-start gap-3 min-w-0">
                                             <div
-                                                className={`size-4 rounded-md flex items-center justify-center border mt-0.5 shrink-0 transition-colors ${
+                                                className={`size-3.5 rounded flex items-center justify-center border mt-0.5 shrink-0 transition-colors ${
                                                     isChecked
                                                         ? "bg-primary border-primary text-primary-foreground"
                                                         : "border-border/80 bg-background"
                                                 }`}
                                             >
-                                                {isChecked && <CheckIcon className="size-3" />}
+                                                {isChecked && <CheckIcon className="size-2.5" />}
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-bold truncate text-foreground">
                                                     {p.name}
                                                 </p>
-                                                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground font-normal">
+                                                <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground font-normal">
                                                     {p.code && (
-                                                        <span className="font-mono bg-muted px-1.5 py-0.5 rounded">
+                                                        <span className="font-mono bg-muted px-1.5 py-0.2 rounded">
                                                             {p.code}
                                                         </span>
                                                     )}
@@ -996,7 +999,7 @@ export function UserAccessPage() {
                                             </div>
                                         </div>
                                         {isChecked && (
-                                            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono uppercase font-bold shrink-0 ml-2">
+                                            <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.2 rounded-full font-mono uppercase font-bold shrink-0 ml-1.5">
                                                 Selected
                                             </span>
                                         )}
@@ -1009,14 +1012,14 @@ export function UserAccessPage() {
             </Card>
 
             {/* SECTION 3: STORE ACCESS (Project -> Store Dependency) */}
-            <Card className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md shadow-xs overflow-hidden shrink-0 mb-6">
-                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 bg-muted/15 px-5 py-3.5">
+            <Card className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs shadow-2xs overflow-hidden shrink-0 mb-4">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 bg-muted/20 px-3.5 py-2 sm:px-4 sm:py-2.5">
                     <div>
-                        <CardTitle className="flex items-center gap-2 text-sm font-extrabold text-foreground">
+                        <CardTitle className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground">
                             <StoreIcon className="size-4 text-primary" />
                             4. Store Access ({selectedStores.length} of {availableStoresForProjects.length} Assigned)
                         </CardTitle>
-                        <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                        <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
                             Displays ONLY Stores belonging to selected Project(s) in Step 3 above. Stores from unselected projects are restricted.
                         </CardDescription>
                     </div>
@@ -1026,7 +1029,7 @@ export function UserAccessPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={handleSelectAllFilteredStores}
-                                className="h-8 rounded-xl text-xs font-semibold px-3.5 cursor-pointer"
+                                className="h-7 rounded-lg text-[11px] font-semibold px-2.5 cursor-pointer"
                             >
                                 {filteredStores.length > 0 &&
                                 filteredStores.every((s) => selectedStores.includes(s._id))
@@ -1036,16 +1039,16 @@ export function UserAccessPage() {
                         </div>
                     )}
                 </CardHeader>
-                <CardContent className="p-4 space-y-4">
+                <CardContent className="p-3 sm:p-3.5 space-y-3">
                     {selectedProjects.length === 0 ? (
-                        <div className="py-10 px-6 rounded-xl border border-dashed border-border/80 bg-muted/20 text-center space-y-2 max-w-lg mx-auto">
-                            <div className="size-12 rounded-xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
-                                <LockIcon className="size-6 opacity-70" />
+                        <div className="py-8 px-4 rounded-lg border border-dashed border-border/80 bg-muted/20 text-center space-y-1.5 max-w-md mx-auto">
+                            <div className="size-10 rounded-lg bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
+                                <LockIcon className="size-5 opacity-70" />
                             </div>
-                            <h3 className="text-sm font-bold text-foreground">
+                            <h3 className="text-xs font-bold text-foreground">
                                 Select a Project First
                             </h3>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
+                            <p className="text-[11px] text-muted-foreground leading-normal">
                                 Store assignment is locked until you select one or more Projects in Step 3 above. Once selected, only Stores belonging to those specific Projects will appear here.
                             </p>
                         </div>
@@ -1054,20 +1057,20 @@ export function UserAccessPage() {
                             {/* Search and Filters Bar */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div className="relative flex-1 max-w-sm">
-                                    <SearchIcon className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                                    <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
                                     <Input
                                         placeholder="Search stores by code, name, project..."
                                         value={storeSearch}
                                         onChange={(e) => setStoreSearch(e.target.value)}
-                                        className="pl-9 h-9 rounded-xl bg-background border-border/70 text-xs"
+                                        className="pl-8 h-7.5 rounded-lg bg-background border-border/70 text-xs"
                                     />
                                     {storeSearch && (
                                         <button
                                             type="button"
                                             onClick={() => setStoreSearch("")}
-                                            className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                                            className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
                                         >
-                                            <XIcon className="size-4" />
+                                            <XIcon className="size-3.5" />
                                         </button>
                                     )}
                                 </div>
@@ -1078,7 +1081,7 @@ export function UserAccessPage() {
                                             key={mode}
                                             type="button"
                                             onClick={() => setStoreFilter(mode)}
-                                            className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
+                                            className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold capitalize transition-all cursor-pointer ${
                                                 storeFilter === mode
                                                     ? "bg-background text-foreground shadow-xs font-bold"
                                                     : "text-muted-foreground hover:text-foreground"
@@ -1105,8 +1108,8 @@ export function UserAccessPage() {
                                         ([projectName, projectStores]) => (
                                             <div key={projectName} className="space-y-2.5">
                                                 <div className="flex items-center gap-2 px-1">
-                                                    <FolderOpenIcon className="size-3.5 text-primary" />
-                                                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                                                    <FolderOpenIcon className="size-3 text-primary" />
+                                                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                                         {projectName} ({projectStores.length})
                                                     </h4>
                                                 </div>
@@ -1117,7 +1120,7 @@ export function UserAccessPage() {
                                                             <div
                                                                 key={s._id}
                                                                 onClick={() => toggleStore(s._id)}
-                                                                className={`flex items-start justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                                                className={`flex items-start justify-between p-2.5 rounded-lg border cursor-pointer transition-all gap-2 ${
                                                                     isChecked
                                                                         ? "bg-primary/10 border-primary text-foreground shadow-xs font-semibold"
                                                                         : "bg-background/60 border-border/70 text-muted-foreground hover:border-border hover:text-foreground"
@@ -1125,23 +1128,23 @@ export function UserAccessPage() {
                                                             >
                                                                 <div className="flex items-start gap-3 min-w-0">
                                                                     <div
-                                                                        className={`size-4 rounded-md flex items-center justify-center border mt-0.5 shrink-0 transition-colors ${
+                                                                        className={`size-3.5 rounded flex items-center justify-center border mt-0.5 shrink-0 transition-colors ${
                                                                             isChecked
                                                                                 ? "bg-primary border-primary text-primary-foreground"
                                                                                 : "border-border/80 bg-background"
                                                                         }`}
                                                                     >
                                                                         {isChecked && (
-                                                                            <CheckIcon className="size-3" />
+                                                                            <CheckIcon className="size-2.5" />
                                                                         )}
                                                                     </div>
                                                                     <div className="min-w-0">
                                                                         <p className="text-xs font-bold truncate text-foreground">
                                                                             {s.name || s.storeName}
                                                                         </p>
-                                                                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground font-normal">
+                                                                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground font-normal">
                                                                             {s.code && (
-                                                                                <span className="font-mono bg-muted px-1.5 py-0.5 rounded">
+                                                                                <span className="font-mono bg-muted px-1.5 py-0.2 rounded">
                                                                                     {s.code}
                                                                                 </span>
                                                                             )}
@@ -1154,7 +1157,7 @@ export function UserAccessPage() {
                                                                     </div>
                                                                 </div>
                                                                 {isChecked && (
-                                                                    <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono uppercase font-bold shrink-0 ml-2">
+                                                                    <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.2 rounded-full font-mono uppercase font-bold shrink-0 ml-1.5">
                                                                         Assigned
                                                                     </span>
                                                                 )}

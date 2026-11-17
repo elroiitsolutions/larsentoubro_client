@@ -4,8 +4,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
-    DialogFooter
+    DialogDescription
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -27,7 +26,8 @@ import {
     ClipboardCheck,
     AlertTriangle,
     ShieldCheck,
-    Layers
+    Layers,
+    X
 } from "lucide-react"
 import { toast } from "sonner"
 import toolService, { type ToolRecord } from "@/services/tool.service"
@@ -224,349 +224,377 @@ export function ToolInspectionModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md sm:max-w-xl rounded-2xl border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl p-6">
+            <DialogContent hideClose={true} className="max-w-md sm:max-w-xl rounded-xl border-border/60 bg-background shadow-2xl p-0 overflow-hidden flex flex-col">
                 {/* STEP 1: SELECT RESULT (PASS / FAIL) */}
                 {step === "SELECT_RESULT" && (
-                    <div className="space-y-5 animate-in fade-in duration-200">
-                        <DialogHeader>
-                            <div className="flex items-center gap-2.5">
-                                <div className="size-10 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                                    <ClipboardCheck className="size-5" />
+                    <div className="flex flex-col flex-1 min-h-0 animate-in fade-in duration-200">
+                        <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                                        <ClipboardCheck className="size-4.5" />
+                                    </div>
+                                    <div>
+                                        <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                            Tool Quality Inspection
+                                        </DialogTitle>
+                                        <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                            Perform quality and safety verification for {totalSelected} selected tool{totalSelected === 1 ? "" : "s"}.
+                                        </DialogDescription>
+                                    </div>
                                 </div>
-                                <div>
-                                    <DialogTitle className="text-xl font-bold tracking-tight">
-                                        Tool Quality Inspection
-                                    </DialogTitle>
-                                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                                        Perform quality and safety verification for {totalSelected} selected tool{totalSelected === 1 ? "" : "s"}.
-                                    </DialogDescription>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenChange(false)}
+                                    className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 cursor-pointer"
+                                    aria-label="Close modal"
+                                >
+                                    <X className="size-4" />
+                                </button>
                             </div>
                         </DialogHeader>
 
-                        {/* Selected Tools Quick Chips */}
-                        <div className="p-3 rounded-xl bg-muted/40 border border-border/60 space-y-1.5">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span className="font-semibold text-foreground flex items-center gap-1.5">
-                                    <Layers className="size-3.5 text-primary" />
-                                    Selected for Inspection ({totalSelected})
-                                </span>
-                                <span>Inspector: {user?.name || "Quality Team"}</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pt-1">
-                                {selectedTools.map(t => (
-                                    <span
-                                        key={t._id}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-mono bg-background border border-border/70 text-foreground"
-                                        title={`${t.toolId} - ${t.description}`}
-                                    >
-                                        <span className="font-bold">{t.toolId || t.toolCode || "Tool"}</span>
-                                        <span className="text-muted-foreground text-[10px] truncate max-w-[120px]">
-                                            ({t.description})
+                        <div className="p-4 sm:p-5 space-y-3.5 flex-1 overflow-y-auto">
+                            {/* Selected Tools Quick Chips */}
+                            <div className="p-2.5 rounded-lg bg-muted/30 border border-border/60 space-y-1">
+                                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                        <Layers className="size-3 text-primary" />
+                                        Selected for Inspection ({totalSelected})
+                                    </span>
+                                    <span>Inspector: {user?.name || "Quality Team"}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto pt-0.5">
+                                    {selectedTools.map(t => (
+                                        <span
+                                            key={t._id}
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-background border border-border/70 text-foreground"
+                                            title={`${t.toolId} - ${t.description}`}
+                                        >
+                                            <span className="font-bold">{t.toolId || t.toolCode || "Tool"}</span>
+                                            <span className="text-muted-foreground truncate max-w-[120px]">
+                                                ({t.description})
+                                            </span>
                                         </span>
-                                    </span>
-                                ))}
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Two Primary Action Cards: Pass or Fail */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+                                {/* Pass Card */}
+                                <button
+                                    type="button"
+                                    onClick={() => setStep("PASS_CONFIG")}
+                                    className="flex flex-col items-start text-left p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500 transition-all cursor-pointer group shadow-2xs"
+                                >
+                                    <div className="flex items-center justify-between w-full mb-2">
+                                        <div className="size-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                            <CheckCircle2 className="size-4" />
+                                        </div>
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                            Pass
+                                        </span>
+                                    </div>
+                                    <h4 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                                        Mark as PASS
+                                    </h4>
+                                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                                        Tools meet safety specifications. Proceed to configure Validation Period (1, 2, or 3 Years) and renew expiry date.
+                                    </p>
+                                </button>
+
+                                {/* Fail Card */}
+                                <button
+                                    type="button"
+                                    onClick={() => setStep("FAIL_OPTIONS")}
+                                    className="flex flex-col items-start text-left p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 hover:border-rose-500 transition-all cursor-pointer group shadow-2xs"
+                                >
+                                    <div className="flex items-center justify-between w-full mb-2">
+                                        <div className="size-7 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                            <XCircle className="size-4" />
+                                        </div>
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                            Fail
+                                        </span>
+                                    </div>
+                                    <h4 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-rose-700 dark:group-hover:text-rose-400 transition-colors">
+                                        Mark as FAIL
+                                    </h4>
+                                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                                        Tools failed inspection or show defects. Route for internal/external Repair or move directly to Scrap page.
+                                    </p>
+                                </button>
                             </div>
                         </div>
 
-                        {/* Two Primary Action Cards: Pass or Fail */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                            {/* Pass Card */}
-                            <button
-                                type="button"
-                                onClick={() => setStep("PASS_CONFIG")}
-                                className="flex flex-col items-start text-left p-4 rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500 transition-all cursor-pointer group shadow-xs"
-                            >
-                                <div className="flex items-center justify-between w-full mb-2.5">
-                                    <div className="size-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                        <CheckCircle2 className="size-5" />
-                                    </div>
-                                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                                        Pass
-                                    </span>
-                                </div>
-                                <h4 className="text-sm font-bold text-foreground group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
-                                    Mark as PASS
-                                </h4>
-                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                                    Tools meet safety specifications. Proceed to configure Validation Period (1, 2, or 3 Years) and renew expiry date.
-                                </p>
-                            </button>
-
-                            {/* Fail Card */}
-                            <button
-                                type="button"
-                                onClick={() => setStep("FAIL_OPTIONS")}
-                                className="flex flex-col items-start text-left p-4 rounded-2xl border-2 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 hover:border-rose-500 transition-all cursor-pointer group shadow-xs"
-                            >
-                                <div className="flex items-center justify-between w-full mb-2.5">
-                                    <div className="size-9 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                        <XCircle className="size-5" />
-                                    </div>
-                                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
-                                        Fail
-                                    </span>
-                                </div>
-                                <h4 className="text-sm font-bold text-foreground group-hover:text-rose-700 dark:group-hover:text-rose-400 transition-colors">
-                                    Mark as FAIL
-                                </h4>
-                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                                    Tools failed inspection or show defects. Route for internal/external Repair or move directly to Scrap page.
-                                </p>
-                            </button>
-                        </div>
-
-                        <DialogFooter className="pt-2">
+                        <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end">
                             <Button
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
-                                className="w-full sm:w-auto rounded-xl"
+                                className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                             >
                                 Cancel
                             </Button>
-                        </DialogFooter>
+                        </div>
                     </div>
                 )}
 
                 {/* STEP 2A: PASS CONFIGURATION */}
                 {step === "PASS_CONFIG" && (
-                    <div className="space-y-4 animate-in slide-in-from-right-3 duration-200">
-                        <DialogHeader>
-                            <div className="flex items-center justify-between">
+                    <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-3 duration-200">
+                        <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                            <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setStep("SELECT_RESULT")}
-                                        className="size-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                                        className="size-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                                         title="Back to result selection"
                                     >
-                                        <ArrowLeft className="size-4" />
+                                        <ArrowLeft className="size-3.5" />
                                     </button>
-                                    <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                                        <CheckCircle2 className="size-5 text-emerald-600" />
-                                        <span>Inspection Passed — Update Validation</span>
-                                    </DialogTitle>
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0">
+                                            <CheckCircle2 className="size-4" />
+                                        </div>
+                                        <div>
+                                            <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                                Inspection Passed — Update Validation
+                                            </DialogTitle>
+                                            <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                                Select the renewed validity period. Expiration date will auto-compute.
+                                            </DialogDescription>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shrink-0">
                                     {totalSelected} Tool{totalSelected === 1 ? "" : "s"}
                                 </span>
                             </div>
-                            <DialogDescription className="text-xs text-muted-foreground pt-1">
-                                Select the renewed validity period. The expiration date will automatically compute from the date of supply.
-                            </DialogDescription>
                         </DialogHeader>
 
-                        {/* Validation Dropdown Section */}
-                        <div className="space-y-1.5 p-3.5 rounded-xl border border-border/60 bg-muted/20">
-                            <label className="text-xs font-bold text-foreground flex items-center justify-between">
-                                <span className="flex items-center gap-1.5">
-                                    <ShieldCheck className="size-3.5 text-emerald-600" />
-                                    Validation Period (Configured in Form Management)
-                                </span>
-                                {loadingConfig && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
-                            </label>
-                            <Select value={selectedValidation} onValueChange={(val) => setSelectedValidation(val || "")}>
-                                <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                                    <SelectValue placeholder="Select validation period..." />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl">
-                                    {validationOptions.map((opt) => (
-                                        <SelectItem key={opt} value={opt} className="text-xs font-medium">
-                                            {opt}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-[11px] text-muted-foreground">
-                                Options are populated dynamically from Form Management configuration.
-                            </p>
-                        </div>
-
-                        {/* Live Expiry Preview Banner */}
-                        {expiryPreview && (
-                            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                                    <Calendar className="size-4 shrink-0 text-emerald-600" />
-                                    <div>
-                                        <span className="font-semibold block text-[11px] uppercase tracking-wide">
-                                            Calculated Expiry Date
-                                        </span>
-                                        <span className="font-bold font-mono text-sm">
-                                            {expiryPreview}
-                                        </span>
-                                    </div>
-                                </div>
-                                <span className="text-[10px] text-emerald-600 font-medium">
-                                    Based on {selectedValidation}
-                                </span>
+                        <div className="p-4 sm:p-5 space-y-3.5 flex-1 overflow-y-auto">
+                            {/* Validation Dropdown Section */}
+                            <div className="space-y-1.5 p-3 rounded-lg border border-border/60 bg-muted/20">
+                                <label className="text-[11px] font-semibold text-foreground/90 flex items-center justify-between mb-1">
+                                    <span className="flex items-center gap-1.5">
+                                        <ShieldCheck className="size-3.5 text-emerald-600" />
+                                        Validation Period (Configured in Form Management)
+                                    </span>
+                                    {loadingConfig && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+                                </label>
+                                <Select value={selectedValidation} onValueChange={(val) => setSelectedValidation(val || "")}>
+                                    <SelectTrigger className="h-7.5 sm:h-8 rounded-lg bg-background border-input text-xs font-medium px-2.5 shadow-2xs">
+                                        <SelectValue placeholder="Select validation period..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                        {validationOptions.map((opt) => (
+                                            <SelectItem key={opt} value={opt} className="text-xs font-medium">
+                                                {opt}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-[10px] text-muted-foreground">
+                                    Options are populated dynamically from Form Management configuration.
+                                </p>
                             </div>
-                        )}
 
-                        {/* Optional Inspection Remarks */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-foreground block">
-                                Inspection Remarks & Notes (Optional)
-                            </label>
-                            <Textarea
-                                value={remarks}
-                                onChange={(e) => setRemarks(e.target.value)}
-                                placeholder="e.g. Visual inspection passed, tested load capacity, calibrated sensors..."
-                                className="min-h-[70px] text-xs rounded-xl resize-none"
-                            />
+                            {/* Live Expiry Preview Banner */}
+                            {expiryPreview && (
+                                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                                        <Calendar className="size-3.5 shrink-0 text-emerald-600" />
+                                        <div>
+                                            <span className="font-semibold block text-[10px] uppercase tracking-wide">
+                                                Calculated Expiry Date
+                                            </span>
+                                            <span className="font-bold font-mono text-xs sm:text-sm">
+                                                {expiryPreview}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] text-emerald-600 font-medium">
+                                        Based on {selectedValidation}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Optional Inspection Remarks */}
+                            <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-foreground/90 block mb-1">
+                                    Inspection Remarks & Notes (Optional)
+                                </label>
+                                <Textarea
+                                    value={remarks}
+                                    onChange={(e) => setRemarks(e.target.value)}
+                                    placeholder="e.g. Visual inspection passed, tested load capacity, calibrated sensors..."
+                                    className="min-h-[50px] text-xs rounded-lg p-2 resize-none"
+                                />
+                            </div>
                         </div>
 
-                        <DialogFooter className="gap-2 sm:gap-0 pt-2">
+                        <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end gap-2.5">
                             <Button
                                 variant="outline"
                                 onClick={() => setStep("SELECT_RESULT")}
                                 disabled={submitting}
-                                className="rounded-xl"
+                                className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                             >
                                 Back
                             </Button>
                             <Button
                                 onClick={handleConfirmPass}
                                 disabled={submitting}
-                                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md"
+                                className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-2xs"
                             >
-                                {submitting && <Loader2 className="size-4 animate-spin mr-2" />}
+                                {submitting && <Loader2 className="size-3.5 animate-spin mr-1.5" />}
                                 Confirm Pass ({totalSelected})
                             </Button>
-                        </DialogFooter>
+                        </div>
                     </div>
                 )}
 
                 {/* STEP 2B: FAIL CONFIGURATION (REPAIR OR SCRAP) */}
                 {step === "FAIL_OPTIONS" && (
-                    <div className="space-y-4 animate-in slide-in-from-right-3 duration-200">
-                        <DialogHeader>
-                            <div className="flex items-center justify-between">
+                    <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-3 duration-200">
+                        <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                            <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setStep("SELECT_RESULT")}
-                                        className="size-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                                        className="size-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                                         title="Back to result selection"
                                     >
-                                        <ArrowLeft className="size-4" />
+                                        <ArrowLeft className="size-3.5" />
                                     </button>
-                                    <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                                        <XCircle className="size-5 text-rose-600" />
-                                        <span>Inspection Failed — Select Action</span>
-                                    </DialogTitle>
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 shrink-0">
+                                            <XCircle className="size-4" />
+                                        </div>
+                                        <div>
+                                            <DialogTitle className="text-sm sm:text-base font-bold text-rose-700 dark:text-rose-400">
+                                                Inspection Failed — Select Action
+                                            </DialogTitle>
+                                            <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                                Choose whether to route the failed tool(s) for Repair or move to Scrap.
+                                            </DialogDescription>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 shrink-0">
                                     {totalSelected} Tool{totalSelected === 1 ? "" : "s"}
                                 </span>
                             </div>
-                            <DialogDescription className="text-xs text-muted-foreground pt-1">
-                                Choose whether to send the failed tool(s) for Repair or move directly to Scrap.
-                            </DialogDescription>
                         </DialogHeader>
 
-                        {/* Radio selection between Repair and Scrap */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                            {/* Option: Repair */}
-                            <div
-                                onClick={() => setFailAction("Repair")}
-                                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                                    failAction === "Repair"
-                                        ? "bg-amber-500/10 border-amber-500 text-foreground shadow-sm"
-                                        : "bg-muted/30 border-border/70 text-muted-foreground hover:border-border"
-                                }`}
-                            >
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="size-8 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center">
-                                            <Wrench className="size-4" />
+                        <div className="p-4 sm:p-5 space-y-3.5 flex-1 overflow-y-auto">
+                            {/* Radio selection between Repair and Scrap */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+                                {/* Option: Repair */}
+                                <div
+                                    onClick={() => setFailAction("Repair")}
+                                    className={`p-3 rounded-lg border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                                        failAction === "Repair"
+                                            ? "bg-amber-500/10 border-amber-500 text-foreground shadow-2xs"
+                                            : "bg-muted/30 border-border/70 text-muted-foreground hover:border-border"
+                                    }`}
+                                >
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <div className="size-7 rounded-md bg-amber-500/15 text-amber-600 flex items-center justify-center">
+                                                <Wrench className="size-3.5" />
+                                            </div>
+                                            <div className={`size-3.5 rounded-full border flex items-center justify-center ${
+                                                failAction === "Repair" ? "border-amber-500 bg-amber-500" : "border-border"
+                                            }`}>
+                                                {failAction === "Repair" && <div className="size-1 rounded-full bg-white" />}
+                                            </div>
                                         </div>
-                                        <div className={`size-4 rounded-full border flex items-center justify-center ${
-                                            failAction === "Repair" ? "border-amber-500 bg-amber-500" : "border-border"
-                                        }`}>
-                                            {failAction === "Repair" && <div className="size-1.5 rounded-full bg-white" />}
-                                        </div>
+                                        <h4 className="text-xs font-bold text-foreground">
+                                            Send to Repair
+                                        </h4>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                                            Sets status to <strong>Repair</strong>. Operations restricted until repaired.
+                                        </p>
                                     </div>
-                                    <h4 className="text-xs font-bold text-foreground">
-                                        Send to Repair
-                                    </h4>
-                                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                                        Sets status to <strong>Repair</strong>. Tool operations (DC issuance, transfers, returns) are restricted until repaired.
-                                    </p>
+                                </div>
+
+                                {/* Option: Scrap */}
+                                <div
+                                    onClick={() => setFailAction("Scrap")}
+                                    className={`p-3 rounded-lg border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                                        failAction === "Scrap"
+                                            ? "bg-rose-500/10 border-rose-500 text-foreground shadow-2xs"
+                                            : "bg-muted/30 border-border/70 text-muted-foreground hover:border-border"
+                                    }`}
+                                >
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <div className="size-7 rounded-md bg-rose-500/15 text-rose-600 flex items-center justify-center">
+                                                <Archive className="size-3.5" />
+                                            </div>
+                                            <div className={`size-3.5 rounded-full border flex items-center justify-center ${
+                                                failAction === "Scrap" ? "border-rose-500 bg-rose-500" : "border-border"
+                                            }`}>
+                                                {failAction === "Scrap" && <div className="size-1 rounded-full bg-white" />}
+                                            </div>
+                                        </div>
+                                        <h4 className="text-xs font-bold text-foreground">
+                                            Move to Scrap
+                                        </h4>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                                            Moves tools directly to the <strong>Scrap page</strong> for future disposal DC.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Option: Scrap */}
-                            <div
-                                onClick={() => setFailAction("Scrap")}
-                                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                                    failAction === "Scrap"
-                                        ? "bg-rose-500/10 border-rose-500 text-foreground shadow-sm"
-                                        : "bg-muted/30 border-border/70 text-muted-foreground hover:border-border"
-                                }`}
-                            >
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="size-8 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center">
-                                            <Archive className="size-4" />
-                                        </div>
-                                        <div className={`size-4 rounded-full border flex items-center justify-center ${
-                                            failAction === "Scrap" ? "border-rose-500 bg-rose-500" : "border-border"
-                                        }`}>
-                                            {failAction === "Scrap" && <div className="size-1.5 rounded-full bg-white" />}
-                                        </div>
-                                    </div>
-                                    <h4 className="text-xs font-bold text-foreground">
-                                        Move to Scrap
-                                    </h4>
-                                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                                        Moves tools directly to the <strong>Scrap page</strong> for future disposal DC generation with Scrap Dealers.
-                                    </p>
-                                </div>
+                            {/* Defect Notes & Reason */}
+                            <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5 mb-1">
+                                    <AlertTriangle className="size-3.5 text-amber-500" />
+                                    Defect Reason / Failure Notes
+                                </label>
+                                <Textarea
+                                    value={remarks}
+                                    onChange={(e) => setRemarks(e.target.value)}
+                                    placeholder={
+                                        failAction === "Repair"
+                                            ? "Specify defect details, required repairs, or vendor servicing notes..."
+                                            : "Specify scrap reason (e.g. beyond economical repair, structural damage)..."
+                                    }
+                                    className="min-h-[50px] text-xs rounded-lg p-2 resize-none"
+                                />
                             </div>
                         </div>
 
-                        {/* Defect Notes & Reason */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                <AlertTriangle className="size-3.5 text-amber-500" />
-                                Defect Reason / Failure Notes
-                            </label>
-                            <Textarea
-                                value={remarks}
-                                onChange={(e) => setRemarks(e.target.value)}
-                                placeholder={
-                                    failAction === "Repair"
-                                        ? "Specify defect details, required repairs, or vendor servicing notes..."
-                                        : "Specify scrap reason (e.g. beyond economical repair, structural damage)..."
-                                }
-                                className="min-h-[75px] text-xs rounded-xl resize-none"
-                            />
-                        </div>
-
-                        <DialogFooter className="gap-2 sm:gap-0 pt-2">
+                        <div className="px-5 py-3 border-t border-border/60 bg-muted/30 shrink-0 flex items-center justify-end gap-2.5">
                             <Button
                                 variant="outline"
                                 onClick={() => setStep("SELECT_RESULT")}
                                 disabled={submitting}
-                                className="rounded-xl"
+                                className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer"
                             >
                                 Back
                             </Button>
                             <Button
                                 onClick={handleConfirmFail}
                                 disabled={submitting}
-                                className={`rounded-xl font-semibold text-white shadow-md ${
+                                className={`h-8 rounded-lg px-4.5 text-xs font-semibold text-white cursor-pointer shadow-2xs ${
                                     failAction === "Repair"
                                         ? "bg-amber-600 hover:bg-amber-700"
                                         : "bg-rose-600 hover:bg-rose-700"
                                 }`}
                             >
-                                {submitting && <Loader2 className="size-4 animate-spin mr-2" />}
+                                {submitting && <Loader2 className="size-3.5 animate-spin mr-1.5" />}
                                 {failAction === "Repair"
                                     ? `Confirm Repair (${totalSelected})`
                                     : `Confirm Move to Scrap (${totalSelected})`}
                             </Button>
-                        </DialogFooter>
+                        </div>
                     </div>
                 )}
             </DialogContent>

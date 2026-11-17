@@ -23,6 +23,7 @@ export interface UserRecord {
     stores?: any[];
     assignedProjects?: any[];
     assignedStores?: any[];
+    documents?: any[];
     createdAt?: string;
     updatedAt?: string;
 }
@@ -155,6 +156,34 @@ export const userService = {
     rejectLoginRequest: async (requestId: string, reason?: string): Promise<{ success: boolean; message?: string }> => {
         const response = await api.post(`/api/users/login-requests/${requestId}/reject`, { reason });
         return response.data;
+    },
+
+    /**
+     * Uploads document attachment to user/subuser account.
+     */
+    uploadDocument: async (userId: string, formData: FormData): Promise<CreateUserResponse> => {
+        const response = await api.post<CreateUserResponse>(`/api/users/${userId}/documents`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return response.data;
+    },
+
+    /**
+     * Removes document attachment from user/subuser account.
+     */
+    deleteDocument: async (userId: string, docId: string): Promise<CreateUserResponse> => {
+        const response = await api.delete<CreateUserResponse>(`/api/users/${userId}/documents/${docId}`);
+        return response.data;
+    },
+
+    /**
+     * Returns download URL for user/subuser document file.
+     */
+    getDocumentDownloadUrl: (filename: string): string => {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+        return `${baseUrl}/api/users/documents/file/${filename}`;
     },
 
     /**

@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+ import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
-    DialogFooter
+    DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import toolService from "@/services/tool.service";
 import profileService from "@/services/profile.service";
+import { DatePickerField } from "@/components/DynamicForm/DynamicField";
 import { toast } from "sonner";
-import { Loader2, Edit3, AlertTriangle, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Loader2, Edit3, AlertTriangle, CheckCircle2, ArrowLeft, X } from "lucide-react";
 
 interface BulkEditToolsModalProps {
     open: boolean;
@@ -140,70 +140,86 @@ export function BulkEditToolsModal({
     };
 
     return (
-        <Dialog open={open} onOpenChange={(val) => { if (!val) resetForm(); onOpenChange(val); }} className="max-w-2xl">
-            <DialogContent className="p-0 overflow-hidden">
-                <div className="p-6 border-b bg-muted/30">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                            <Edit3 className="size-5 text-primary" />
-                            Bulk Edit ({totalCount} selected tools)
-                        </DialogTitle>
-                        <DialogDescription className="text-sm text-muted-foreground">
-                            Update common attributes across the {totalCount} selected tools. Blank fields will remain unchanged.
-                        </DialogDescription>
-                    </DialogHeader>
-                </div>
+        <Dialog open={open} onOpenChange={(val) => { if (!val) resetForm(); onOpenChange(val); }}>
+            <DialogContent hideClose={true} className="max-w-2xl rounded-xl p-0 overflow-hidden shadow-2xl flex flex-col">
+                <DialogHeader className="px-5 py-3 border-b border-border/60 bg-muted/20 shrink-0">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                                <Edit3 className="size-4.5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                                    Bulk Edit ({totalCount} selected tools)
+                                </DialogTitle>
+                                <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+                                    Update common attributes across the {totalCount} selected tools. Blank fields will remain unchanged.
+                                </DialogDescription>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => onOpenChange(false)}
+                            className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 cursor-pointer"
+                            aria-label="Close modal"
+                        >
+                            <X className="size-4" />
+                        </button>
+                    </div>
+                </DialogHeader>
 
                 {!isConfirmStep ? (
-                    <form onSubmit={handleProceedToReview} className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Validation</Label>
-                                <Input
-                                    type="text"
-                                    placeholder="e.g. 31-12-2028 or 2 Years"
-                                    value={formValues.validityPeriod}
-                                    onChange={(e) => handleChange("validityPeriod", e.target.value)}
-                                    className="rounded-xl"
+                    <form onSubmit={handleProceedToReview} className="flex flex-col flex-1 min-h-0">
+                        <div className="p-4 sm:p-5 space-y-3.5 max-h-[60vh] overflow-y-auto flex-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Validation</Label>
+                                    <Input
+                                        type="text"
+                                        placeholder="e.g. 31-12-2028 or 2 Years"
+                                        value={formValues.validityPeriod}
+                                        onChange={(e) => handleChange("validityPeriod", e.target.value)}
+                                        className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Date of Supply / Inspection</Label>
+                                    <DatePickerField
+                                        value={formValues.dateOfSupply}
+                                        onChange={(val) => handleChange("dateOfSupply", val)}
+                                        placeholder="Pick date of supply"
+                                        className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5 font-mono"
+                                        hideActionBadge={true}
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Status</Label>
+                                    <SearchableSelect
+                                        value={formValues.status || "All"}
+                                        onValueChange={(val) => handleChange("status", val === "All" ? "" : val)}
+                                        options={statusOptions}
+                                        placeholder="Select Status"
+                                        searchPlaceholder="Search status..."
+                                        allLabel="Do Not Change Status"
+                                        allValue="All"
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Supplier Code / Supplier</Label>
+                                    <Input
+                                        type="text"
+                                        placeholder="e.g. SUPP-2026"
+                                        value={formValues.supplierCode}
+                                        onChange={(e) => handleChange("supplierCode", e.target.value)}
+                                        className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
                                 />
                             </div>
 
                             <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Date of Supply / Inspection</Label>
-                                <Input
-                                    type="date"
-                                    value={formValues.dateOfSupply}
-                                    onChange={(e) => handleChange("dateOfSupply", e.target.value)}
-                                    className="rounded-xl"
-                                />
-                            </div>
-
-                            <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Status</Label>
-                                <SearchableSelect
-                                    value={formValues.status || "All"}
-                                    onValueChange={(val) => handleChange("status", val === "All" ? "" : val)}
-                                    options={statusOptions}
-                                    placeholder="Select Status"
-                                    searchPlaceholder="Search status..."
-                                    allLabel="Do Not Change Status"
-                                    allValue="All"
-                                />
-                            </div>
-
-                            <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Supplier Code / Supplier</Label>
-                                <Input
-                                    type="text"
-                                    placeholder="e.g. SUPP-2026"
-                                    value={formValues.supplierCode}
-                                    onChange={(e) => handleChange("supplierCode", e.target.value)}
-                                    className="rounded-xl"
-                                />
-                            </div>
-
-                            <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Purchaser Name (Supplier)</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Purchaser Name (Supplier)</Label>
                                 {supplierProfiles.length > 0 ? (
                                     <SearchableSelect
                                         value={formValues.purchaserName || "All"}
@@ -227,159 +243,162 @@ export function BulkEditToolsModal({
                                         placeholder="e.g. L&T Logistics"
                                         value={formValues.purchaserName}
                                         onChange={(e) => handleChange("purchaserName", e.target.value)}
-                                        className="rounded-xl"
+                                        className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
                                     />
                                 )}
                             </div>
 
                             <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Purchaser Contact</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Purchaser Contact</Label>
                                 <Input
                                     type="text"
                                     placeholder="Contact info"
                                     value={formValues.purchaserContact}
                                     onChange={(e) => handleChange("purchaserContact", e.target.value)}
-                                    className="rounded-xl"
+                                    className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
                                 />
                             </div>
 
                             <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Tool Variant</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Tool Variant</Label>
                                 <Input
                                     type="text"
                                     placeholder="e.g. Standard 5T"
                                     value={formValues.toolVariant}
                                     onChange={(e) => handleChange("toolVariant", e.target.value)}
-                                    className="rounded-xl"
+                                    className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
                                 />
                             </div>
 
                             <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Job Code</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Job Code</Label>
                                 <Input
                                     type="text"
                                     placeholder="Job / Work code"
                                     value={formValues.jobCode}
                                     onChange={(e) => handleChange("jobCode", e.target.value)}
-                                    className="rounded-xl"
+                                    className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
                                 />
                             </div>
 
                             <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Make Year</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Make Year</Label>
                                 <Input
                                     type="text"
                                     placeholder="e.g. 2025"
                                     value={formValues.makeYear}
                                     onChange={(e) => handleChange("makeYear", e.target.value)}
-                                    className="rounded-xl"
+                                    className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
                                 />
                             </div>
 
                             <div>
-                                <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Capacity / SWL</Label>
+                                <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Capacity / SWL</Label>
                                 <Input
                                     type="text"
                                     placeholder="Safe working load"
                                     value={formValues.safeWorkingLoad}
                                     onChange={(e) => handleChange("safeWorkingLoad", e.target.value)}
-                                    className="rounded-xl"
+                                    className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Remarks</Label>
+                            <Label className="text-[11px] font-semibold text-foreground/90 mb-1 block">Remarks</Label>
                             <Input
                                 type="text"
                                 placeholder="Additional notes or bulk update remarks..."
                                 value={formValues.remarks}
                                 onChange={(e) => handleChange("remarks", e.target.value)}
-                                className="rounded-xl"
+                                className="h-7.5 sm:h-8 rounded-lg text-xs px-2.5"
                             />
                         </div>
+                    </div>
 
-                        <DialogFooter className="pt-4 border-t">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                                className="rounded-xl"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={activeUpdateKeys.length === 0}
-                                className="rounded-xl font-semibold shadow-md"
-                            >
-                                Review Changes ({activeUpdateKeys.length} field{activeUpdateKeys.length === 1 ? '' : 's'})
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                ) : (
-                    <div className="p-6 space-y-6">
-                        <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 flex items-start gap-3 text-amber-800 dark:text-amber-300">
-                            <AlertTriangle className="size-6 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="px-5 py-3 border-t bg-muted/30 shrink-0 flex items-center justify-end gap-2.5">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                            className="h-8 px-3 rounded-lg text-xs"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={activeUpdateKeys.length === 0}
+                            className="h-8 px-3.5 rounded-lg text-xs font-semibold shadow-sm"
+                        >
+                            Review Changes ({activeUpdateKeys.length} field{activeUpdateKeys.length === 1 ? '' : 's'})
+                        </Button>
+                    </div>
+                </form>
+            ) : (
+                <div className="flex flex-col flex-1 min-h-0">
+                    <div className="p-4 sm:p-5 space-y-4 max-h-[60vh] overflow-y-auto flex-1">
+                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex items-start gap-2.5 text-amber-800 dark:text-amber-300">
+                            <AlertTriangle className="size-4 text-amber-600 shrink-0 mt-0.5" />
                             <div>
-                                <h4 className="font-bold text-sm">Confirmation Required</h4>
-                                <p className="text-xs mt-1 leading-relaxed">
+                                <h4 className="font-bold text-xs">Confirmation Required</h4>
+                                <p className="text-[11px] mt-0.5 leading-relaxed">
                                     You are about to update <strong>{totalCount} selected tools</strong>. Are you sure you want to continue?
                                 </p>
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <div className="space-y-1.5">
+                            <h5 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                 Summary of Updates to Apply:
                             </h5>
-                            <div className="border rounded-xl divide-y bg-muted/20 text-sm max-h-44 overflow-y-auto">
+                            <div className="border rounded-lg divide-y bg-muted/20 text-xs max-h-40 overflow-y-auto">
                                 {Object.entries(activeUpdates).map(([key, val]) => (
-                                    <div key={key} className="px-4 py-2.5 flex items-center justify-between">
-                                        <span className="font-semibold text-xs text-muted-foreground capitalize">
+                                    <div key={key} className="px-3 py-1.5 flex items-center justify-between text-xs">
+                                        <span className="font-semibold text-[11px] text-muted-foreground capitalize">
                                             {key.replace(/([A-Z])/g, ' $1')}
                                         </span>
-                                        <span className="font-mono text-xs font-semibold bg-background px-2.5 py-1 rounded-md border">
+                                        <span className="font-mono text-[11px] font-semibold bg-background px-2 py-0.5 rounded border">
                                             {val}
                                         </span>
                                     </div>
                                 ))}
                             </div>
                         </div>
-
-                        <DialogFooter className="pt-4 border-t flex items-center justify-between w-full">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsConfirmStep(false)}
-                                disabled={loading}
-                                className="rounded-xl gap-1.5"
-                            >
-                                <ArrowLeft className="size-4" />
-                                Back
-                            </Button>
-
-                            <Button
-                                type="button"
-                                onClick={handleConfirmUpdate}
-                                disabled={loading}
-                                className="rounded-xl font-bold px-6 shadow-lg bg-primary text-primary-foreground gap-2"
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="size-4 animate-spin" />
-                                        Updating {totalCount} Tools...
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle2 className="size-4" />
-                                        Confirm & Apply to {totalCount} Tools
-                                    </>
-                                )}
-                            </Button>
-                        </DialogFooter>
                     </div>
-                )}
+
+                    <div className="px-5 py-3 border-t bg-muted/30 shrink-0 flex items-center justify-between w-full">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsConfirmStep(false)}
+                            disabled={loading}
+                            className="h-8 px-3 rounded-lg text-xs gap-1.5"
+                        >
+                            <ArrowLeft className="size-3.5" />
+                            Back
+                        </Button>
+
+                        <Button
+                            type="button"
+                            onClick={handleConfirmUpdate}
+                            disabled={loading}
+                            className="h-8 px-3.5 rounded-lg text-xs font-semibold shadow-sm gap-1.5"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                    Updating {totalCount} Tools...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle2 className="size-3.5" />
+                                    Confirm & Apply to {totalCount} Tools
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+            )}
             </DialogContent>
         </Dialog>
     );

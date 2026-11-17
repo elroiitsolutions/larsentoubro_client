@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,7 +29,11 @@ import {
     FolderKanban,
     Store as StoreIcon,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight
 } from "lucide-react"
 import toolService, { type ToolRecord } from "@/services/tool.service"
 import { projectService, type ProjectRecord } from "@/services/project.service"
@@ -37,6 +42,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select"
 import { ScrapModal } from "./ScrapModal"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
+import { useSearchParams } from "react-router-dom"
 
 export function ScrapPage() {
     const { user } = useAuth()
@@ -52,7 +58,10 @@ export function ScrapPage() {
     const [search, setSearch] = useState("")
     const [selectedProject, setSelectedProject] = useState("All")
     const [selectedStore, setSelectedStore] = useState("All")
-    const [disposalStatus, setDisposalStatus] = useState<"pending" | "disposed" | "all">("pending")
+    const [searchParams, setSearchParams] = useSearchParams()
+    const urlStatus = searchParams.get("disposalStatus") as "pending" | "disposed" | "all" | null
+    const [disposalStatus, setDisposalStatus] = useState<"pending" | "disposed" | "all">(urlStatus || "all")
+    const [statusCounts, setStatusCounts] = useState<{ pending: number; disposed: number; all: number }>({ pending: 0, disposed: 0, all: 0 })
 
     // Master filter options
     const [projects, setProjects] = useState<ProjectRecord[]>([])
@@ -140,6 +149,9 @@ export function ScrapPage() {
                 setScrappedTools(res.data || [])
                 setTotal(res.total || 0)
                 setTotalPages(res.totalPages || 1)
+                if ((res as any).counts) {
+                    setStatusCounts((res as any).counts)
+                }
             }
         } catch (error: any) {
             console.error(error)
@@ -224,12 +236,17 @@ export function ScrapPage() {
         setSearch("")
         setSelectedProject("All")
         setSelectedStore("All")
-        setDisposalStatus("pending")
+        setDisposalStatus("all")
         setPage(1)
         setSelectedIds(new Set())
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev)
+            next.delete("disposalStatus")
+            return next
+        }, { replace: true })
     }
 
-    const isAnyFilterActive = search !== "" || selectedProject !== "All" || selectedStore !== "All" || disposalStatus !== "pending"
+    const isAnyFilterActive = search !== "" || selectedProject !== "All" || selectedStore !== "All" || disposalStatus !== "all"
 
     // Confirm dialog triggers
     const triggerSingleRestore = (tool: ToolRecord) => {
@@ -296,40 +313,42 @@ export function ScrapPage() {
     }))
 
     const disposalStatusOptions = [
-        { label: "Available for Disposal", value: "pending" },
-        { label: "Disposed via DC", value: "disposed" },
-        { label: "All Scrapped Tools", value: "all" }
+        { label: `All Scrapped Tools${statusCounts.all > 0 ? ` (${statusCounts.all})` : ''}`, value: "all" },
+        { label: `Available for Disposal${statusCounts.pending > 0 ? ` (${statusCounts.pending})` : ' (0)'}`, value: "pending" },
+        { label: `Disposed via DC${statusCounts.disposed > 0 ? ` (${statusCounts.disposed})` : ' (0)'}`, value: "disposed" }
     ]
 
     return (
-        <div className="h-full flex flex-col overflow-hidden gap-4 mx-auto w-full animate-in fade-in duration-500">
+        <div className="w-full flex flex-col space-y-3 pt-1 pb-4 animate-in fade-in duration-300">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
                 <div>
-                    <div className="flex items-center gap-2.5">
-                        <Archive className="size-7 text-amber-500" />
-                        <h1 className="text-3xl font-extrabold tracking-tight">Scrapped Tools Management</h1>
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            <Archive className="size-4" />
+                        </div>
+                        <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">Scrapped Tools Management</h1>
                     </div>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Manage tools moved to scrap, filter items by project and store, and issue Delivery Challans (SDC) to Scrap Dealers. ({total} total records)
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
+                       {total} Total Records
                     </p>
                 </div>
             </div>
 
-            <Card className="flex-1 min-h-0 flex flex-col border-border/50 shadow-lg shadow-black/5 overflow-hidden rounded-2xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl">
+            <Card className="flex-1 min-h-0 flex flex-col border-border/50 shadow-2xs overflow-hidden rounded-xl bg-gradient-to-b from-background to-background/50 backdrop-blur-xl">
                 {/* Search & Filter Bar */}
-                <div className="p-4 border-b bg-muted/20 backdrop-blur-md shrink-0 space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-3 items-end">
+                <div className="p-2.5 sm:p-3 border-b bg-muted/20 shrink-0 space-y-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-2.5 items-end">
                         {/* Search Input */}
                         <div className="lg:col-span-4 space-y-1">
-                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                                 Search Scrapped Tools
                             </span>
                             <div className="relative group">
-                                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
+                                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
                                 <Input
                                     placeholder="Search by ID, tool code, or description..."
-                                    className="!pl-9 h-10 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-sm rounded-xl text-xs"
+                                    className="!pl-8 h-7.5 bg-background/50 border-border/60 hover:bg-background focus:bg-background transition-all shadow-2xs rounded-lg text-xs"
                                     value={search}
                                     onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                                 />
@@ -338,7 +357,7 @@ export function ScrapPage() {
 
                         {/* Project Filter */}
                         <div className="lg:col-span-3 space-y-1">
-                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                                 <FolderKanban className="size-3 text-indigo-500" /> Project
                             </span>
                             <SearchableSelect
@@ -351,13 +370,13 @@ export function ScrapPage() {
                                 }}
                                 allLabel="All Projects"
                                 placeholder="All Projects"
-                                className="h-10 text-xs"
+                                className="h-7.5 text-xs rounded-lg"
                             />
                         </div>
 
                         {/* Store Filter */}
                         <div className="lg:col-span-2 space-y-1">
-                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                                 <StoreIcon className="size-3 text-emerald-500" /> Store / Site
                             </span>
                             <SearchableSelect
@@ -369,13 +388,13 @@ export function ScrapPage() {
                                 }}
                                 allLabel="All Stores"
                                 placeholder="All Stores"
-                                className="h-10 text-xs"
+                                className="h-7.5 text-xs rounded-lg"
                             />
                         </div>
 
                         {/* Disposal Status Filter */}
                         <div className="lg:col-span-3 space-y-1">
-                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                                 <Filter className="size-3 text-amber-500" /> Disposal Status
                             </span>
                             <SearchableSelect
@@ -388,7 +407,7 @@ export function ScrapPage() {
                                 }}
                                 allLabel="Select status..."
                                 placeholder="Disposal Status"
-                                className="h-10 text-xs"
+                                className="h-7.5 text-xs rounded-lg"
                             />
                         </div>
                     </div>
@@ -396,16 +415,16 @@ export function ScrapPage() {
                     {/* Reset Filters Quick Button */}
                     {isAnyFilterActive && (
                         <div className="flex items-center justify-between pt-1 text-xs">
-                            <span className="text-muted-foreground font-medium text-[11px]">
+                            <span className="text-muted-foreground font-medium text-[10px]">
                                 Filtered view active: Showing {total} matched item(s)
                             </span>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={resetFilters}
-                                className="h-6 px-2 text-[11px] font-medium text-primary hover:bg-primary/10 cursor-pointer"
+                                className="h-6 px-2 text-[10px] font-medium text-primary hover:bg-primary/10 cursor-pointer"
                             >
-                                <RotateCcw className="size-3 mr-1" /> Reset all filters
+                                <RotateCcw className="size-2.5 mr-1" /> Reset all filters
                             </Button>
                         </div>
                     )}
@@ -414,10 +433,10 @@ export function ScrapPage() {
                 <CardContent className="p-0 flex-1 min-h-0 flex flex-col overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-hidden relative">
                         <div className="h-full overflow-auto">
-                            <table className="h-full min-w-full text-sm text-left whitespace-nowrap">
+                            <table className="w-full text-xs text-left whitespace-nowrap">
                                 <thead className="sticky top-0 z-10 bg-card shadow-xs">
-                                    <tr className="border-b bg-muted text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                                        <th className="w-12 px-4 py-4 select-none text-center">
+                                    <tr className="border-b bg-muted text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                                        <th className="w-10 px-2.5 py-2 select-none text-center">
                                             <button
                                                 type="button"
                                                 onClick={handleToggleSelectAll}
@@ -426,27 +445,62 @@ export function ScrapPage() {
                                                 title={isAllSelected ? "Deselect all" : `Select all ${selectableToolsOnPage.length} available tools`}
                                             >
                                                 {isSelectingAll ? (
-                                                    <Loader2 className="size-4 animate-spin text-primary" />
+                                                    <Loader2 className="size-3.5 animate-spin text-primary" />
                                                 ) : isAllSelected ? (
-                                                    <CheckSquare className="size-4 text-primary" />
+                                                    <CheckSquare className="size-3.5 text-primary" />
                                                 ) : (
-                                                    <Square className="size-4" />
+                                                    <Square className="size-3.5" />
                                                 )}
                                             </button>
                                         </th>
-                                        <th className="px-6 py-4">Tool ID</th>
-                                        <th className="px-6 py-4">Description</th>
-                                        <th className="px-6 py-4">Original Store / Site</th>
-                                        <th className="px-6 py-4">Project</th>
-                                        <th className="px-6 py-4">Scrapped Date</th>
-                                        <th className="px-6 py-4">Scrapped By</th>
-                                        <th className="px-6 py-4">Scrap Reason</th>
-                                        <th className="px-6 py-4">Disposal Status</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
+                                        <th className="px-3.5 py-2">Tool ID</th>
+                                        <th className="px-3.5 py-2">Description</th>
+                                        <th className="px-3.5 py-2">Original Store / Site</th>
+                                        <th className="px-3.5 py-2">Project</th>
+                                        <th className="px-3.5 py-2">Scrapped Date</th>
+                                        <th className="px-3.5 py-2">Scrapped By</th>
+                                        <th className="px-3.5 py-2">Scrap Reason</th>
+                                        <th className="px-3.5 py-2">Disposal Status</th>
+                                        <th className="px-3.5 py-2 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
-                                    {loading || scrappedTools.length === 0 ? (
+                                    {loading ? (
+                                        Array.from({ length: Math.min(limit || 10, 8) }).map((_, idx) => (
+                                            <tr key={`scrap-skeleton-${idx}`} className="whitespace-nowrap">
+                                                <td className="px-4 py-3.5 text-center">
+                                                    <Skeleton className="size-3.5 mx-auto rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4.5 w-24 rounded-md" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-44 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-28 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-28 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-20 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-24 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-4 w-32 rounded" />
+                                                </td>
+                                                <td className="px-3.5 py-3">
+                                                    <Skeleton className="h-5 w-28 rounded-full" />
+                                                </td>
+                                                <td className="px-3.5 py-3 text-right">
+                                                    <Skeleton className="h-7 w-20 rounded-lg ml-auto" />
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : scrappedTools.length === 0 ? (
                                         <tr>
                                             <td colSpan={50} className="px-6 py-24 text-center select-none opacity-0">
                                                 &nbsp;
@@ -486,61 +540,61 @@ export function ScrapPage() {
                                                             title={isDisposed ? "Already disposed via Delivery Challan" : "Select tool"}
                                                         >
                                                             {selectedIds.has(t._id) ? (
-                                                                <CheckSquare className="size-4 text-primary" />
+                                                                <CheckSquare className="size-3.5 text-primary" />
                                                             ) : (
-                                                                <Square className="size-4" />
+                                                                <Square className="size-3.5" />
                                                             )}
                                                         </button>
                                                     </td>
-                                                    <td className="px-6 py-4 font-mono font-bold text-foreground">
+                                                    <td className="px-3.5 py-2 font-mono font-bold text-foreground text-xs">
                                                         <span>{t.toolId || t.toolCode || t._id}</span>
                                                     </td>
-                                                    <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate" title={t.description}>
+                                                    <td className="px-3.5 py-2 font-medium text-foreground max-w-xs truncate text-xs" title={t.description}>
                                                         {t.description || '-'}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-xs">
                                                         {storeName}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-xs">
                                                         {projectName}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground text-xs">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-[11px]">
                                                         {scrappedDateStr}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground text-xs font-medium">
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-xs font-medium">
                                                         {scrappedByName}
                                                     </td>
-                                                    <td className="px-6 py-4 text-muted-foreground text-xs max-w-[180px] truncate" title={t.scrapReason || 'Marked as Scrap'}>
+                                                    <td className="px-3.5 py-2 text-muted-foreground text-xs max-w-[180px] truncate" title={t.scrapReason || 'Marked as Scrap'}>
                                                         {t.scrapReason || '-'}
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-3.5 py-2">
                                                         {isDisposed ? (
                                                             <div className="flex flex-col gap-0.5">
-                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 w-fit">
-                                                                    <Truck className="size-3 text-slate-600 dark:text-slate-400" />
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 w-fit">
+                                                                    <Truck className="size-2.5 text-slate-600 dark:text-slate-400" />
                                                                     Disposed: {challanNum || 'SDC'}
                                                                 </span>
                                                                 {dealerName && (
-                                                                    <span className="text-[10px] text-muted-foreground font-medium pl-1">
+                                                                    <span className="text-[9px] text-muted-foreground font-medium pl-1">
                                                                         To: {dealerName}
                                                                     </span>
                                                                 )}
                                                             </div>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-                                                                <Archive className="size-3 text-amber-600" />
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                                                <Archive className="size-2.5 text-amber-600" />
                                                                 Available for Disposal
                                                             </span>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
+                                                    <td className="px-3.5 py-2 text-right">
+                                                        <div className="flex items-center justify-end gap-1.5">
                                                             {!isDisposed ? (
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
                                                                     onClick={() => triggerSingleRestore(t)}
-                                                                    className="h-8 px-2.5 text-xs font-medium text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-700 rounded-lg"
+                                                                    className="h-7 px-2 text-[11px] font-medium text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-700 rounded-lg cursor-pointer"
                                                                 >
                                                                     <RotateCcw className="size-3.5 mr-1" />
                                                                     Restore
@@ -560,15 +614,6 @@ export function ScrapPage() {
                             </table>
                         </div>
 
-                        {loading && (
-                            <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
-                                <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                    <Loader2 className="size-8 animate-spin text-primary/50 mb-4" />
-                                    <p className="text-sm font-medium animate-pulse">Loading scrapped tools...</p>
-                                </div>
-                            </div>
-                        )}
-
                         {!loading && scrappedTools.length === 0 && (
                             <div className="absolute inset-x-0 bottom-0 top-[49px] z-20 flex flex-col items-center justify-center pointer-events-none">
                                 <div className="pointer-events-auto flex flex-col items-center justify-center max-w-sm mx-auto p-4 text-center">
@@ -576,13 +621,26 @@ export function ScrapPage() {
                                         <Archive className="size-8" />
                                     </div>
                                     <h3 className="text-lg font-semibold text-foreground mb-1">
-                                        {disposalStatus === "disposed" ? "No Disposed Tools" : "No Scrapped Tools Found"}
+                                        {disposalStatus === "disposed" ? "No Disposed Tools" : disposalStatus === "pending" ? "No Tools Waiting for Disposal" : "No Scrapped Tools Found"}
                                     </h3>
                                     <p className="text-sm text-muted-foreground text-balance">
                                         {disposalStatus === "pending"
-                                            ? "No tools waiting for disposal. Tools marked as Scrap from store inventory will appear here."
+                                            ? statusCounts.disposed > 0
+                                                ? `No tools are waiting for disposal. You have ${statusCounts.disposed} tool(s) already disposed via DC.`
+                                                : "No tools waiting for disposal. Tools marked as Scrap from store inventory will appear here."
                                             : "No matching scrap tool records found for the selected filter criteria."}
                                     </p>
+                                    {disposalStatus === "pending" && statusCounts.disposed > 0 && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setDisposalStatus("all")}
+                                            className="mt-3 rounded-xl text-xs gap-1.5 border-amber-300 dark:border-amber-800 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                        >
+                                            <Archive className="size-3.5" />
+                                            View All Scrapped & Disposed Tools ({statusCounts.all})
+                                        </Button>
+                                    )}
                                     {isAnyFilterActive && (
                                         <Button
                                             variant="outline"
@@ -599,21 +657,21 @@ export function ScrapPage() {
                         )}
                     </div>
 
-                    {/* Premium Pagination Bar */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t bg-muted/10 backdrop-blur-sm gap-4 shrink-0">
-                        <div className="text-sm font-medium text-muted-foreground w-full sm:w-1/4 text-center sm:text-left">
-                            Showing <span className="text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="text-foreground">{Math.min(page * limit, total)}</span> of <span className="text-foreground">{total}</span> items
+                    {/* Compact Pagination Bar */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between px-3.5 py-1.5 border-t border-border/50 bg-muted/15 gap-2 shrink-0">
+                        <div className="text-[11px] font-medium text-muted-foreground w-full sm:w-auto text-center sm:text-left">
+                            Showing <span className="font-semibold text-foreground">{total === 0 ? 0 : ((page - 1) * limit) + 1}</span> to <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> of <span className="font-semibold text-foreground">{total}</span> items
                         </div>
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap flex-1 w-full">
+                        <div className="flex items-center justify-center gap-1 flex-wrap">
                             {/* First Page */}
                             {page > 1 && (
                                 <button
                                     onClick={() => setPage(1)}
                                     disabled={loading}
-                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                                     title="First Page"
                                 >
-                                    «
+                                    <ChevronsLeft className="size-3.5" />
                                 </button>
                             )}
 
@@ -621,16 +679,16 @@ export function ScrapPage() {
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1 || loading}
-                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                                 title="Previous Page"
                             >
-                                ‹
+                                <ChevronLeft className="size-3.5" />
                             </button>
 
                             {/* Page Range Buttons */}
                             {(() => {
                                 const pageRange = [];
-                                const maxVisiblePages = 10;
+                                const maxVisiblePages = 5;
                                 let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
                                 let endPage = startPage + maxVisiblePages - 1;
 
@@ -650,10 +708,10 @@ export function ScrapPage() {
                                             key={pNum}
                                             onClick={() => setPage(pNum)}
                                             disabled={loading}
-                                            className={`h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all cursor-pointer border ${
+                                            className={`h-6.5 min-w-[26px] px-1.5 rounded-md flex items-center justify-center text-[11px] transition-all cursor-pointer border ${
                                                 isActive
-                                                    ? "bg-primary border-primary text-primary-foreground shadow-md"
-                                                    : "bg-background border-border/85 hover:bg-muted text-foreground"
+                                                    ? "bg-primary border-primary text-primary-foreground font-bold shadow-2xs"
+                                                    : "bg-background border-border/70 hover:bg-muted text-foreground font-medium"
                                             }`}
                                         >
                                             {pNum}
@@ -666,10 +724,10 @@ export function ScrapPage() {
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page >= totalPages || loading}
-                                className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                                 title="Next Page"
                             >
-                                ›
+                                <ChevronRight className="size-3.5" />
                             </button>
 
                             {/* Last Page */}
@@ -677,15 +735,16 @@ export function ScrapPage() {
                                 <button
                                     onClick={() => setPage(totalPages)}
                                     disabled={loading}
-                                    className="h-9 w-9 rounded-xl flex items-center justify-center text-xs font-bold border border-border/85 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-50"
+                                    className="h-6.5 w-6.5 rounded-md flex items-center justify-center border border-border/70 bg-background hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                                     title="Last Page"
                                 >
-                                    »
+                                    <ChevronsRight className="size-3.5" />
                                 </button>
                             )}
                         </div>
-                        {/* Spacer block to balance the layout and keep the center block aligned exactly in the middle */}
-                        <div className="hidden sm:block w-full sm:w-1/4" />
+                        <div className="hidden sm:block w-full sm:w-auto text-right text-[11px] text-muted-foreground">
+                            Page <span className="font-bold text-foreground">{page}</span> of <span className="font-bold text-foreground">{totalPages}</span>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -806,13 +865,15 @@ export function ScrapPage() {
 
             {/* Confirmation Dialog */}
             <AlertDialog open={dialogState.isOpen} onOpenChange={(open) => !open && setDialogState(prev => ({ ...prev, isOpen: false }))}>
-                <AlertDialogContent className="rounded-2xl border-border/60">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold">
-                            <RotateCcw className="size-5 text-emerald-500" />
-                            Confirm Inventory Restore
+                <AlertDialogContent className="rounded-xl max-w-md p-4 sm:p-5 shadow-2xl border-border/80">
+                    <AlertDialogHeader className="space-y-1.5">
+                        <AlertDialogTitle className="flex items-center gap-2 text-sm sm:text-base font-bold text-foreground">
+                            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0">
+                                <RotateCcw className="size-4" />
+                            </div>
+                            <span>Confirm Inventory Restore</span>
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-muted-foreground pt-1">
+                        <AlertDialogDescription className="text-xs text-muted-foreground pt-1 leading-relaxed">
                             {dialogState.type === 'restore' && (
                                 <>Are you sure you want to restore scrapped tool <strong className="font-mono text-foreground">{dialogState.targetToolId}</strong> back to active store inventory?</>
                             )}
@@ -821,17 +882,17 @@ export function ScrapPage() {
                             )}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="gap-2 pt-2">
-                        <AlertDialogCancel disabled={actionLoading} className="rounded-xl h-10 font-semibold">
+                    <AlertDialogFooter className="gap-2 sm:gap-2 pt-3 border-t border-border/60 mt-3">
+                        <AlertDialogCancel disabled={actionLoading} className="h-8 rounded-lg px-4 text-xs font-semibold hover:bg-muted/60 cursor-pointer">
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleConfirmAction}
                             disabled={actionLoading}
-                            className="rounded-xl h-10 font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
+                            className="h-8 rounded-lg px-4.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-2xs"
                         >
                             {actionLoading ? (
-                                <Loader2 className="size-4 animate-spin mr-2" />
+                                <Loader2 className="size-3.5 animate-spin mr-1.5" />
                             ) : null}
                             Confirm & Restore
                         </AlertDialogAction>

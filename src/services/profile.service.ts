@@ -97,8 +97,11 @@ class ProfileService {
         return response.data;
     }
 
-    async uploadDocument(profileId: string, formData: FormData) {
-        const response = await api.post(`/api/profiles/${profileId}/documents`, formData, {
+    async uploadDocument(profileId: string, formData: FormData, profileType?: string) {
+        const url = profileType
+            ? `/api/profiles/${profileId}/documents?profileType=${encodeURIComponent(profileType)}`
+            : `/api/profiles/${profileId}/documents`;
+        const response = await api.post(url, formData, {
             headers: {
                 "Content-Type": "multipart/form-data"
             }
